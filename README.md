@@ -47,3 +47,4 @@ Full reasoning behind each choice is in `docs/architecture.md`.
 module boundaries, CI/CD, branch strategy. `AuthModule` (OTP request/verify)
 is the first module being built out for real; everything else is a
 placeholder folder with a README describing its eventual scope.
+test
