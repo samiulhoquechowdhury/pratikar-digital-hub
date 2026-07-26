@@ -1,0 +1,21 @@
+name: Deploy — Production
+
+# Merges to `main` deploy to production. Uses a GitHub Environment with a
+# required reviewer so a merge doesn't ship instantly without a final look —
+# set this up in repo Settings > Environments > production.
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy-api-production:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy API to Railway (production)
+        run: |
+          echo "TODO: railway up --service api --environment production"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

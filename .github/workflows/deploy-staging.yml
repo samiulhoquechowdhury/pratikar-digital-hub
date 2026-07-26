@@ -1,0 +1,22 @@
+name: Deploy — Staging
+
+# Merges to `develop` auto-deploy to staging. Vercel deploys web/admin on git
+# push natively (once the repo is connected in the Vercel dashboard) — this
+# workflow only handles the API (Railway), which needs an explicit trigger.
+on:
+  push:
+    branches: [develop]
+
+jobs:
+  deploy-api-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy API to Railway (staging)
+        run: |
+          echo "TODO: railway up --service api --environment staging"
+          echo "Requires RAILWAY_TOKEN secret — add once the Railway project exists."
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}

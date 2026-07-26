@@ -1,0 +1,352 @@
+// Pratikar Digital Hub — Prisma schema
+// Mirrors docs/trd.md Section 2. Keep the two in sync when either changes.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Identity & Access
+// ---------------------------------------------------------------------------
+
+enum Role {
+  CUSTOMER
+  SUPPORT
+  CONTENT_MANAGER
+  ADMIN
+  SUPER_ADMIN
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String?
+  email     String?  @unique
+  phone     String?  @unique
+  role      Role     @default(CUSTOMER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sessions           Session[]
+  generatedDocuments GeneratedDocument[]
+  reviewsRequested   DocumentReview[]     @relation("ReviewRequestedBy")
+  reviewsAssigned    DocumentReview[]     @relation("ReviewAssignedTo")
+  orders             Order[]
+  enrollments        Enrollment[]
+  chatbotSessions    ChatbotConversation[]
+  auditLogEntries    AuditLog[]
+
+  @@index([role])
+}
+
+model OtpRequest {
+  id          String    @id @default(uuid())
+  identifier  String
+  channel     String // "email" | "sms"
+  codeHash    String
+  attempts    Int       @default(0)
+  consumedAt  DateTime?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([identifier, channel, consumedAt])
+}
+
+model Session {
+  id                String    @id @default(uuid())
+  userId            String
+  refreshTokenHash  String    @unique
+  userAgent         String?
+  ip                String?
+  revokedAt         DateTime?
+  expiresAt         DateTime
+  createdAt         DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Documents & Review
+// ---------------------------------------------------------------------------
+
+enum TemplateStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Template {
+  id                 String         @id @default(uuid())
+  title              String
+  category           String // taxonomy TBD — see docs/srs.md Section 8
+  priceInPaise       Int
+  reviewPriceInPaise Int
+  fieldSchema        Json // dynamic form field definitions
+  status             TemplateStatus @default(DRAFT)
+  createdBy          String
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  generatedDocuments GeneratedDocument[]
+
+  @@index([status, category])
+}
+
+enum GeneratedDocumentStatus {
+  GENERATED
+  PAID
+  DOWNLOADED
+}
+
+model GeneratedDocument {
+  id           String                   @id @default(uuid())
+  userId       String
+  templateId   String
+  filledData   Json
+  fileUrl      String // R2 key
+  status       GeneratedDocumentStatus  @default(GENERATED)
+  downloadedAt DateTime?
+  createdAt    DateTime                 @default(now())
+
+  user     User             @relation(fields: [userId], references: [id])
+  template Template         @relation(fields: [templateId], references: [id])
+  reviews  DocumentReview[]
+  orders   Order[]
+
+  @@index([userId])
+}
+
+enum DocumentReviewStatus {
+  QUEUED
+  IN_REVIEW
+  RETURNED
+}
+
+model DocumentReview {
+  id                  String                @id @default(uuid())
+  generatedDocumentId String
+  requestedByUserId   String
+  assignedToUserId    String?
+  status              DocumentReviewStatus  @default(QUEUED)
+  reviewedFileUrl     String? // R2 key
+  notes               String?
+  orderId             String                @unique
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  generatedDocument GeneratedDocument @relation(fields: [generatedDocumentId], references: [id])
+  requestedBy       User              @relation("ReviewRequestedBy", fields: [requestedByUserId], references: [id])
+  assignedTo        User?             @relation("ReviewAssignedTo", fields: [assignedToUserId], references: [id])
+  order             Order             @relation(fields: [orderId], references: [id])
+
+  // Atomic-claim pattern (docs/trd.md 4.3) relies on assignedToUserId starting
+  // null and being set via a conditional UPDATE — don't default it to a value.
+  @@index([status, assignedToUserId])
+}
+
+// ---------------------------------------------------------------------------
+// Content Library & LMS
+// ---------------------------------------------------------------------------
+
+enum ContentCategory {
+  LEGAL_PRACTICE
+  BUSINESS_COMPLIANCE
+  PROPERTY_DOCUMENTATION
+  DIGITAL_CAREER
+  CHECKLISTS_REFERENCE
+}
+
+enum ContentType {
+  EBOOK
+  CHECKLIST
+}
+
+model ContentLibraryItem {
+  id           String          @id @default(uuid())
+  title        String
+  category     ContentCategory
+  type         ContentType
+  priceInPaise Int
+  fileUrl      String
+  status       TemplateStatus  @default(DRAFT)
+  createdAt    DateTime        @default(now())
+
+  orders Order[]
+
+  @@index([status, category])
+}
+
+model Course {
+  id                 String   @id @default(uuid())
+  title              String
+  description        String?
+  priceInPaise       Int
+  accessDurationDays Int      @default(180)
+  status             TemplateStatus @default(DRAFT)
+  createdAt          DateTime @default(now())
+
+  modules     CourseModule[]
+  enrollments Enrollment[]
+  orders      Order[]
+}
+
+model CourseModule {
+  id            String @id @default(uuid())
+  courseId      String
+  title         String
+  order         Int
+  videoAssetId  String // Cloudflare Stream UID
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, order])
+}
+
+model Enrollment {
+  id          String    @id @default(uuid())
+  userId      String
+  courseId    String
+  orderId     String    @unique
+  enrolledAt  DateTime  @default(now())
+  expiresAt   DateTime
+  completedAt DateTime?
+
+  user        User         @relation(fields: [userId], references: [id])
+  course      Course       @relation(fields: [courseId], references: [id])
+  order       Order        @relation(fields: [orderId], references: [id])
+  certificate Certificate?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Certificate {
+  id               String   @id @default(uuid())
+  enrollmentId     String   @unique
+  verificationCode String   @unique
+  issuedAt         DateTime @default(now())
+
+  enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
+
+  @@index([verificationCode])
+}
+
+// ---------------------------------------------------------------------------
+// Commerce
+// ---------------------------------------------------------------------------
+
+enum OrderItemType {
+  DOCUMENT
+  DOCUMENT_REVIEW
+  CONTENT_ITEM
+  COURSE
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+model Order {
+  id                String        @id @default(uuid())
+  userId            String
+  itemType          OrderItemType
+  amount            Int // paise
+  gstAmount         Int // paise
+  status            OrderStatus   @default(PENDING)
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id])
+  invoice  Invoice?
+  review   DocumentReview?
+
+  // Polymorphic-by-itemType references — exactly one of these is set,
+  // matching `itemType`. Enforced at the application layer, not the DB,
+  // since Prisma doesn't support a true discriminated FK constraint.
+  generatedDocumentId  String?
+  generatedDocument    GeneratedDocument?  @relation(fields: [generatedDocumentId], references: [id])
+  contentLibraryItemId String?
+  contentLibraryItem   ContentLibraryItem? @relation(fields: [contentLibraryItemId], references: [id])
+  courseId             String?
+  course                Course?            @relation(fields: [courseId], references: [id])
+  enrollment            Enrollment?
+
+  @@index([userId, status])
+  @@index([status, createdAt]) // for the payment-reconciliation job's pending-order sweep
+}
+
+model Invoice {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  invoiceNumber String   @unique // sequential, GST-compliant format
+  gstin         String?
+  pdfUrl        String
+  createdAt     DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// AI
+// ---------------------------------------------------------------------------
+
+model ChatbotConversation {
+  id        String   @id @default(uuid())
+  userId    String? // nullable — supports pre-login chat
+  messages  Json // array of { role, content, timestamp }
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+model KnowledgeBaseDocument {
+  id         String   @id @default(uuid())
+  sourceType String // "faq" | "template" | "course" | "policy"
+  sourceId   String
+  content    String
+  // embedding stored via pgvector — Prisma has no native vector type yet;
+  // managed through a raw migration adding a `vector` column, referenced
+  // via $queryRaw for similarity search rather than the Prisma Client API.
+  updatedAt  DateTime @updatedAt
+
+  @@index([sourceType, sourceId])
+}
+
+// ---------------------------------------------------------------------------
+// Admin / Audit
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  actorUserId String
+  action     String
+  targetType String
+  targetId   String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  actor User @relation(fields: [actorUserId], references: [id])
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ---------------------------------------------------------------------------
+// Newly in-scope, not yet modeled (docs/trd.md Section 2.6)
+// ---------------------------------------------------------------------------
+// AffiliateAccount, FranchiseAccount, and related commission/territory models
+// are intentionally absent — blocked on the scoping pass noted in
+// docs/srs.md Section 8, items 4-5.
