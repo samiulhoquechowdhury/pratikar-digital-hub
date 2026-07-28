@@ -1,0 +1,29 @@
+# Build context is the monorepo root (the API image needs the workspace root,
+# the lockfile, and packages/* to resolve workspace: dependencies).
+
+node_modules
+**/node_modules
+
+# Build output — regenerated inside the image
+dist
+**/dist
+.next
+**/.next
+*.tsbuildinfo
+**/*.tsbuildinfo
+.turbo
+**/.turbo
+
+# Never ship secrets or local dev state
+.env
+**/.env
+**/.env.local
+**/.env.*.local
+apps/api/.storage-dev
+
+.git
+.github
+.husky
+docs
+coverage
+**/coverage

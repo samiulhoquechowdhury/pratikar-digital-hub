@@ -14,8 +14,36 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy API to Railway (production)
+      - name: Build API image
+        run: docker build -f apps/api/Dockerfile -t pratikar-api:${{ github.sha }} .
+
+      - name: Verify runtime dependencies
         run: |
-          echo "TODO: railway up --service api --environment production"
+          docker run --rm pratikar-api:${{ github.sha }} \
+            node -e "const {PrismaClient}=require('@prisma/client'); new PrismaClient(); console.log('prisma client ok')"
+          docker run --rm pratikar-api:${{ github.sha }} soffice --headless --version
+
+      - name: Check for Railway credentials
+        id: creds
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -n "$RAILWAY_TOKEN" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy API to Railway (production)
+        if: steps.creds.outputs.present == 'true'
+        run: |
+          npm install -g @railway/cli
+          railway up --service api --environment production --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+      # Don't let a green check imply a deploy that never happened.
+      - name: Report skipped deploy
+        if: steps.creds.outputs.present != 'true'
+        run: |
+          echo "::warning title=Deploy skipped::RAILWAY_TOKEN is not set — the image was built and verified, but nothing was deployed. Add the secret once the Railway project exists."
