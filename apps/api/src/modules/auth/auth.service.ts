@@ -1,27 +1,33 @@
-import { BadRequestException, GoneException, HttpException, HttpStatus, Injectable } from "@nestjs/common";
+import {
+  BadRequestException,
+  GoneException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+} from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { NotificationsService } from "../notifications/notifications.service";
 import { UsersService } from "../users/users.service";
+
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
 import { OtpService } from "./otp.service";
 import { SessionService } from "./session.service";
 
-// TODO: swap for real providers once wired up — MSG91 (SMS, pending client DLT
-// registration) and Resend (email, no external dependency, can ship first).
-interface OtpSender {
-  send(identifier: string, code: string): Promise<void>;
-}
-
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
     private readonly otpService: OtpService,
     private readonly sessionService: SessionService,
     private readonly jwtService: JwtService,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async requestOtp(dto: OtpRequestDto): Promise<void> {
@@ -69,11 +75,18 @@ export class AuthService {
         where: { id: record.id },
         data: { consumedAt: new Date() },
       });
-      throw new HttpException("TOO_MANY_ATTEMPTS", HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        "TOO_MANY_ATTEMPTS",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     // 3. Constant-time hash comparison.
-    const isValid = this.otpService.verifyHash(dto.otp, dto.identifier, record.codeHash);
+    const isValid = this.otpService.verifyHash(
+      dto.otp,
+      dto.identifier,
+      record.codeHash,
+    );
 
     if (!isValid) {
       await this.prisma.otpRequest.update({
@@ -94,10 +107,11 @@ export class AuthService {
     }
 
     // 5. Resolve or create the user — first successful OTP verify IS signup.
-    const { user, isNewUser } = await this.usersService.findOrCreateByIdentifier(
-      dto.identifier,
-      dto.channel,
-    );
+    const { user, isNewUser } =
+      await this.usersService.findOrCreateByIdentifier(
+        dto.identifier,
+        dto.channel,
+      );
 
     // 6. Issue tokens. Access token short-lived JWT; refresh token opaque,
     // stored hashed, multi-device-safe (session created, none revoked).
@@ -120,17 +134,29 @@ export class AuthService {
   }
 
   async logout(refreshToken: string | undefined, allDevices: boolean) {
-    if (refreshToken) await this.sessionService.revoke(refreshToken, allDevices);
+    if (refreshToken)
+      await this.sessionService.revoke(refreshToken, allDevices);
   }
 
-  private async sendOtp(channel: "email" | "sms", identifier: string, code: string) {
-    const sender: OtpSender = {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      send: async (_id, _c) => {
-        // TODO: channel === "email" -> Resend ; channel === "sms" -> MSG91
-      },
-    };
-    await sender.send(identifier, code);
+  private async sendOtp(
+    channel: "email" | "sms",
+    identifier: string,
+    code: string,
+  ) {
+    if (channel === "sms") {
+      // TODO: wire MSG91 once the client's DLT registration clears
+      // (docs/implementation-plan.md, Open blockers #1). Logging instead of
+      // silently dropping so a dev testing the SMS path can see the code.
+      this.logger.warn(
+        `SMS OTP not wired yet (MSG91 pending DLT) — ${identifier}: ${code}`,
+      );
+      return;
+    }
+
+    await this.notificationsService.sendEmail(
+      identifier,
+      "Your Pratikar Digital Hub verification code",
+      `<p>Your verification code is <strong>${code}</strong>. It expires in ${Math.round(this.otpService.ttlMs / 60_000)} minutes.</p>`,
+    );
   }
 }
-

@@ -3,6 +3,7 @@ import { Reflector } from "@nestjs/core";
 import type { Role } from "@pratikar/types";
 
 import { ROLES_KEY } from "../decorators/roles.decorator";
+import type { AuthenticatedRequest } from "../types/authenticated-request";
 
 // Pairs with @Roles(...) — enforces docs/srs.md Section 6 (Role x Capability
 // Matrix). Requires an upstream auth guard (JWT verification) to have already
@@ -19,7 +20,7 @@ export class RolesGuard implements CanActivate {
     ]);
     if (!requiredRoles || requiredRoles.length === 0) return true;
 
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = context.switchToHttp().getRequest<AuthenticatedRequest>();
     if (!user) return false;
 
     return requiredRoles.includes(user.role);
