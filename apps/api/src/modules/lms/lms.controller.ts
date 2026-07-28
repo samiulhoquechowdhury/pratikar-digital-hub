@@ -1,8 +1,12 @@
 import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 
-import { CurrentUser, type RequestUser } from "../../common/decorators/current-user.decorator";
+import {
+  CurrentUser,
+  type RequestUser,
+} from "../../common/decorators/current-user.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+
 import { LmsService } from "./lms.service";
 
 @Controller("courses")
