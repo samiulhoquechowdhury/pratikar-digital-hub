@@ -7,6 +7,10 @@ dist/
 .next/
 out/
 build/
+*.tsbuildinfo
+
+# Next.js generated types (regenerated on every build)
+next-env.d.ts
 
 # Env
 .env
@@ -34,3 +38,6 @@ coverage/
 
 # Prisma
 apps/api/prisma/*.db
+
+# Local dev storage fallback (StorageService, used when R2 isn't configured)
+apps/api/.storage-dev/
