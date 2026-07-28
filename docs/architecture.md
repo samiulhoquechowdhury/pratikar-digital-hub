@@ -16,13 +16,13 @@
 
 ## 2. Hosting & infrastructure
 
-| Layer | Choice | Why |
-|---|---|---|
-| Web app + admin dashboard | **Vercel** | Zero-ops Next.js hosting, git-push deploys, preview URLs per PR for client review |
-| API (NestJS) + Postgres + Redis | **Railway** | Single dashboard, managed backups, scales on a slider, no server babysitting |
-| Object storage (documents, uploads) | **Cloudflare R2** | S3-compatible, zero egress fees — matters a lot given PDF/DOCX downloads at volume |
-| Video (LMS) | **Cloudflare Stream** | Already decided — adaptive streaming, no separate CDN needed |
-| Future scale path | **Hetzner VPS + Coolify** | When Railway costs outgrow budget, move the same Docker containers to a self-hosted PaaS. Architecture doesn't change, only the deploy target |
+| Layer                               | Choice                    | Why                                                                                                                                           |
+| ----------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Web app + admin dashboard           | **Vercel**                | Zero-ops Next.js hosting, git-push deploys, preview URLs per PR for client review                                                             |
+| API (NestJS) + Postgres + Redis     | **Railway**               | Single dashboard, managed backups, scales on a slider, no server babysitting                                                                  |
+| Object storage (documents, uploads) | **Cloudflare R2**         | S3-compatible, zero egress fees — matters a lot given PDF/DOCX downloads at volume                                                            |
+| Video (LMS)                         | **Cloudflare Stream**     | Already decided — adaptive streaming, no separate CDN needed                                                                                  |
+| Future scale path                   | **Hetzner VPS + Coolify** | When Railway costs outgrow budget, move the same Docker containers to a self-hosted PaaS. Architecture doesn't change, only the deploy target |
 
 ## 3. Auth architecture
 
@@ -69,6 +69,15 @@ Anything slow or unreliable gets queued rather than blocking a request:
 - GitHub Actions: lint + test + build on every PR.
 - Three environments: local (docker-compose), staging, production.
 - Deploy to staging on merge to `develop`, to production on merge to `main` / tagged release.
+- The API ships as a Docker image (`apps/api/Dockerfile`, `railway.json` points
+  Railway at it). **LibreOffice is a hard runtime dependency, not an optional
+  extra** — the document-generation worker shells out to `soffice` for the
+  DOCX→PDF preview, so any base image or future deploy target must provide it.
+  Font packages count too: with no fonts installed LibreOffice still exits 0 but
+  renders a garbled PDF.
+- Templates are read from R2 in deployed environments. The local `.storage-dev/`
+  fallback is deliberately excluded from the image, so a deployed API with no R2
+  credentials configured will fail generation with `ENOENT` on the template.
 
 ## 8. Security baseline
 
