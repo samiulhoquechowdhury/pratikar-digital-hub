@@ -88,6 +88,11 @@ model Template {
   priceInPaise       Int
   reviewPriceInPaise Int
   fieldSchema        Json // dynamic form field definitions
+  // Storage key of the source .docx (docxtemplater tags matching fieldSchema
+  // keys) the document-generation worker fills. Nullable because Milestone 2's
+  // Template CRUD is what lets a Content Manager upload this; a template can
+  // exist in DRAFT with a field schema before a file is attached.
+  templateFileKey    String?
   status             TemplateStatus @default(DRAFT)
   createdBy          String
   createdAt          DateTime       @default(now())
@@ -109,7 +114,8 @@ model GeneratedDocument {
   userId       String
   templateId   String
   filledData   Json
-  fileUrl      String // R2 key
+  fileUrl      String // R2 key — clean DOCX, gated behind payment (one-time download)
+  previewFileUrl String? // R2 key — watermarked PDF, free to view before payment (docs/srs.md 3.2 step 3)
   status       GeneratedDocumentStatus  @default(GENERATED)
   downloadedAt DateTime?
   createdAt    DateTime                 @default(now())

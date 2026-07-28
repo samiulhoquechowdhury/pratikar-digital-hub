@@ -10,13 +10,17 @@ export class UsersService {
   async findOrCreateByIdentifier(
     identifier: string,
     channel: "email" | "sms",
-  ): Promise<{ user: { id: string; name: string | null; role: Role }; isNewUser: boolean }> {
-    const where = channel === "email" ? { email: identifier } : { phone: identifier };
+  ): Promise<{
+    user: { id: string; name: string | null; role: Role };
+    isNewUser: boolean;
+  }> {
+    const where =
+      channel === "email" ? { email: identifier } : { phone: identifier };
     const existing = await this.prisma.user.findUnique({ where });
 
     if (existing) {
       return {
-        user: { id: existing.id, name: existing.name, role: existing.role as Role },
+        user: { id: existing.id, name: existing.name, role: existing.role },
         isNewUser: false,
       };
     }
@@ -26,14 +30,21 @@ export class UsersService {
     });
 
     return {
-      user: { id: created.id, name: created.name, role: created.role as Role },
+      user: { id: created.id, name: created.name, role: created.role },
       isNewUser: true,
     };
   }
 
   listAll() {
     return this.prisma.user.findMany({
-      select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+      },
       orderBy: { createdAt: "desc" },
     });
   }
@@ -41,7 +52,14 @@ export class UsersService {
   getById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
-      select: { id: true, name: true, email: true, phone: true, role: true, createdAt: true },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        createdAt: true,
+      },
     });
   }
 
@@ -49,4 +67,3 @@ export class UsersService {
     return this.prisma.user.update({ where: { id }, data: { role } });
   }
 }
-

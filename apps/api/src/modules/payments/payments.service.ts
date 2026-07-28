@@ -1,8 +1,14 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 
+import { PrismaService } from "../../prisma/prisma.service";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
-import { PrismaService } from "../../prisma/prisma.service";
+
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { RazorpayService } from "./razorpay.service";
 
@@ -36,7 +42,10 @@ export class PaymentsService {
       },
     });
 
-    const razorpayOrder = await this.razorpay.createOrder(amount + gstAmount, order.id);
+    const razorpayOrder = await this.razorpay.createOrder(
+      amount + gstAmount,
+      order.id,
+    );
 
     return this.prisma.order.update({
       where: { id: order.id },
@@ -48,11 +57,15 @@ export class PaymentsService {
    * Webhook handler — the ONLY place an order moves to PAID. Never trust a
    * client-reported success callback (docs/trd.md Section 4.4).
    */
-  async handleWebhook(rawBody: string, signature: string, payload: {
-    razorpayOrderId: string;
-    razorpayPaymentId: string;
-    event: "payment.captured" | "payment.failed";
-  }) {
+  async handleWebhook(
+    rawBody: string,
+    signature: string,
+    payload: {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      event: "payment.captured" | "payment.failed";
+    },
+  ) {
     if (!this.razorpay.verifyWebhookSignature(rawBody, signature)) {
       throw new ForbiddenException("INVALID_WEBHOOK_SIGNATURE");
     }
@@ -63,7 +76,10 @@ export class PaymentsService {
     if (!order) throw new NotFoundException("ORDER_NOT_FOUND");
 
     if (payload.event === "payment.failed") {
-      await this.prisma.order.update({ where: { id: order.id }, data: { status: "FAILED" } });
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: { status: "FAILED" },
+      });
       return;
     }
 
@@ -84,15 +100,21 @@ export class PaymentsService {
   }) {
     switch (order.itemType) {
       case "DOCUMENT":
-        if (order.generatedDocumentId) await this.documentsService.markPaid(order.generatedDocumentId);
+        if (order.generatedDocumentId)
+          await this.documentsService.markPaid(order.generatedDocumentId);
         break;
       case "DOCUMENT_REVIEW":
         if (order.generatedDocumentId) {
-          await this.documentsService.queueReview(order.generatedDocumentId, order.userId, order.id);
+          await this.documentsService.queueReview(
+            order.generatedDocumentId,
+            order.userId,
+            order.id,
+          );
         }
         break;
       case "COURSE":
-        if (order.courseId) await this.lmsService.enroll(order.userId, order.courseId, order.id);
+        if (order.courseId)
+          await this.lmsService.enroll(order.userId, order.courseId, order.id);
         break;
       case "CONTENT_ITEM":
         // No separate entitlement row needed — a PAID Order with
@@ -106,14 +128,24 @@ export class PaymentsService {
    * Support-approval step). Reverses the entitlement granted above.
    */
   async refund(orderId: string) {
-    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
     if (!order) throw new NotFoundException("ORDER_NOT_FOUND");
-    if (order.status !== "PAID") throw new BadRequestException("ORDER_NOT_REFUNDABLE");
-    if (!order.razorpayPaymentId) throw new BadRequestException("NO_PAYMENT_TO_REFUND");
+    if (order.status !== "PAID")
+      throw new BadRequestException("ORDER_NOT_REFUNDABLE");
+    if (!order.razorpayPaymentId)
+      throw new BadRequestException("NO_PAYMENT_TO_REFUND");
 
-    await this.razorpay.refund(order.razorpayPaymentId, order.amount + order.gstAmount);
+    await this.razorpay.refund(
+      order.razorpayPaymentId,
+      order.amount + order.gstAmount,
+    );
 
-    await this.prisma.order.update({ where: { id: order.id }, data: { status: "REFUNDED" } });
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: { status: "REFUNDED" },
+    });
 
     // TODO: revoke the entitlement — e.g. expire the Enrollment immediately
     // for COURSE orders. Left as a TODO since exact revocation semantics per
@@ -121,7 +153,10 @@ export class PaymentsService {
     // touches this for documents specifically).
   }
 
-  private async resolveAmount(itemType: CreateOrderDto["itemType"], itemId: string): Promise<number> {
+  private async resolveAmount(
+    itemType: CreateOrderDto["itemType"],
+    itemId: string,
+  ): Promise<number> {
     switch (itemType) {
       case "DOCUMENT": {
         const doc = await this.prisma.generatedDocument.findUnique({
@@ -140,12 +175,16 @@ export class PaymentsService {
         return doc.template.reviewPriceInPaise;
       }
       case "CONTENT_ITEM": {
-        const item = await this.prisma.contentLibraryItem.findUnique({ where: { id: itemId } });
+        const item = await this.prisma.contentLibraryItem.findUnique({
+          where: { id: itemId },
+        });
         if (!item) throw new NotFoundException("CONTENT_ITEM_NOT_FOUND");
         return item.priceInPaise;
       }
       case "COURSE": {
-        const course = await this.prisma.course.findUnique({ where: { id: itemId } });
+        const course = await this.prisma.course.findUnique({
+          where: { id: itemId },
+        });
         if (!course) throw new NotFoundException("COURSE_NOT_FOUND");
         return course.priceInPaise;
       }

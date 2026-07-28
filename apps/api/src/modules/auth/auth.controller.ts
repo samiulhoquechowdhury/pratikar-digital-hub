@@ -6,6 +6,13 @@ import { AuthService } from "./auth.service";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
 
+// express types `Request.cookies` as `any`; read it through this instead so the
+// refresh-token path stays type-checked. Populated by cookieParser() in main.ts.
+const readRefreshTokenCookie = (req: Request): string | undefined => {
+  const cookies = req.cookies as Record<string, string> | undefined;
+  return cookies?.refreshToken;
+};
+
 @Controller("auth")
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -52,12 +59,12 @@ export class AuthController {
   @Post("refresh")
   @HttpCode(200)
   async refresh(@Req() req: Request) {
-    return this.authService.refreshSession(req.cookies?.refreshToken);
+    return this.authService.refreshSession(readRefreshTokenCookie(req));
   }
 
   @Post("logout")
   @HttpCode(200)
   async logout(@Body("allDevices") allDevices: boolean, @Req() req: Request) {
-    return this.authService.logout(req.cookies?.refreshToken, allDevices);
+    return this.authService.logout(readRefreshTokenCookie(req), allDevices);
   }
 }

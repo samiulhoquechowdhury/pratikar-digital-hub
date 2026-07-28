@@ -1,11 +1,23 @@
-import { Body, Controller, Headers, Param, Post, Req, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Headers,
+  Param,
+  Post,
+  Req,
+  UseGuards,
+} from "@nestjs/common";
 import { Role } from "@pratikar/types";
 import type { Request } from "express";
 
-import { CurrentUser, type RequestUser } from "../../common/decorators/current-user.decorator";
+import {
+  CurrentUser,
+  type RequestUser,
+} from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { PaymentsService } from "./payments.service";
 
@@ -31,9 +43,16 @@ export class PaymentsController {
   webhook(
     @Req() req: Request,
     @Headers("x-razorpay-signature") signature: string,
-    @Body() payload: { razorpayOrderId: string; razorpayPaymentId: string; event: "payment.captured" | "payment.failed" },
+    @Body()
+    payload: {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      event: "payment.captured" | "payment.failed";
+    },
   ) {
-    const rawBody = (req as Request & { rawBody?: string }).rawBody ?? JSON.stringify(payload);
+    const rawBody =
+      (req as Request & { rawBody?: string }).rawBody ??
+      JSON.stringify(payload);
     return this.paymentsService.handleWebhook(rawBody, signature, payload);
   }
 

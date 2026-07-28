@@ -1,4 +1,15 @@
-import { IsIn, IsInt, IsNotEmpty, IsObject, IsString, Min } from "class-validator";
+import { Type } from "class-transformer";
+import {
+  IsArray,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsString,
+  Min,
+  ValidateNested,
+} from "class-validator";
+
+import { TemplateFieldDto } from "./template-field.dto";
 
 export class UpsertTemplateDto {
   @IsString()
@@ -17,8 +28,10 @@ export class UpsertTemplateDto {
   @Min(0)
   reviewPriceInPaise!: number;
 
-  @IsObject()
-  fieldSchema!: Record<string, unknown>;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => TemplateFieldDto)
+  fieldSchema!: TemplateFieldDto[];
 
   @IsIn(["DRAFT", "PUBLISHED", "ARCHIVED"])
   status!: "DRAFT" | "PUBLISHED" | "ARCHIVED";

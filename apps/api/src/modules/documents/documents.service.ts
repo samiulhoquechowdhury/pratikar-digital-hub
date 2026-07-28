@@ -1,13 +1,26 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Role } from "@pratikar/types";
+import { InjectQueue } from "@nestjs/bullmq";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Role } from "@pratikar/types";
+import type { Prisma } from "@prisma/client";
+import type { Queue } from "bullmq";
 
 import { PrismaService } from "../../prisma/prisma.service";
+
+import type { DocumentGenerationJobData } from "./document-generation.processor";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue("document-generation")
+    private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
+  ) {}
 
   listPublishedTemplates() {
     return this.prisma.template.findMany({
@@ -16,32 +29,54 @@ export class DocumentsService {
     });
   }
 
-  async upsertTemplate(dto: UpsertTemplateDto, actorUserId: string, templateId?: string) {
+  async upsertTemplate(
+    dto: UpsertTemplateDto,
+    actorUserId: string,
+    templateId?: string,
+  ) {
+    // Prisma's Json input type doesn't structurally match the TemplateFieldDto[]
+    // shape (it wants a plain index signature) — this cast is the standard,
+    // safe way to hand validated JSON to a Json column; the DTO's nested
+    // class-validator decorators already checked the shape at the HTTP boundary.
+    const fieldSchema = dto.fieldSchema as unknown as Prisma.InputJsonValue;
+
     if (templateId) {
-      return this.prisma.template.update({ where: { id: templateId }, data: dto });
+      return this.prisma.template.update({
+        where: { id: templateId },
+        data: { ...dto, fieldSchema },
+      });
     }
-    return this.prisma.template.create({ data: { ...dto, createdBy: actorUserId } });
+    return this.prisma.template.create({
+      data: { ...dto, fieldSchema, createdBy: actorUserId },
+    });
   }
 
   async generate(userId: string, dto: GenerateDocumentDto) {
-    const template = await this.prisma.template.findUnique({ where: { id: dto.templateId } });
+    const template = await this.prisma.template.findUnique({
+      where: { id: dto.templateId },
+    });
     if (!template || template.status !== "PUBLISHED") {
       throw new NotFoundException("TEMPLATE_NOT_FOUND");
     }
 
-    // TODO: enqueue a `document-generation` BullMQ job (docs/trd.md Section 4.2)
-    // that runs docxtemplater + LibreOffice and uploads the result to R2. The
-    // job writes `fileUrl` back onto this row when it completes — for now the
-    // row is created in GENERATED status with a placeholder fileUrl.
-    return this.prisma.generatedDocument.create({
+    const generatedDocument = await this.prisma.generatedDocument.create({
       data: {
         userId,
         templateId: dto.templateId,
-        filledData: dto.filledData as object,
-        fileUrl: "", // set by the generation job
+        filledData: dto.filledData as Prisma.InputJsonValue,
+        fileUrl: "", // set by the document-generation job once it completes
         status: "GENERATED",
       },
     });
+
+    // Queued rather than run inline (docs/trd.md Section 4.2) — the
+    // LibreOffice conversion step is slow (seconds, not ms) and would
+    // otherwise block the request thread.
+    await this.documentGenerationQueue.add("generate", {
+      generatedDocumentId: generatedDocument.id,
+    });
+
+    return generatedDocument;
   }
 
   listMine(userId: string) {
@@ -66,10 +101,16 @@ export class DocumentsService {
    * rejected — enforced here, not just by link expiry, so a stolen signed URL
    * doesn't help after the legitimate first use either.
    */
-  async consumeDownload(documentId: string, requesterId: string, requesterRole: Role) {
-    const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
+  async consumeDownload(
+    documentId: string,
+    requesterId: string,
+    requesterRole: Role,
+  ) {
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: documentId },
+    });
     if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
-    if (doc.userId !== requesterId && requesterRole === ("customer" as Role)) {
+    if (doc.userId !== requesterId && requesterRole === Role.CUSTOMER) {
       throw new ForbiddenException("NOT_YOUR_DOCUMENT");
     }
     if (doc.status === "DOWNLOADED") {
@@ -84,10 +125,24 @@ export class DocumentsService {
       data: { status: "DOWNLOADED", downloadedAt: new Date() },
     });
 
+    // TODO: generate the actual signed, short-lived R2 URL here (docs/trd.md
+    // Section 8) rather than returning the stored fileUrl directly.
+    return { fileUrl: doc.fileUrl };
+  }
+
   /** Called by PaymentsService once a document-review order is confirmed paid. */
-  async queueReview(generatedDocumentId: string, requestedByUserId: string, orderId: string) {
+  async queueReview(
+    generatedDocumentId: string,
+    requestedByUserId: string,
+    orderId: string,
+  ) {
     return this.prisma.documentReview.create({
-      data: { generatedDocumentId, requestedByUserId, orderId, status: "QUEUED" },
+      data: {
+        generatedDocumentId,
+        requestedByUserId,
+        orderId,
+        status: "QUEUED",
+      },
     });
   }
 
@@ -105,7 +160,11 @@ export class DocumentsService {
     return this.prisma.documentReview.findUnique({ where: { id: reviewId } });
   }
 
-  async returnReview(reviewId: string, reviewedFileUrl: string, notes?: string) {
+  async returnReview(
+    reviewId: string,
+    reviewedFileUrl: string,
+    notes?: string,
+  ) {
     // TODO: trigger the `notification-dispatch` job here (docs/trd.md Section
     // 6) to send the Android push notification confirmed in docs/srs.md 3.8.
     return this.prisma.documentReview.update({
@@ -118,7 +177,11 @@ export class DocumentsService {
     return this.prisma.documentReview.findMany({
       where: { status: { in: ["QUEUED", "IN_REVIEW"] } },
       orderBy: { createdAt: "asc" },
-      include: { generatedDocument: { include: { template: { select: { title: true } } } } },
+      include: {
+        generatedDocument: {
+          include: { template: { select: { title: true } } },
+        },
+      },
     });
   }
 }
