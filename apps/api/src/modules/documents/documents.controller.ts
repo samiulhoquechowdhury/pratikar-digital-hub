@@ -34,6 +34,20 @@ export class DocumentsController {
     return this.documentsService.listPublishedTemplates();
   }
 
+  // Declared before "templates/:id" — Nest matches routes in declaration
+  // order, so the literal path has to win over the parameterised one.
+  @Get("templates/all")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listAllTemplates() {
+    return this.documentsService.listAllTemplates();
+  }
+
+  @Get("templates/:id")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  getTemplate(@Param("id") id: string) {
+    return this.documentsService.getTemplateById(id);
+  }
+
   @Post("templates")
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   createTemplate(
