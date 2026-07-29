@@ -3,9 +3,9 @@
 import { Role } from "@pratikar/types";
 import { useCallback, useEffect, useState } from "react";
 
-import { usersApi, type AdminUser } from "../api/usersApi";
-
 import { useAuth } from "@/shared/providers/AuthProvider";
+
+import { usersApi, type AdminUser } from "../api/usersApi";
 
 const ROLES: readonly Role[] = [
   Role.CUSTOMER,

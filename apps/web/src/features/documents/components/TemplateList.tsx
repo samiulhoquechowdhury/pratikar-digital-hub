@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 
-import { useTemplates } from "../hooks/useTemplates";
-
 import { useAuth } from "@/shared/providers/AuthProvider";
+
+import { useTemplates } from "../hooks/useTemplates";
 
 export function TemplateList() {
   const { user } = useAuth();
