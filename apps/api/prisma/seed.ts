@@ -66,7 +66,52 @@ const RENT_AGREEMENT_FIELDS = [
 const prisma = new PrismaClient();
 const storage = new StorageService();
 
+/**
+ * Bootstraps the first SUPER_ADMIN. Without this there is no way into the
+ * admin panel at all: OTP signup always creates a CUSTOMER, and the only
+ * endpoint that can change a role (PUT /users/:id/role) is itself gated to
+ * SUPER_ADMIN — so a fresh deployment has nobody who can promote anybody.
+ *
+ * Set BOOTSTRAP_SUPER_ADMIN_EMAIL to your own address before seeding a real
+ * environment; the account signs in through the normal OTP flow afterwards,
+ * so no password ever exists for it.
+ */
+async function bootstrapSuperAdmin() {
+  const email = process.env.BOOTSTRAP_SUPER_ADMIN_EMAIL;
+  if (!email) {
+    // eslint-disable-next-line no-console
+    console.warn(
+      "BOOTSTRAP_SUPER_ADMIN_EMAIL not set — skipping super-admin bootstrap. " +
+        "Nobody will be able to sign in to the admin panel until one exists.",
+    );
+    return;
+  }
+
+  // Deliberately does not demote an existing user: re-running the seed must
+  // not silently change somebody's privileges, and an existing account with a
+  // higher role is not something a seed script should touch.
+  const user = await prisma.user.upsert({
+    where: { email },
+    update: {},
+    create: { email, name: "Bootstrap Super Admin", role: "SUPER_ADMIN" },
+  });
+
+  if (user.role !== "SUPER_ADMIN") {
+    // eslint-disable-next-line no-console
+    console.warn(
+      `${email} already exists with role ${user.role}; left unchanged. ` +
+        "Promote it deliberately if that's what you intended.",
+    );
+    return;
+  }
+
+  // eslint-disable-next-line no-console
+  console.log(`Super admin ready: ${email} (${user.id})`);
+}
+
 async function main() {
+  await bootstrapSuperAdmin();
+
   const seedAuthor = await prisma.user.upsert({
     where: { email: "seed-content-manager@pratikar.internal" },
     update: {},

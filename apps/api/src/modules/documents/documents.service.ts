@@ -215,26 +215,52 @@ export class DocumentsService {
    * Managers claiming the same queue item. Zero rows updated means someone
    * else already claimed it first. */
   async claimReview(reviewId: string, reviewerId: string) {
-    const result = await this.prisma.documentReview.updateMany({
-      where: { id: reviewId, assignedToUserId: null },
-      data: { assignedToUserId: reviewerId, status: "IN_REVIEW" },
+    return this.prisma.$transaction(async (tx) => {
+      // Conditional update, not read-then-write: `assignedToUserId: null` in
+      // the WHERE is what makes the claim atomic under concurrent reviewers
+      // (docs/trd.md 4.3). Keep it that way.
+      const result = await tx.documentReview.updateMany({
+        where: { id: reviewId, assignedToUserId: null },
+        data: { assignedToUserId: reviewerId, status: "IN_REVIEW" },
+      });
+      if (result.count === 0) {
+        throw new ForbiddenException("ALREADY_CLAIMED");
+      }
+
+      await this.audit.recordWith(tx, {
+        actorUserId: reviewerId,
+        action: AuditAction.REVIEW_CLAIMED,
+        targetType: AuditTargetType.DOCUMENT_REVIEW,
+        targetId: reviewId,
+      });
+
+      return tx.documentReview.findUnique({ where: { id: reviewId } });
     });
-    if (result.count === 0) {
-      throw new ForbiddenException("ALREADY_CLAIMED");
-    }
-    return this.prisma.documentReview.findUnique({ where: { id: reviewId } });
   }
 
   async returnReview(
     reviewId: string,
     reviewedFileUrl: string,
+    actorUserId: string,
     notes?: string,
   ) {
     // TODO: trigger the `notification-dispatch` job here (docs/trd.md Section
     // 6) to send the Android push notification confirmed in docs/srs.md 3.8.
-    return this.prisma.documentReview.update({
-      where: { id: reviewId },
-      data: { status: "RETURNED", reviewedFileUrl, notes },
+    return this.prisma.$transaction(async (tx) => {
+      const returned = await tx.documentReview.update({
+        where: { id: reviewId },
+        data: { status: "RETURNED", reviewedFileUrl, notes },
+      });
+
+      await this.audit.recordWith(tx, {
+        actorUserId,
+        action: AuditAction.REVIEW_RETURNED,
+        targetType: AuditTargetType.DOCUMENT_REVIEW,
+        targetId: reviewId,
+        metadata: { generatedDocumentId: returned.generatedDocumentId },
+      });
+
+      return returned;
     });
   }
 

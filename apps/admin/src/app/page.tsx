@@ -21,6 +21,15 @@ function AdminHome() {
         <li>
           <Link href="/templates">Templates</Link>
         </li>
+        <li>
+          <Link href="/reviews">Review queue</Link>
+        </li>
+        <li>
+          <Link href="/orders">Orders</Link>
+        </li>
+        <li>
+          <Link href="/users">Users</Link>
+        </li>
       </ul>
     </main>
   );

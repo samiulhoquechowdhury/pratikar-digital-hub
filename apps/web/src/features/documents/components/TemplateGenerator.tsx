@@ -2,12 +2,12 @@
 
 import Link from "next/link";
 
+import { useAuth } from "@/shared/providers/AuthProvider";
+
 import { useGenerateDocument } from "../hooks/useGenerateDocument";
 import { useTemplate } from "../hooks/useTemplate";
 
 import { DynamicTemplateForm } from "./DynamicTemplateForm";
-
-import { useAuth } from "@/shared/providers/AuthProvider";
 
 interface TemplateGeneratorProps {
   templateId: string;

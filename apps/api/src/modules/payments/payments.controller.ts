@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   Headers,
   Param,
   Post,
@@ -56,10 +57,18 @@ export class PaymentsController {
     return this.paymentsService.handleWebhook(rawBody, signature, payload);
   }
 
+  // Declared before ":id/refund" so the literal path isn't captured as an id.
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPPORT, Role.ADMIN, Role.SUPER_ADMIN)
+  list() {
+    return this.paymentsService.listOrders();
+  }
+
   @Post(":id/refund")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  refund(@Param("id") id: string) {
-    return this.paymentsService.refund(id);
+  refund(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.paymentsService.refund(id, user.id);
   }
 }

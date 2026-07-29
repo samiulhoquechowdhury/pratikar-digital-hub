@@ -3,9 +3,9 @@
 import type { OtpChannel } from "@pratikar/types";
 import { useState } from "react";
 
-import { authApi } from "../api/authApi";
-
 import { useAuth } from "@/shared/providers/AuthProvider";
+
+import { authApi } from "../api/authApi";
 
 export type OtpStep = "enter-identifier" | "enter-otp" | "verified";
 

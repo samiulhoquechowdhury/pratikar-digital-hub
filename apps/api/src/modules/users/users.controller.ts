@@ -1,10 +1,15 @@
 import { Body, Controller, Get, Param, Put, UseGuards } from "@nestjs/common";
 import { Role } from "@pratikar/types";
 
+import {
+  CurrentUser,
+  type RequestUser,
+} from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
+import { UpdateRoleDto } from "./dto/update-role.dto";
 import { UsersService } from "./users.service";
 
 @Controller("users")
@@ -26,7 +31,11 @@ export class UsersController {
 
   @Put(":id/role")
   @Roles(Role.SUPER_ADMIN)
-  updateRole(@Param("id") id: string, @Body("role") role: Role) {
-    return this.usersService.updateRole(id, role);
+  updateRole(
+    @Param("id") id: string,
+    @Body() dto: UpdateRoleDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.usersService.updateRole(id, dto.role, user.id);
   }
 }
