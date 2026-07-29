@@ -12,12 +12,19 @@ import { PrismaService } from "../../prisma/prisma.service";
 export const AuditAction = {
   TEMPLATE_CREATED: "TEMPLATE_CREATED",
   TEMPLATE_UPDATED: "TEMPLATE_UPDATED",
+  ORDER_REFUNDED: "ORDER_REFUNDED",
+  USER_ROLE_CHANGED: "USER_ROLE_CHANGED",
+  REVIEW_CLAIMED: "REVIEW_CLAIMED",
+  REVIEW_RETURNED: "REVIEW_RETURNED",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
 
 export const AuditTargetType = {
   TEMPLATE: "TEMPLATE",
+  ORDER: "ORDER",
+  USER: "USER",
+  DOCUMENT_REVIEW: "DOCUMENT_REVIEW",
 } as const;
 
 export type AuditTargetType =

@@ -19,6 +19,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 
 import { DocumentsService } from "./documents.service";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
+import { ReturnReviewDto } from "./dto/return-review.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 
 @Controller("documents")
@@ -98,12 +99,14 @@ export class DocumentsController {
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   returnReview(
     @Param("id") id: string,
-    @Body() body: { reviewedFileUrl: string; notes?: string },
+    @Body() dto: ReturnReviewDto,
+    @CurrentUser() user: RequestUser,
   ) {
     return this.documentsService.returnReview(
       id,
-      body.reviewedFileUrl,
-      body.notes,
+      dto.reviewedFileUrl,
+      user.id,
+      dto.notes,
     );
   }
 }

@@ -6,6 +6,11 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  AuditAction,
+  AuditService,
+  AuditTargetType,
+} from "../audit/audit.service";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
 
@@ -25,6 +30,7 @@ export class PaymentsService {
     private readonly razorpay: RazorpayService,
     private readonly documentsService: DocumentsService,
     private readonly lmsService: LmsService,
+    private readonly audit: AuditService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -123,11 +129,21 @@ export class PaymentsService {
     }
   }
 
+  /** Order list for the admin screen (docs/implementation-plan.md M2 item 3). */
+  listOrders() {
+    return this.prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: { select: { id: true, email: true, phone: true, name: true } },
+      },
+    });
+  }
+
   /**
    * Admin-direct refund (docs/srs.md Section 7, item 6 — confirmed, no
    * Support-approval step). Reverses the entitlement granted above.
    */
-  async refund(orderId: string) {
+  async refund(orderId: string, actorUserId: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -137,14 +153,36 @@ export class PaymentsService {
     if (!order.razorpayPaymentId)
       throw new BadRequestException("NO_PAYMENT_TO_REFUND");
 
+    // Razorpay is called before the transaction opens deliberately: it's an
+    // external side effect that can't be rolled back, so holding a DB
+    // transaction open across it would only widen the window where a lock is
+    // held on a network call. The status check above is what prevents a
+    // double refund.
     await this.razorpay.refund(
       order.razorpayPaymentId,
       order.amount + order.gstAmount,
     );
 
-    await this.prisma.order.update({
-      where: { id: order.id },
-      data: { status: "REFUNDED" },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.order.update({
+        where: { id: order.id },
+        data: { status: "REFUNDED" },
+      });
+
+      await this.audit.recordWith(tx, {
+        actorUserId,
+        action: AuditAction.ORDER_REFUNDED,
+        targetType: AuditTargetType.ORDER,
+        targetId: order.id,
+        // Money moved on someone's authority — the amount and who owned the
+        // order are exactly what a dispute would need to reconstruct.
+        metadata: {
+          refundedToUserId: order.userId,
+          itemType: order.itemType,
+          amountInPaise: order.amount + order.gstAmount,
+          razorpayPaymentId: order.razorpayPaymentId,
+        },
+      });
     });
 
     // TODO: revoke the entitlement — e.g. expire the Enrollment immediately
