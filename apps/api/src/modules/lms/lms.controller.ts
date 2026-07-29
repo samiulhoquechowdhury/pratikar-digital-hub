@@ -1,12 +1,24 @@
-import { Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
+import { Role } from "@pratikar/types";
 
 import {
   CurrentUser,
   type RequestUser,
 } from "../../common/decorators/current-user.decorator";
+import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
+import { ReplaceModulesDto } from "./dto/replace-modules.dto";
+import { UpsertCourseDto } from "./dto/upsert-course.dto";
 import { LmsService } from "./lms.service";
 
 @Controller("courses")
@@ -38,5 +50,52 @@ export class LmsController {
   @Get("certificates/verify/:code")
   verify(@Param("code") code: string) {
     return this.lmsService.verifyCertificate(code);
+  }
+
+  // --- Admin course management (docs/implementation-plan.md Milestone 2) ---
+  // Every literal path above is declared before ":id" below, so Nest's
+  // in-order matching can't swallow "mine" or "certificates" as a course id.
+
+  @Get("all")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listAll() {
+    return this.lmsService.listAll();
+  }
+
+  @Get(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  getById(@Param("id") id: string) {
+    return this.lmsService.getById(id);
+  }
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  create(@Body() dto: UpsertCourseDto, @CurrentUser() user: RequestUser) {
+    return this.lmsService.upsertCourse(dto, user.id);
+  }
+
+  @Put(":id")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  update(
+    @Param("id") id: string,
+    @Body() dto: UpsertCourseDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.lmsService.upsertCourse(dto, user.id, id);
+  }
+
+  @Put(":id/modules")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  replaceModules(
+    @Param("id") id: string,
+    @Body() dto: ReplaceModulesDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.lmsService.replaceModules(id, dto.modules, user.id);
   }
 }

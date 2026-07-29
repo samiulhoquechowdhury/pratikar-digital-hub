@@ -10,6 +10,10 @@ import {
 } from "@nestjs/common";
 import { Role } from "@pratikar/types";
 
+import {
+  CurrentUser,
+  type RequestUser,
+} from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -27,15 +31,33 @@ export class ContentLibraryController {
     return this.contentLibraryService.listPublished(category);
   }
 
+  // Declared before ":id" — Nest matches in declaration order, so the literal
+  // path has to win over the parameterised one.
+  @Get("all")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listAll() {
+    return this.contentLibraryService.listAll();
+  }
+
+  @Get(":id")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  getById(@Param("id") id: string) {
+    return this.contentLibraryService.getById(id);
+  }
+
   @Post()
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
-  create(@Body() dto: UpsertContentItemDto) {
-    return this.contentLibraryService.upsert(dto);
+  create(@Body() dto: UpsertContentItemDto, @CurrentUser() user: RequestUser) {
+    return this.contentLibraryService.upsert(dto, user.id);
   }
 
   @Put(":id")
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
-  update(@Param("id") id: string, @Body() dto: UpsertContentItemDto) {
-    return this.contentLibraryService.upsert(dto, id);
+  update(
+    @Param("id") id: string,
+    @Body() dto: UpsertContentItemDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.contentLibraryService.upsert(dto, user.id, id);
   }
 }

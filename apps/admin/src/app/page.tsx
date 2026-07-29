@@ -22,6 +22,12 @@ function AdminHome() {
           <Link href="/templates">Templates</Link>
         </li>
         <li>
+          <Link href="/content-library">Content library</Link>
+        </li>
+        <li>
+          <Link href="/courses">Courses</Link>
+        </li>
+        <li>
           <Link href="/reviews">Review queue</Link>
         </li>
         <li>
