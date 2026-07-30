@@ -1,0 +1,64 @@
+"use client";
+
+import type { OrderItemType } from "@pratikar/types";
+import { formatPaise, grossPaise, GST_RATE } from "@pratikar/utils";
+
+import { useCheckout } from "../hooks/useCheckout";
+
+/**
+ * Starts a purchase and reports honestly on where it got to.
+ *
+ * The price shown includes GST, because that's what will be charged; orders
+ * store the item price and the tax separately, so quoting the bare price here
+ * would understate the total.
+ */
+export function BuyButton({
+  itemType,
+  itemId,
+  label,
+  priceInPaise,
+  onPaid,
+}: {
+  itemType: OrderItemType;
+  itemId: string;
+  label: string;
+  /** Item price excluding GST — the button adds tax for display. */
+  priceInPaise: number;
+  onPaid?: () => void;
+}) {
+  const { buy, status, error } = useCheckout(onPaid);
+  const gross = grossPaise(priceInPaise);
+
+  if (status === "paid") {
+    return <p>Payment confirmed. Your purchase is ready below.</p>;
+  }
+
+  const busy = status === "creating" || status === "open";
+
+  return (
+    <div>
+      <button
+        type="button"
+        disabled={busy || status === "confirming"}
+        onClick={() => void buy(itemType, itemId, label)}
+      >
+        {busy ? "Opening checkout…" : `Buy for ${formatPaise(gross)}`}
+      </button>
+
+      {status === "confirming" && (
+        <p role="status">
+          Confirming your payment with the provider. This usually takes a few
+          seconds — don&apos;t close this page.
+        </p>
+      )}
+
+      {error && <p role="alert">{error}</p>}
+
+      <p>
+        <small>
+          {formatPaise(priceInPaise)} + {Math.round(GST_RATE * 100)}% GST
+        </small>
+      </p>
+    </div>
+  );
+}
