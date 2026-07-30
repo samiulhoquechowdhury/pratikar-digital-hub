@@ -1,14 +1,10 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
   Headers,
-  HttpCode,
-  HttpStatus,
   Param,
   Post,
-  type RawBodyRequest,
   Req,
   UseGuards,
 } from "@nestjs/common";
@@ -39,23 +35,26 @@ export class PaymentsController {
   // No JwtAuthGuard — this is called by Razorpay, not the logged-in user.
   // Trust boundary is the signature check inside handleWebhook, not auth.
   //
-  // req.rawBody is populated by `rawBody: true` in main.ts; the signature is
-  // an HMAC over those exact bytes, so the parsed @Body() is deliberately not
-  // used here.
-  //
-  // Responds 200 rather than Nest's default 201 for POST: Razorpay retries
-  // anything outside 2xx, and 200 is what its dashboard tests expect.
+  // NOTE: this requires the raw request body for signature verification —
+  // main.ts needs a raw-body exception for this specific route (Nest's
+  // default body parser JSON-parses before this handler sees it). Wire that
+  // up via `bodyParser: false` + a manual raw-body middleware scoped to this
+  // path when this goes from stub to real.
   @Post("webhook")
-  @HttpCode(HttpStatus.OK)
   webhook(
-    @Req() req: RawBodyRequest<Request>,
+    @Req() req: Request,
     @Headers("x-razorpay-signature") signature: string,
+    @Body()
+    payload: {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      event: "payment.captured" | "payment.failed";
+    },
   ) {
-    if (!req.rawBody) throw new BadRequestException("MISSING_RAW_BODY");
-    return this.paymentsService.handleWebhook(
-      req.rawBody.toString("utf8"),
-      signature,
-    );
+    const rawBody =
+      (req as Request & { rawBody?: string }).rawBody ??
+      JSON.stringify(payload);
+    return this.paymentsService.handleWebhook(rawBody, signature, payload);
   }
 
   // Declared before ":id/refund" so the literal path isn't captured as an id.
@@ -64,14 +63,6 @@ export class PaymentsController {
   @Roles(Role.SUPPORT, Role.ADMIN, Role.SUPER_ADMIN)
   list() {
     return this.paymentsService.listOrders();
-  }
-
-  // No @Roles — any signed-in user, and scoped to their own id from the token
-  // rather than a path param, so one customer can't read another's history.
-  @Get("mine")
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  listMine(@CurrentUser() user: RequestUser) {
-    return this.paymentsService.listMyOrders(user.id);
   }
 
   @Post(":id/refund")

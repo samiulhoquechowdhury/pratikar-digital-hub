@@ -23,18 +23,6 @@ import { RazorpayService } from "./razorpay.service";
 // before this touches real invoices (docs/srs.md Section 8 territory).
 const GST_RATE = 0.18;
 
-/**
- * The subset of Razorpay's webhook envelope we read. Every field is optional
- * because this is unvalidated input from the wire — the signature proves it
- * came from Razorpay, not that it has the shape we expect.
- */
-interface RazorpayWebhookBody {
-  event?: string;
-  payload?: {
-    payment?: { entity?: { id?: string; order_id?: string } };
-  };
-}
-
 @Injectable()
 export class PaymentsService {
   constructor(
@@ -74,76 +62,39 @@ export class PaymentsService {
   /**
    * Webhook handler — the ONLY place an order moves to PAID. Never trust a
    * client-reported success callback (docs/trd.md Section 4.4).
-   *
-   * Takes the raw body and parses it here rather than accepting an already
-   * parsed object: the bytes we verify the signature over must be the exact
-   * bytes we then act on, and a parsed-then-restringified body is not
-   * guaranteed to be byte-identical (key order, unicode escaping).
    */
-  async handleWebhook(rawBody: string, signature: string) {
+  async handleWebhook(
+    rawBody: string,
+    signature: string,
+    payload: {
+      razorpayOrderId: string;
+      razorpayPaymentId: string;
+      event: "payment.captured" | "payment.failed";
+    },
+  ) {
     if (!this.razorpay.verifyWebhookSignature(rawBody, signature)) {
       throw new ForbiddenException("INVALID_WEBHOOK_SIGNATURE");
     }
 
-    const event = this.parseWebhookEvent(rawBody);
-    // Razorpay delivers every event the endpoint is subscribed to, and we
-    // subscribe to more than we act on. Anything else is a no-op, not an error.
-    if (event.name !== "payment.captured" && event.name !== "payment.failed") {
-      return;
-    }
-
     const order = await this.prisma.order.findUnique({
-      where: { razorpayOrderId: event.razorpayOrderId },
+      where: { razorpayOrderId: payload.razorpayOrderId },
     });
     if (!order) throw new NotFoundException("ORDER_NOT_FOUND");
 
-    if (event.name === "payment.failed") {
-      // Scoped to PENDING so a late failure event can't undo a capture that
-      // already succeeded — Razorpay does not guarantee delivery order.
-      await this.prisma.order.updateMany({
-        where: { id: order.id, status: "PENDING" },
+    if (payload.event === "payment.failed") {
+      await this.prisma.order.update({
+        where: { id: order.id },
         data: { status: "FAILED" },
       });
       return;
     }
 
-    // Razorpay retries a webhook until it gets a 2xx, so this handler will be
-    // called more than once for the same payment. The conditional update is
-    // the idempotency guard: only the delivery that actually moves the row
-    // out of PENDING goes on to grant the entitlement, so a retry can't
-    // enrol the customer on a course twice.
-    const claimed = await this.prisma.order.updateMany({
-      where: { id: order.id, status: "PENDING" },
-      data: { status: "PAID", razorpayPaymentId: event.razorpayPaymentId },
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: { status: "PAID", razorpayPaymentId: payload.razorpayPaymentId },
     });
-    if (claimed.count === 0) return;
 
     await this.grantEntitlement(order);
-  }
-
-  /**
-   * Razorpay nests the interesting fields several levels down:
-   * `{ event, payload: { payment: { entity: { id, order_id } } } }`.
-   */
-  private parseWebhookEvent(rawBody: string) {
-    let body: RazorpayWebhookBody;
-    try {
-      body = JSON.parse(rawBody) as RazorpayWebhookBody;
-    } catch {
-      throw new BadRequestException("MALFORMED_WEBHOOK_BODY");
-    }
-
-    const payment = body.payload?.payment?.entity;
-    const name = body.event;
-    if (!name) throw new BadRequestException("MALFORMED_WEBHOOK_BODY");
-
-    // Only payment.* events carry an entity we can map back to an order; for
-    // anything else the caller short-circuits before reading these.
-    return {
-      name,
-      razorpayOrderId: payment?.order_id ?? "",
-      razorpayPaymentId: payment?.id ?? "",
-    };
   }
 
   private async grantEntitlement(order: {
@@ -178,21 +129,6 @@ export class PaymentsService {
     }
   }
 
-  /** The signed-in customer's own order history, for their dashboard. */
-  listMyOrders(userId: string) {
-    return this.prisma.order.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        generatedDocument: {
-          include: { template: { select: { title: true } } },
-        },
-        contentLibraryItem: { select: { id: true, title: true } },
-        course: { select: { id: true, title: true } },
-      },
-    });
-  }
-
   /** Order list for the admin screen (docs/implementation-plan.md M2 item 3). */
   listOrders() {
     return this.prisma.order.findMany({
@@ -222,13 +158,9 @@ export class PaymentsService {
     // transaction open across it would only widen the window where a lock is
     // held on a network call. The status check above is what prevents a
     // double refund.
-    // The order id doubles as the idempotency key: if the transaction below
-    // fails after Razorpay accepted the refund, a retry replays the original
-    // refund rather than issuing a second one.
     await this.razorpay.refund(
       order.razorpayPaymentId,
       order.amount + order.gstAmount,
-      order.id,
     );
 
     await this.prisma.$transaction(async (tx) => {
