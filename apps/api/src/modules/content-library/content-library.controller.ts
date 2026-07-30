@@ -45,6 +45,13 @@ export class ContentLibraryController {
     return this.contentLibraryService.getById(id);
   }
 
+  // Any signed-in user; entitlement is checked in the service against the
+  // caller's own id, so this can't be used to fetch someone else's purchase.
+  @Post(":id/download")
+  download(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.contentLibraryService.resolveDownload(id, user.id);
+  }
+
   @Post()
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   create(@Body() dto: UpsertContentItemDto, @CurrentUser() user: RequestUser) {
