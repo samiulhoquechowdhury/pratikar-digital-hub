@@ -1,7 +1,12 @@
 # Feature-based structure
 
 Each folder here is a self-contained vertical slice — one per SRS module
-(`auth`, `documents`, `content-library`, `lms`, `payments`, `dashboard`).
+(`auth`, `documents`, `content-library`, `lms`, `payments`).
+
+The SRS also lists a Customer Dashboard module, but there is no `dashboard`
+folder: everything it shows belongs to another feature (documents, courses,
+purchase history), so `app/dashboard/page.tsx` composes those three and owns no
+data of its own. A folder there would only have held re-exports.
 
 Convention for every feature folder:
 

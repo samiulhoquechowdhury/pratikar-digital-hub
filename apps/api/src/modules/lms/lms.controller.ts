@@ -30,19 +30,37 @@ export class LmsController {
     return this.lmsService.listPublished();
   }
 
+  // Public, like the list above: the syllabus is what convinces someone to
+  // buy. Separate from the admin ":id" route further down because that one
+  // returns every status and every field, including the Stream video ids.
+  @Get("catalogue/:id")
+  getPublished(@Param("id") id: string) {
+    return this.lmsService.getPublishedCourse(id);
+  }
+
   @Get("mine")
   @UseGuards(JwtAuthGuard, RolesGuard)
   listMine(@CurrentUser() user: RequestUser) {
     return this.lmsService.listMyEnrollments(user.id);
   }
 
-  @Post("enrollments/:id/complete")
+  /**
+   * Records progress on one module. The certificate is issued by the service
+   * once every module is done — there is deliberately no endpoint that marks a
+   * course complete directly, because that is the certificate's whole value.
+   *
+   * Ownership is enforced in the service against the token's user id, not
+   * taken from the path, so one learner cannot report progress on another's
+   * enrolment.
+   */
+  @Post("enrollments/:id/modules/:moduleId/complete")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  complete(@Param("id") enrollmentId: string) {
-    // TODO: this should be triggered by actual progress tracking (all
-    // CourseModules watched), not callable directly by the client — revisit
-    // once module-level progress exists.
-    return this.lmsService.markComplete(enrollmentId);
+  completeModule(
+    @Param("id") enrollmentId: string,
+    @Param("moduleId") moduleId: string,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.lmsService.completeModule(enrollmentId, moduleId, user.id);
   }
 
   // Public — no guard. Anyone with a certificate ID can confirm it's real

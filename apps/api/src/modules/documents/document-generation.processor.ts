@@ -66,12 +66,13 @@ export class DocumentGenerationProcessor extends WorkerHost {
     const pdfKey = `documents/${doc.id}.pdf`;
     await this.storage.upload(pdfKey, pdfBuffer, "application/pdf");
 
+    // Storage keys, not URLs. A download URL is signed and expires, so one
+    // persisted here would be dead by the time the customer paid — and a URL
+    // long-lived enough to survive being stored would be an unrevocable
+    // public link to a paid document. The URL is minted at download time.
     await this.prisma.generatedDocument.update({
       where: { id: doc.id },
-      data: {
-        fileUrl: this.storage.getUrl(docxKey),
-        previewFileUrl: this.storage.getUrl(pdfKey),
-      },
+      data: { fileUrl: docxKey, previewFileUrl: pdfKey },
     });
 
     this.logger.log(`Generated document ${doc.id}: docx + pdf uploaded`);

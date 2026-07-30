@@ -209,9 +209,30 @@ model CourseModule {
   order         Int
   videoAssetId  String // Cloudflare Stream UID
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress ModuleProgress[]
 
   @@index([courseId, order])
+}
+
+/// One row per module a learner has finished. Course completion is derived by
+/// comparing these against the course's module list rather than stored as a
+/// flag someone can set directly — that's what makes the certificate mean
+/// something.
+///
+/// Unique on (enrollment, module) so re-reporting the same module is
+/// idempotent: playback events arrive more than once.
+model ModuleProgress {
+  id           String   @id @default(uuid())
+  enrollmentId String
+  moduleId     String
+  completedAt  DateTime @default(now())
+
+  enrollment Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module     CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, moduleId])
+  @@index([enrollmentId])
 }
 
 model Enrollment {
@@ -223,10 +244,11 @@ model Enrollment {
   expiresAt   DateTime
   completedAt DateTime?
 
-  user        User         @relation(fields: [userId], references: [id])
-  course      Course       @relation(fields: [courseId], references: [id])
-  order       Order        @relation(fields: [orderId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  course      Course           @relation(fields: [courseId], references: [id])
+  order       Order            @relation(fields: [orderId], references: [id])
   certificate Certificate?
+  progress    ModuleProgress[]
 
   @@index([userId])
   @@index([expiresAt])
