@@ -146,11 +146,23 @@ export class DocumentsService {
     return generatedDocument;
   }
 
+  /**
+   * The customer's own documents, for their dashboard.
+   *
+   * Includes the template's prices because a document generated earlier is
+   * commonly paid for later, and quoting a price needs no extra round trip per
+   * row. fileUrl comes back too — harmless, since it's now a storage key that
+   * cannot be fetched without a signature (see StorageService.signUrl).
+   */
   listMine(userId: string) {
     return this.prisma.generatedDocument.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      include: { template: { select: { title: true } } },
+      include: {
+        template: {
+          select: { title: true, priceInPaise: true, reviewPriceInPaise: true },
+        },
+      },
     });
   }
 

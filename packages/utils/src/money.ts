@@ -26,3 +26,16 @@ export const formatOrderTotal = (order: {
   amount: number;
   gstAmount: number;
 }): string => formatPaise(order.amount + order.gstAmount);
+
+/**
+ * Mirrors GST_RATE in apps/api PaymentsService, which is the authority — the
+ * amount charged is whatever the server computed when it created the order.
+ * This exists so a catalogue page can quote a total before an order exists,
+ * and it must stay in step with the server's rate. Like that constant, it's a
+ * placeholder until the client's accountant confirms the applicable rate.
+ */
+export const GST_RATE = 0.18;
+
+/** Estimated charge for an item at `priceInPaise`, GST included. */
+export const grossPaise = (priceInPaise: number): number =>
+  priceInPaise + Math.round(priceInPaise * GST_RATE);
