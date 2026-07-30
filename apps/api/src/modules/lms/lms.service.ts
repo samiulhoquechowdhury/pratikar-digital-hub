@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
@@ -184,7 +185,13 @@ export class LmsService {
   listMyEnrollments(userId: string) {
     return this.prisma.enrollment.findMany({
       where: { userId },
-      include: { course: true, certificate: true },
+      include: {
+        course: { include: { _count: { select: { modules: true } } } },
+        certificate: true,
+        // Ids only: enough for the UI to tick off finished lessons and show a
+        // count, without shipping a row per module per enrolment.
+        progress: { select: { moduleId: true } },
+      },
       orderBy: { enrolledAt: "desc" },
     });
   }
@@ -203,16 +210,117 @@ export class LmsService {
     return enrollment.expiresAt > new Date();
   }
 
-  async markComplete(enrollmentId: string) {
-    const enrollment = await this.prisma.enrollment.update({
+  /**
+   * Records that a learner finished one module, and issues the certificate
+   * once every module in the course has been finished.
+   *
+   * Completion is derived here rather than accepted from the client. The
+   * previous endpoint took an enrolment id and marked it complete with no
+   * ownership check at all, which meant any signed-in user could mint a
+   * certificate — their own the moment they enrolled, or someone else's given
+   * that enrolment's id. A certificate is the thing the public verification
+   * page vouches for to an employer, so the caller must own the enrolment,
+   * the enrolment must still be live, and the module must belong to the
+   * course being certified.
+   *
+   * KNOWN LIMIT: whether the learner actually watched anything is still the
+   * client's word. Only Cloudflare Stream's playback events can establish
+   * that, and Stream isn't provisioned yet — so this endpoint should be
+   * driven by those events, not by a "mark as watched" button. Logged in
+   * docs/TECH_DEBT.md.
+   */
+  async completeModule(enrollmentId: string, moduleId: string, userId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
       where: { id: enrollmentId },
-      data: { completedAt: new Date() },
+      include: {
+        course: { include: { modules: { select: { id: true } } } },
+        certificate: true,
+      },
+    });
+    if (!enrollment) throw new NotFoundException("ENROLLMENT_NOT_FOUND");
+
+    // Same error for "not yours" as for "doesn't exist" would be tidier, but
+    // these ids only ever come from the caller's own enrolment list, so a
+    // distinct code is more useful than the marginal privacy gain.
+    if (enrollment.userId !== userId) {
+      throw new ForbiddenException("NOT_YOUR_ENROLLMENT");
+    }
+    if (enrollment.expiresAt <= new Date()) {
+      // Past the access window there is nothing left to watch, so there is
+      // nothing legitimate left to complete (docs/srs.md 7.2).
+      throw new ForbiddenException("ACCESS_EXPIRED");
+    }
+
+    const moduleIds = enrollment.course.modules.map((m) => m.id);
+    if (!moduleIds.includes(moduleId)) {
+      // Without this, progress on one course could be reported against
+      // another course's enrolment and complete it.
+      throw new NotFoundException("MODULE_NOT_IN_COURSE");
+    }
+
+    // Idempotent: playback events repeat, and a learner may rewatch.
+    await this.prisma.moduleProgress.upsert({
+      where: { enrollmentId_moduleId: { enrollmentId, moduleId } },
+      create: { enrollmentId, moduleId },
+      update: {},
     });
 
-    const verificationCode = randomBytes(8).toString("hex");
-    return this.prisma.certificate.create({
-      data: { enrollmentId: enrollment.id, verificationCode },
+    const completedCount = await this.prisma.moduleProgress.count({
+      where: { enrollmentId, moduleId: { in: moduleIds } },
     });
+
+    // A course with no modules can't be completed — otherwise it would be
+    // vacuously complete and issue a certificate for nothing.
+    const finished =
+      moduleIds.length > 0 && completedCount === moduleIds.length;
+    if (!finished || enrollment.completedAt) {
+      return this.progressSummary(enrollmentId, moduleIds.length);
+    }
+
+    await this.issueCertificate(enrollmentId);
+    return this.progressSummary(enrollmentId, moduleIds.length);
+  }
+
+  /**
+   * Claims completion and issues the certificate in one transaction.
+   *
+   * The conditional update is the atomic claim (docs/trd.md Section 4.3): two
+   * concurrent "last module" reports would otherwise both see a finished
+   * course and race to create a certificate, and only one can exist per
+   * enrolment.
+   */
+  private async issueCertificate(enrollmentId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.enrollment.updateMany({
+        where: { id: enrollmentId, completedAt: null },
+        data: { completedAt: new Date() },
+      });
+      if (claimed.count === 0) return null;
+
+      return tx.certificate.create({
+        data: {
+          enrollmentId,
+          verificationCode: randomBytes(8).toString("hex"),
+        },
+      });
+    });
+  }
+
+  private async progressSummary(enrollmentId: string, totalModules: number) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        certificate: true,
+        progress: { select: { moduleId: true } },
+      },
+    });
+
+    return {
+      completedModuleIds: enrollment?.progress.map((p) => p.moduleId) ?? [],
+      totalModules,
+      completedAt: enrollment?.completedAt ?? null,
+      certificate: enrollment?.certificate ?? null,
+    };
   }
 
   /** Public endpoint (docs/srs.md Section 7, item 5) — no auth required. */

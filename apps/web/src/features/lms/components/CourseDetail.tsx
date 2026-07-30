@@ -71,10 +71,20 @@ export function CourseDetail({ courseId }: { courseId: string }) {
             {formatDate(enrollment.expiresAt)}.
           </p>
 
+          <p>
+            {enrollment.progress?.length ?? 0} of {course.modules?.length ?? 0}{" "}
+            lessons completed.
+          </p>
+
           {hasVideoAccess ? (
             // Cloudflare Stream is not provisioned yet, so there is no player
             // to embed. Saying so is better than a dead <video> element: the
             // enrolment is real and the customer should know what they have.
+            //
+            // There is deliberately no "mark as watched" button either — the
+            // progress endpoint is meant to be driven by Stream's playback
+            // events, and a button would just be self-certification with an
+            // extra click (docs/TECH_DEBT.md).
             <p>
               Video playback isn&apos;t available in this environment yet. Your
               enrolment is active and the lessons will appear here once video

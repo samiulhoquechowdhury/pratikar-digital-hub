@@ -61,12 +61,15 @@ export function MyCourses() {
         // An expired enrolment isn't gone — it keeps its certificate and only
         // loses playback, so it stays listed rather than disappearing.
         const expired = new Date(enrollment.expiresAt) <= new Date();
+        const done = enrollment.progress?.length ?? 0;
+        const total = enrollment.course._count?.modules ?? 0;
         return (
           <li key={enrollment.id}>
             <Link href={`/courses/${enrollment.courseId}`}>
               {enrollment.course.title}
             </Link>{" "}
             <small>
+              {total > 0 && `${done} of ${total} lessons · `}
               {expired
                 ? `access ended ${formatDate(enrollment.expiresAt)}`
                 : `access until ${formatDate(enrollment.expiresAt)}`}

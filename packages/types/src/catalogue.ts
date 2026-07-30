@@ -76,13 +76,19 @@ export interface Enrollment {
   enrolledAt: string;
   /** Access to video ends here; the certificate is kept (docs/srs.md 7.2). */
   expiresAt: string;
+  /**
+   * Set by the server once every module has been completed — never by the
+   * client. The certificate is issued at the same moment.
+   */
   completedAt: string | null;
-  course: Course;
+  course: Course & { _count?: { modules: number } };
   certificate: {
     id: string;
     verificationCode: string;
     issuedAt: string;
   } | null;
+  /** Which modules are done. Ids only; the count is what the UI shows. */
+  progress?: { moduleId: string }[];
 }
 
 export interface CertificateVerification {
