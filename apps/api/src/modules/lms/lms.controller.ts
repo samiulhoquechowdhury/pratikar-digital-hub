@@ -30,6 +30,14 @@ export class LmsController {
     return this.lmsService.listPublished();
   }
 
+  // Public, like the list above: the syllabus is what convinces someone to
+  // buy. Separate from the admin ":id" route further down because that one
+  // returns every status and every field, including the Stream video ids.
+  @Get("catalogue/:id")
+  getPublished(@Param("id") id: string) {
+    return this.lmsService.getPublishedCourse(id);
+  }
+
   @Get("mine")
   @UseGuards(JwtAuthGuard, RolesGuard)
   listMine(@CurrentUser() user: RequestUser) {

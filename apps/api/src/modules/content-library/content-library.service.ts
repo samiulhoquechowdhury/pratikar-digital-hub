@@ -11,27 +11,65 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { StorageService } from "../storage/storage.service";
 
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
+
+/**
+ * What a customer may see about an item they have not bought. Deliberately a
+ * whitelist: a column added to the schema later should stay invisible here
+ * until someone decides it belongs in the catalogue.
+ */
+const CATALOGUE_FIELDS = {
+  id: true,
+  title: true,
+  category: true,
+  type: true,
+  priceInPaise: true,
+  status: true,
+  createdAt: true,
+} as const;
 
 @Injectable()
 export class ContentLibraryService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   // Re-download policy for this module is still open (docs/srs.md Section 8)
   // — unlike Documents, there's no one-time-use enforcement here yet.
 
+  /**
+   * The customer-facing catalogue. Selects columns explicitly rather than
+   * returning the row: fileUrl is the storage key that resolveDownload treats
+   * as the thing being paid for, so listing it here would hand every signed-in
+   * visitor the contents of the library for free.
+   */
   listPublished(category?: string) {
     return this.prisma.contentLibraryItem.findMany({
       where: {
         status: "PUBLISHED",
         ...(category ? { category: category as ContentCategory } : {}),
       },
+      select: CATALOGUE_FIELDS,
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /**
+   * Detail view for a single item, for the same audience and with the same
+   * exclusion. Scoped to PUBLISHED so a DRAFT item can't be previewed by
+   * guessing its id.
+   */
+  async getPublished(itemId: string) {
+    const item = await this.prisma.contentLibraryItem.findFirst({
+      where: { id: itemId, status: "PUBLISHED" },
+      select: CATALOGUE_FIELDS,
+    });
+    if (!item) throw new NotFoundException("CONTENT_ITEM_NOT_FOUND");
+    return item;
   }
 
   /** Every status — the admin screens need DRAFT and ARCHIVED rows. */
@@ -71,7 +109,7 @@ export class ContentLibraryService {
     });
     if (!paidOrder) throw new ForbiddenException("NOT_PURCHASED");
 
-    return { fileUrl: item.fileUrl, title: item.title };
+    return { fileUrl: this.storage.signUrl(item.fileUrl), title: item.title };
   }
 
   async getById(itemId: string) {
