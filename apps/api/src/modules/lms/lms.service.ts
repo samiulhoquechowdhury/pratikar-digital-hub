@@ -30,29 +30,6 @@ export class LmsService {
     });
   }
 
-  /**
-   * Course detail for the public catalogue — the syllabus someone reads
-   * before deciding to buy.
-   *
-   * Module titles and ordering are the selling point and are meant to be
-   * visible; videoAssetId is not. That's the Cloudflare Stream UID, which is
-   * sufficient to play the video, so returning it to a visitor who hasn't
-   * enrolled would give away the course itself.
-   */
-  async getPublishedCourse(courseId: string) {
-    const course = await this.prisma.course.findFirst({
-      where: { id: courseId, status: "PUBLISHED" },
-      include: {
-        modules: {
-          select: { id: true, title: true, order: true },
-          orderBy: { order: "asc" },
-        },
-      },
-    });
-    if (!course) throw new NotFoundException("COURSE_NOT_FOUND");
-    return course;
-  }
-
   /** Every status, with module counts — the admin course list. */
   listAll() {
     return this.prisma.course.findMany({

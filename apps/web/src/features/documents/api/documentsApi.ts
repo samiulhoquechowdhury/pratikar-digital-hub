@@ -22,13 +22,4 @@ export const documentsApi = {
     apiClient.post<GeneratedDocument>("/documents/generate", payload),
 
   listMine: () => apiClient.get<GeneratedDocument[]>("/documents/mine"),
-
-  /**
-   * Consumes the one-time download and returns a short-lived signed URL
-   * (docs/srs.md Section 7, item 1). Calling this moves the document to
-   * DOWNLOADED, so it must only be called when the user has actually asked to
-   * download — never speculatively to find out whether they could.
-   */
-  download: (id: string) =>
-    apiClient.post<{ fileUrl: string }>(`/documents/${id}/download`),
 };

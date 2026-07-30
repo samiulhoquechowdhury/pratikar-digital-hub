@@ -8,7 +8,6 @@ import { useGenerateDocument } from "../hooks/useGenerateDocument";
 import { useTemplate } from "../hooks/useTemplate";
 
 import { DynamicTemplateForm } from "./DynamicTemplateForm";
-import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
 
 interface TemplateGeneratorProps {
   templateId: string;
@@ -46,17 +45,12 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
   if (result) {
     return (
       <div>
-        <h2>{template.title}</h2>
         <p>
-          Your document has been generated. Filling and PDF conversion run in a
-          background job, so give it a moment if the download isn&apos;t ready
-          straight away.
+          Document created (id: {result.id}, status: {result.status}).
         </p>
-        <GeneratedDocumentActions
-          documentId={result.id}
-          template={template}
-          initialStatus={result.status}
-        />
+        {/* The generation pipeline (docxtemplater/PDF/R2) is Milestone 1 item 5,
+            not built yet — so there's no preview or download link to show here. */}
+        <p>Preview and download aren&apos;t wired up yet.</p>
       </div>
     );
   }

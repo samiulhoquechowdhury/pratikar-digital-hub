@@ -6,11 +6,7 @@ import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
-  // rawBody keeps the unparsed request bytes on req.rawBody. The Razorpay
-  // webhook signature is an HMAC over exactly those bytes, so verifying
-  // against a re-serialised copy of the parsed body would fail on any
-  // difference in key order or unicode escaping.
-  const app = await NestFactory.create(AppModule, { rawBody: true });
+  const app = await NestFactory.create(AppModule);
 
   app.use(cookieParser()); // required for req.cookies (refresh token) in AuthController
 

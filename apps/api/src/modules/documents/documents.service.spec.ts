@@ -54,7 +54,6 @@ describe("DocumentsService template mutations", () => {
     new DocumentsService(
       prisma as PrismaService,
       new AuditService(prisma as PrismaService),
-      { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
     );
 
@@ -80,11 +79,13 @@ describe("DocumentsService template mutations", () => {
   it("records the status transition on update, since publishing is the reviewable act", async () => {
     const { prisma, tx } = buildPrisma({
       findUnique: jest.fn().mockResolvedValue({ id: "tpl-1", status: "DRAFT" }),
-      update: jest.fn().mockResolvedValue({
-        id: "tpl-1",
-        title: "Rent Agreement",
-        status: "PUBLISHED",
-      }),
+      update: jest
+        .fn()
+        .mockResolvedValue({
+          id: "tpl-1",
+          title: "Rent Agreement",
+          status: "PUBLISHED",
+        }),
     });
 
     await buildService(prisma).upsertTemplate(
