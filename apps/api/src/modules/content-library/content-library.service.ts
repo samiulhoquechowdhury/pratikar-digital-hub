@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
 import type { ContentCategory } from "@prisma/client";
 
 import { PrismaService } from "../../prisma/prisma.service";
@@ -35,6 +39,39 @@ export class ContentLibraryService {
     return this.prisma.contentLibraryItem.findMany({
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /**
+   * Entitlement check for a purchased item. There's no separate entitlement
+   * row by design (see PaymentsService.grantEntitlement) — a PAID Order for
+   * this user and item *is* the entitlement.
+   *
+   * Requiring status PAID also means a refund revokes access for free, since
+   * refunding moves the order to REFUNDED. That differs from COURSE orders,
+   * where the Enrollment row survives a refund (the open TODO in
+   * PaymentsService.refund).
+   *
+   * Repeat downloads are allowed: unlike generated documents there's no
+   * one-time-use rule here, and the re-download policy is still an open
+   * question in docs/srs.md Section 8.
+   */
+  async resolveDownload(itemId: string, userId: string) {
+    const item = await this.prisma.contentLibraryItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item) throw new NotFoundException("CONTENT_ITEM_NOT_FOUND");
+
+    const paidOrder = await this.prisma.order.findFirst({
+      where: {
+        userId,
+        contentLibraryItemId: itemId,
+        itemType: "CONTENT_ITEM",
+        status: "PAID",
+      },
+    });
+    if (!paidOrder) throw new ForbiddenException("NOT_PURCHASED");
+
+    return { fileUrl: item.fileUrl, title: item.title };
   }
 
   async getById(itemId: string) {
