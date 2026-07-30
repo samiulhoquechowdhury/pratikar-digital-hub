@@ -39,6 +39,13 @@ export class ContentLibraryController {
     return this.contentLibraryService.listAll();
   }
 
+  // Customer-facing detail view. Separate from the admin ":id" route below,
+  // which returns every status and includes the storage key.
+  @Get("catalogue/:id")
+  getPublished(@Param("id") id: string) {
+    return this.contentLibraryService.getPublished(id);
+  }
+
   @Get(":id")
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   getById(@Param("id") id: string) {

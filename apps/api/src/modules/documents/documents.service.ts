@@ -14,6 +14,7 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { StorageService } from "../storage/storage.service";
 
 import type { DocumentGenerationJobData } from "./document-generation.processor";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
@@ -24,6 +25,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
     @InjectQueue("document-generation")
     private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
   ) {}
@@ -190,9 +192,9 @@ export class DocumentsService {
       data: { status: "DOWNLOADED", downloadedAt: new Date() },
     });
 
-    // TODO: generate the actual signed, short-lived R2 URL here (docs/trd.md
-    // Section 8) rather than returning the stored fileUrl directly.
-    return { fileUrl: doc.fileUrl };
+    // Signed here rather than stored, so the link dies minutes after the
+    // entitlement check that produced it (docs/trd.md Section 8).
+    return { fileUrl: this.storage.signUrl(doc.fileUrl) };
   }
 
   /** Called by PaymentsService once a document-review order is confirmed paid. */

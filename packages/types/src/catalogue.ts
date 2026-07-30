@@ -14,13 +14,18 @@ export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 
 export type ContentType = "EBOOK" | "CHECKLIST";
 
+/**
+ * An item as the catalogue exposes it. No fileUrl: that's the storage key the
+ * purchase entitles you to, and the API deliberately withholds it until a PAID
+ * order exists. Downloads come from POST /content-library/:id/download, which
+ * returns a signed URL that expires.
+ */
 export interface ContentLibraryItem {
   id: string;
   title: string;
   category: ContentCategory;
   type: ContentType;
   priceInPaise: number;
-  fileUrl: string;
   status: TemplateStatus;
   createdAt: string;
 }
@@ -29,7 +34,12 @@ export interface CourseModule {
   id: string;
   title: string;
   order: number;
-  videoAssetId: string; // Cloudflare Stream UID
+  /**
+   * Cloudflare Stream UID. Absent on the public catalogue endpoint — the UID
+   * alone is enough to play the video, so it's only returned to a caller with
+   * an unexpired enrolment.
+   */
+  videoAssetId?: string;
 }
 
 export interface Course {
