@@ -1,5 +1,6 @@
+import { PageBody, PageHeader } from "@pratikar/ui";
+
 import { CourseList } from "@/features/lms";
-import { PageBody, PageHeader } from "@/shared/components/ui";
 
 export const metadata = { title: "Courses" };
 

@@ -1,10 +1,6 @@
 "use client";
 
 import { CONTENT_CATEGORIES } from "@pratikar/types";
-import { formatPaise } from "@pratikar/utils";
-import Link from "next/link";
-import { useState } from "react";
-
 import {
   Alert,
   Badge,
@@ -14,7 +10,11 @@ import {
   Field,
   Loading,
   Select,
-} from "@/shared/components/ui";
+} from "@pratikar/ui";
+import { formatPaise } from "@pratikar/utils";
+import Link from "next/link";
+import { useState } from "react";
+
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useContentLibrary } from "../hooks/useContentLibrary";

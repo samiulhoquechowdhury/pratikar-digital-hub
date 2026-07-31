@@ -2,12 +2,16 @@ import Link from "next/link";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
 
 /**
- * Local UI primitives.
+ * Shared design-system primitives for apps/web and apps/admin.
  *
- * These live in apps/web rather than packages/ui on purpose: nothing in
- * apps/admin uses them yet, and packages/ui's own note says not to pre-build a
- * component library speculatively. Promote a component there the first time
- * admin needs the same thing — at that point it's shared, not a guess.
+ * These started life in apps/web and moved here the moment admin needed the
+ * same things — which is the bar packages/ui set for itself: promote on the
+ * second real use, not on speculation.
+ *
+ * Every colour here is a semantic token from
+ * packages/config/tailwind-preset.js. Never a raw palette step, and never a
+ * hex — that's what keeps the two apps from drifting apart visually, and what
+ * makes a palette change a one-file edit.
  */
 
 /* ------------------------------------------------------------------ button */

@@ -1,16 +1,8 @@
 "use client";
 
+import { Button, Card, Field, Input, PageBody, PageHeader } from "@pratikar/ui";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-
-import {
-  Button,
-  Card,
-  Field,
-  Input,
-  PageBody,
-  PageHeader,
-} from "@/shared/components/ui";
 
 /**
  * Entry point for someone holding a certificate code but not a link — the

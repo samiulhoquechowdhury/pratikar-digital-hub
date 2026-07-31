@@ -1,5 +1,6 @@
+import { PageBody, PageHeader } from "@pratikar/ui";
+
 import { ContentLibraryList } from "@/features/content-library";
-import { PageBody, PageHeader } from "@/shared/components/ui";
 
 export const metadata = { title: "Content library" };
 

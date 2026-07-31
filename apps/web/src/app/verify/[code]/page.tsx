@@ -1,7 +1,7 @@
+import { PageBody } from "@pratikar/ui";
 import type { Metadata } from "next";
 
 import { CertificateVerifier } from "@/features/lms";
-import { PageBody } from "@/shared/components/ui";
 
 export const metadata: Metadata = {
   title: "Verify a certificate",

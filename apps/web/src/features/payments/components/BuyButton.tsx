@@ -1,9 +1,8 @@
 "use client";
 
 import type { OrderItemType } from "@pratikar/types";
+import { Alert, Button } from "@pratikar/ui";
 import { formatPaise, grossPaise, GST_RATE } from "@pratikar/utils";
-
-import { Alert, Button } from "@/shared/components/ui";
 
 import { useCheckout } from "../hooks/useCheckout";
 

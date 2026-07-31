@@ -69,6 +69,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.0.0
         version: 8.65.0(eslint@8.57.1)(typescript@5.9.3)
+      autoprefixer:
+        specifier: ^10.4.0
+        version: 10.5.4(postcss@8.5.25)
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
@@ -84,6 +87,12 @@ importers:
       jest:
         specifier: ^29.7.0
         version: 29.7.0(@types/node@22.20.1)(ts-node@10.9.2(@types/node@22.20.1)(typescript@5.9.3))
+      postcss:
+        specifier: ^8.4.0
+        version: 8.5.25
+      tailwindcss:
+        specifier: ^3.4.0
+        version: 3.4.19(yaml@2.9.0)
       ts-jest:
         specifier: ^29.4.12
         version: 29.4.12(@babel/core@7.29.7)(@jest/transform@29.7.0)(@jest/types@30.4.1)(babel-jest@29.7.0(@babel/core@7.29.7))(jest-util@30.4.1)(jest@29.7.0(@types/node@22.20.1)(ts-node@10.9.2(@types/node@22.20.1)(typescript@5.9.3)))(typescript@5.9.3)
@@ -303,10 +312,22 @@ importers:
         version: 5.9.3
 
   packages/ui:
-    dependencies:
+    devDependencies:
+      '@pratikar/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/react':
+        specifier: ^18.3.0
+        version: 18.3.31
+      next:
+        specifier: ^15.0.0
+        version: 15.5.22(@babel/core@7.29.7)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       react:
         specifier: ^18.3.0
         version: 18.3.1
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
 
   packages/utils:
     devDependencies:
@@ -6645,6 +6666,15 @@ snapshots:
       fraction.js: 5.3.4
       picocolors: 1.1.1
       postcss: 8.4.31
+      postcss-value-parser: 4.2.0
+
+  autoprefixer@10.5.4(postcss@8.5.25):
+    dependencies:
+      browserslist: 4.28.7
+      caniuse-lite: 1.0.30001806
+      fraction.js: 5.3.4
+      picocolors: 1.1.1
+      postcss: 8.5.25
       postcss-value-parser: 4.2.0
 
   available-typed-arrays@1.0.7:

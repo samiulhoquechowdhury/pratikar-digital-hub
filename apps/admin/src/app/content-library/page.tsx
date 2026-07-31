@@ -1,20 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink, PageBody, PageHeader } from "@pratikar/ui";
 
 import { ContentItemList } from "@/features/content-library";
 import { RequireStaff } from "@/shared/components/RequireStaff";
 
-export default function ContentLibraryPage() {
+export default function Page() {
   return (
     <RequireStaff>
-      <main>
-        <p>
-          <Link href="/">← Admin home</Link>
-        </p>
-        <h1>Content library</h1>
+      <PageHeader
+        title="Content library"
+        description="E-books and checklists sold individually."
+        actions={<ButtonLink href="/content-library/new">New item</ButtonLink>}
+      />
+      <PageBody>
         <ContentItemList />
-      </main>
+      </PageBody>
     </RequireStaff>
   );
 }

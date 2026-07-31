@@ -1,12 +1,33 @@
 "use client";
 
 import { Role } from "@pratikar/types";
+import {
+  Alert,
+  Badge,
+  Button,
+  EmptyState,
+  Loading,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+  Table,
+} from "@pratikar/ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { paiseToRupees } from "@/features/templates/lib/fieldSchema";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { ordersApi, type AdminOrder } from "../api/ordersApi";
+
+/** Money states, coloured so a refund is never mistaken for a payment. */
+const STATUS_TONE = {
+  PAID: "success",
+  PENDING: "warning",
+  FAILED: "danger",
+  REFUNDED: "neutral",
+} as const;
 
 /** Only ADMIN and SUPER_ADMIN can refund — SUPPORT can look but not touch. */
 const canRefund = (role: Role | undefined) =>
@@ -65,47 +86,76 @@ export function OrderList() {
     }
   };
 
-  if (isLoading) return <p>Loading orders…</p>;
-  if (error) return <p role="alert">{error}</p>;
-  if (orders.length === 0) return <p>No orders yet.</p>;
+  if (isLoading) return <Loading label="Loading orders…" />;
+  if (error)
+    return (
+      <Alert tone="danger" role="alert">
+        {error}
+      </Alert>
+    );
+  if (orders.length === 0) {
+    return (
+      <EmptyState
+        title="No orders yet"
+        description="Orders appear here as soon as a customer starts a purchase."
+      />
+    );
+  }
 
   return (
-    <div>
-      {actionError && <p role="alert">{actionError}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">Placed</th>
-            <th scope="col">Customer</th>
-            <th scope="col">Item</th>
-            <th scope="col">Total</th>
-            <th scope="col">Status</th>
-            <th scope="col" />
-          </tr>
-        </thead>
-        <tbody>
+    <div className="space-y-4">
+      {actionError && (
+        <Alert tone="danger" role="alert">
+          {actionError}
+        </Alert>
+      )}
+
+      <Table>
+        <THead>
+          <TR>
+            <TH>Placed</TH>
+            <TH>Customer</TH>
+            <TH>Item</TH>
+            <TH align="right">Total</TH>
+            <TH>Status</TH>
+            <TH align="right">
+              <span className="sr-only">Actions</span>
+            </TH>
+          </TR>
+        </THead>
+        <TBody>
           {orders.map((order) => (
-            <tr key={order.id}>
-              <td>{new Date(order.createdAt).toLocaleDateString()}</td>
-              <td>{order.user.email ?? order.user.phone ?? order.userId}</td>
-              <td>{order.itemType}</td>
-              <td>₹{paiseToRupees(order.amount + order.gstAmount)}</td>
-              <td>{order.status}</td>
-              <td>
+            <TR key={order.id}>
+              <TD muted>
+                {new Date(order.createdAt).toLocaleDateString("en-IN")}
+              </TD>
+              <TD>{order.user.email ?? order.user.phone ?? order.userId}</TD>
+              <TD muted>{order.itemType}</TD>
+              {/* GST included — this is what actually left the customer. */}
+              <TD align="right">
+                ₹{paiseToRupees(order.amount + order.gstAmount)}
+              </TD>
+              <TD>
+                <Badge tone={STATUS_TONE[order.status]}>{order.status}</Badge>
+              </TD>
+              <TD align="right">
                 {order.status === "PAID" && canRefund(user?.role) && (
-                  <button
-                    type="button"
+                  // Brand red, reserved for the irreversible action on the
+                  // screen. Nothing else here is destructive.
+                  <Button
+                    variant="danger"
+                    size="sm"
                     onClick={() => void refund(order)}
                     disabled={busyId === order.id}
                   >
                     {busyId === order.id ? "Refunding…" : "Refund"}
-                  </button>
+                  </Button>
                 )}
-              </td>
-            </tr>
+              </TD>
+            </TR>
           ))}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

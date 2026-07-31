@@ -1,20 +1,21 @@
 "use client";
 
-import Link from "next/link";
+import { ButtonLink, PageBody, PageHeader } from "@pratikar/ui";
 
 import { CourseList } from "@/features/courses";
 import { RequireStaff } from "@/shared/components/RequireStaff";
 
-export default function CoursesPage() {
+export default function Page() {
   return (
     <RequireStaff>
-      <main>
-        <p>
-          <Link href="/">← Admin home</Link>
-        </p>
-        <h1>Courses</h1>
+      <PageHeader
+        title="Courses"
+        description="Courses, their modules, and how long access lasts."
+        actions={<ButtonLink href="/courses/new">New course</ButtonLink>}
+      />
+      <PageBody>
         <CourseList />
-      </main>
+      </PageBody>
     </RequireStaff>
   );
 }

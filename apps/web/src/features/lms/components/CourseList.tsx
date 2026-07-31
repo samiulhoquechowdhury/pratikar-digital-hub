@@ -1,9 +1,8 @@
 "use client";
 
+import { Alert, Card, EmptyState, Loading } from "@pratikar/ui";
 import { formatPaise } from "@pratikar/utils";
 import Link from "next/link";
-
-import { Alert, Card, EmptyState, Loading } from "@/shared/components/ui";
 
 import { useCourses } from "../hooks/useCourses";
 

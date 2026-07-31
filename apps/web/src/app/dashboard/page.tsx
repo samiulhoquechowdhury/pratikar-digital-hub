@@ -1,7 +1,8 @@
+import { PageBody, PageHeader } from "@pratikar/ui";
+
 import { MyDocuments } from "@/features/documents";
 import { MyCourses } from "@/features/lms";
 import { MyPurchases } from "@/features/payments";
-import { PageBody, PageHeader } from "@/shared/components/ui";
 
 export const metadata = { title: "Your account" };
 

@@ -1,9 +1,8 @@
 "use client";
 
 import type { CertificateVerification } from "@pratikar/types";
+import { Alert, Card, Loading } from "@pratikar/ui";
 import { useEffect, useState } from "react";
-
-import { Alert, Card, Loading } from "@/shared/components/ui";
 
 import { lmsApi } from "../api/lmsApi";
 
