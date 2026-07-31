@@ -81,7 +81,7 @@ export function CertificateVerifier({ code }: { code: string }) {
       <div className="flex items-start gap-4 border-b border-success-border bg-success-subtle px-8 py-6">
         <span
           aria-hidden
-          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-success text-lg text-ink-on-brand"
+          className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-success text-lg text-ink-inverse"
         >
           ✓
         </span>

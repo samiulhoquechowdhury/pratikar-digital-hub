@@ -39,7 +39,7 @@
    * most common way to break it.
    */
   :focus-visible {
-    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-canvas;
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-canvas;
   }
 
   /* Respect the OS setting rather than animating regardless. */
@@ -80,6 +80,6 @@
   }
 
   .prose-legal a {
-    @apply text-brand underline underline-offset-2 hover:text-brand-hover;
+    @apply text-primary underline underline-offset-2 hover:text-primary-hover;
   }
 }

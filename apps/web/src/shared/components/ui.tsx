@@ -19,11 +19,15 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-brand text-ink-on-brand hover:bg-brand-hover",
+  // Gold with near-black text (8.44:1). White on gold would fail, so the
+  // foreground here is `on-brand`, never `ink-inverse`.
+  primary: "bg-brand text-on-brand hover:bg-brand-hover",
   secondary:
     "border border-line-strong bg-surface text-ink hover:bg-surface-sunken",
-  ghost: "text-brand hover:bg-brand-subtle",
-  danger: "bg-danger text-ink-on-brand hover:bg-danger-text",
+  // Gold is unreadable as text on light surfaces, so the quiet variant leans
+  // on brand navy rather than a washed-out gold.
+  ghost: "text-primary hover:bg-primary-subtle",
+  danger: "bg-danger text-ink-inverse hover:bg-danger-hover",
 };
 
 const BUTTON_SIZES: Record<ButtonSize, string> = {
@@ -139,7 +143,7 @@ export function PageBody({
 type AlertTone = "info" | "success" | "warning" | "danger";
 
 const ALERT_TONES: Record<AlertTone, string> = {
-  info: "border-brand-border bg-brand-subtle text-ink",
+  info: "border-primary-border bg-primary-subtle text-ink",
   success: "border-success-border bg-success-subtle text-success-text",
   warning: "border-warning-border bg-warning-subtle text-warning-text",
   danger: "border-danger-border bg-danger-subtle text-danger-text",
@@ -175,7 +179,7 @@ type BadgeTone = "neutral" | "brand" | "success" | "warning" | "danger";
 
 const BADGE_TONES: Record<BadgeTone, string> = {
   neutral: "bg-surface-sunken text-ink-muted",
-  brand: "bg-brand-subtle text-brand",
+  brand: "bg-brand-subtle text-gold-ink",
   success: "bg-success-subtle text-success-text",
   warning: "bg-warning-subtle text-warning-text",
   danger: "bg-danger-subtle text-danger-text",

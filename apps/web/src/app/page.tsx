@@ -42,30 +42,43 @@ const STEPS = [
 export default function HomePage() {
   return (
     <>
-      <section className="border-b border-line bg-surface">
-        <div className="mx-auto max-w-shell px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+      {/*
+        The brand sheet's hero: deep navy gradient, the Hindi line in gold, the
+        English line in white. Gold reaches 7.86:1 on this background — it is
+        the one place gold is safe as large text.
+      */}
+      <section className="bg-hero-navy">
+        <div className="mx-auto max-w-shell px-4 py-20 sm:px-6 sm:py-28 lg:px-8">
           <div className="max-w-2xl">
-            <p className="text-sm font-semibold uppercase tracking-wider text-brand">
-              For individuals and small businesses
-            </p>
-            <h1 className="mt-3 text-4xl sm:text-5xl">
-              Legal paperwork, without the guesswork.
+            <h1 className="text-4xl sm:text-5xl">
+              <span className="block text-ink-inverse">Har Ghar Mein</span>
+              <span className="mt-1 block text-brand">Kanooni Gyaan</span>
             </h1>
-            <p className="mt-5 text-lg leading-relaxed text-ink-muted">
-              Generate documents from vetted templates, read up on the rules
-              that apply to you, and take courses that come with a certificate
-              you can prove.
+
+            <div
+              aria-hidden
+              className="mt-6 h-px w-24 bg-gradient-to-r from-brand to-transparent"
+            />
+
+            <p className="mt-6 text-xl font-medium text-ink-inverse">
+              Legal knowledge in every home.
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+            <p className="mt-4 max-w-prose text-base leading-relaxed text-ink-inverse-muted">
+              Digital documents, certificate courses, and business compliance —
+              generated from vetted templates and backed by material you can
+              actually rely on.
+            </p>
+
+            <div className="mt-9 flex flex-wrap gap-3">
               <Link
                 href="/documents"
-                className="rounded-control bg-brand px-5 py-3 text-sm font-semibold text-ink-on-brand transition-colors hover:bg-brand-hover"
+                className="rounded-control bg-brand px-6 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 Create a document
               </Link>
               <Link
                 href="/courses"
-                className="rounded-control border border-line-strong bg-surface px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken"
+                className="rounded-control border border-ink-inverse-muted/40 px-6 py-3 text-sm font-semibold text-ink-inverse transition-colors hover:bg-surface-inverse-raised"
               >
                 Explore courses
               </Link>
@@ -88,7 +101,7 @@ export default function HomePage() {
               </p>
               <Link
                 href={product.href}
-                className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-brand hover:text-brand-hover"
+                className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
               >
                 {product.cta}
                 <span aria-hidden>→</span>
@@ -106,7 +119,7 @@ export default function HomePage() {
               <li key={step.title}>
                 <span
                   aria-hidden
-                  className="grid h-9 w-9 place-items-center rounded-full bg-brand-subtle text-sm font-semibold text-brand"
+                  className="grid h-9 w-9 place-items-center rounded-full bg-primary text-sm font-semibold text-ink-inverse"
                 >
                   {index + 1}
                 </span>
@@ -131,7 +144,7 @@ export default function HomePage() {
           </div>
           <Link
             href="/verify"
-            className="mt-5 inline-block shrink-0 rounded-control border border-line-strong bg-surface px-5 py-3 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:mt-0"
+            className="mt-5 inline-block shrink-0 rounded-control bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover sm:mt-0"
           >
             Verify a certificate
           </Link>

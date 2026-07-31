@@ -28,20 +28,25 @@ export function SiteHeader() {
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur supports-[backdrop-filter]:bg-surface/80">
+    <header className="sticky top-0 z-40 border-b border-line-inverse bg-surface-inverse">
       <div className="mx-auto flex h-16 max-w-shell items-center gap-6 px-4 sm:px-6 lg:px-8">
         <Link
           href="/"
-          className="flex shrink-0 items-center gap-2 rounded-control text-lg font-semibold tracking-tight text-ink"
+          className="flex shrink-0 items-center gap-2.5 rounded-control text-ink-inverse"
         >
           {/* Placeholder mark until the brand assets arrive. */}
           <span
             aria-hidden
-            className="grid h-8 w-8 place-items-center rounded-control bg-navy-800 text-sm font-bold text-ink-inverse"
+            className="grid h-9 w-9 place-items-center rounded-control border border-brand/40 bg-brand text-base font-bold text-on-brand"
           >
             P
           </span>
-          <span className="hidden sm:inline">Pratikar</span>
+          <span className="hidden flex-col leading-none sm:flex">
+            <span className="text-base font-bold tracking-wide">PRATIKAR</span>
+            <span className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-brand">
+              Digital Hub
+            </span>
+          </span>
         </Link>
 
         <nav aria-label="Main" className="hidden md:block">
@@ -53,8 +58,8 @@ export function SiteHeader() {
                   aria-current={isActive(item.href) ? "page" : undefined}
                   className={`rounded-control px-3 py-2 text-sm font-medium transition-colors ${
                     isActive(item.href)
-                      ? "bg-brand-subtle text-brand"
-                      : "text-ink-muted hover:bg-surface-sunken hover:text-ink"
+                      ? "bg-surface-inverse-raised text-brand"
+                      : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
                   }`}
                 >
                   {item.label}
@@ -69,14 +74,14 @@ export function SiteHeader() {
             <>
               <Link
                 href="/dashboard"
-                className="rounded-control px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                className="rounded-control px-3 py-2 text-sm font-medium text-ink-inverse-muted transition-colors hover:bg-surface-inverse-raised hover:text-ink-inverse"
               >
                 My account
               </Link>
               <button
                 type="button"
                 onClick={logout}
-                className="rounded-control px-3 py-2 text-sm font-medium text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+                className="rounded-control px-3 py-2 text-sm font-medium text-ink-inverse-muted transition-colors hover:bg-surface-inverse-raised hover:text-ink-inverse"
               >
                 Sign out
               </button>
@@ -84,7 +89,7 @@ export function SiteHeader() {
           ) : (
             <Link
               href="/login"
-              className="rounded-control bg-brand px-4 py-2 text-sm font-semibold text-ink-on-brand transition-colors hover:bg-brand-hover"
+              className="rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
             >
               Sign in
             </Link>
@@ -95,7 +100,7 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="rounded-control p-2 text-ink-muted hover:bg-surface-sunken hover:text-ink md:hidden"
+            className="rounded-control p-2 text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse md:hidden"
           >
             <span className="sr-only">
               {menuOpen ? "Close menu" : "Open menu"}
@@ -123,7 +128,7 @@ export function SiteHeader() {
         <nav
           id="mobile-nav"
           aria-label="Main"
-          className="border-t border-line bg-surface md:hidden"
+          className="border-t border-line-inverse bg-surface-inverse md:hidden"
         >
           <ul className="mx-auto max-w-shell space-y-1 px-4 py-3 sm:px-6">
             {NAV.map((item) => (
@@ -134,8 +139,8 @@ export function SiteHeader() {
                   aria-current={isActive(item.href) ? "page" : undefined}
                   className={`block rounded-control px-3 py-2 text-sm font-medium ${
                     isActive(item.href)
-                      ? "bg-brand-subtle text-brand"
-                      : "text-ink-muted hover:bg-surface-sunken hover:text-ink"
+                      ? "bg-surface-inverse-raised text-brand"
+                      : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
                   }`}
                 >
                   {item.label}
