@@ -1,6 +1,8 @@
 "use client";
 
 import type { TemplateStatus } from "@pratikar/types";
+import { Alert, Button, Field, Input, Select } from "@pratikar/ui";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,6 +10,12 @@ import {
   paiseToRupees,
   rupeesToPaise,
 } from "@/features/templates/lib/fieldSchema";
+import {
+  FormActions,
+  FormGrid,
+  FormRowFull,
+  FormSection,
+} from "@/shared/components/FormLayout";
 
 import {
   CONTENT_CATEGORIES,
@@ -19,6 +27,15 @@ import {
 } from "../api/contentLibraryApi";
 
 const STATUSES: readonly TemplateStatus[] = ["DRAFT", "PUBLISHED", "ARCHIVED"];
+
+/** SCREAMING_CASE enum values aren't reading material, even for staff. */
+const CATEGORY_LABELS: Record<string, string> = {
+  LEGAL_PRACTICE: "Legal practice",
+  BUSINESS_COMPLIANCE: "Business & compliance",
+  PROPERTY_DOCUMENTATION: "Property documentation",
+  DIGITAL_CAREER: "Digital career",
+  CHECKLISTS_REFERENCE: "Checklists & reference",
+};
 
 export function ContentItemForm({ existing }: { existing?: ContentItem }) {
   const router = useRouter();
@@ -86,87 +103,121 @@ export function ContentItemForm({ existing }: { existing?: ContentItem }) {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)}>
-      <div>
-        <label htmlFor="title">Title</label>
-        <input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+      <FormSection
+        title="Item details"
+        description="What customers see in the library listing."
+      >
+        <FormGrid>
+          <FormRowFull>
+            <Field label="Title" htmlFor="title">
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="GST filing checklist for freelancers"
+              />
+            </Field>
+          </FormRowFull>
 
-      <div>
-        <label htmlFor="category">Category</label>
-        <select
-          id="category"
-          value={category}
-          onChange={(e) => setCategory(e.target.value as ContentCategory)}
+          <Field label="Category" htmlFor="category">
+            <Select
+              id="category"
+              value={category}
+              onChange={(e) => setCategory(e.target.value as ContentCategory)}
+            >
+              {CONTENT_CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABELS[c] ?? c}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
+          <Field label="Type" htmlFor="type">
+            <Select
+              id="type"
+              value={type}
+              onChange={(e) => setType(e.target.value as ContentType)}
+            >
+              {CONTENT_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {t === "EBOOK" ? "E-book" : "Checklist"}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection
+        title="Price and file"
+        description="GST is added at checkout — enter the price before tax."
+      >
+        <FormGrid>
+          <Field label="Price (₹)" htmlFor="price">
+            <Input
+              id="price"
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="149"
+            />
+          </Field>
+
+          <Field
+            label="File key"
+            htmlFor="fileUrl"
+            hint="Storage key, not a URL. This is what a paying customer downloads."
+          >
+            <Input
+              id="fileUrl"
+              value={fileUrl}
+              onChange={(e) => setFileUrl(e.target.value)}
+              placeholder="content/gst-checklist.pdf"
+            />
+          </Field>
+        </FormGrid>
+      </FormSection>
+
+      <FormSection
+        title="Publishing"
+        description="PUBLISHED puts this in the customer catalogue immediately."
+      >
+        <div className="max-w-xs">
+          <Field label="Status" htmlFor="status">
+            <Select
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TemplateStatus)}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </FormSection>
+
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
+      )}
+
+      <FormActions>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving…" : existing ? "Save changes" : "Create item"}
+        </Button>
+        <Link
+          href="/content-library"
+          className="text-sm font-medium text-ink-muted hover:text-ink"
         >
-          {CONTENT_CATEGORIES.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="type">Type</label>
-        <select
-          id="type"
-          value={type}
-          onChange={(e) => setType(e.target.value as ContentType)}
-        >
-          {CONTENT_TYPES.map((t) => (
-            <option key={t} value={t}>
-              {t}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label htmlFor="price">Price (₹)</label>
-        <input
-          id="price"
-          inputMode="decimal"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="149"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="fileUrl">File key</label>
-        <input
-          id="fileUrl"
-          value={fileUrl}
-          onChange={(e) => setFileUrl(e.target.value)}
-          placeholder="content/gst-checklist.pdf"
-        />
-      </div>
-
-      <div>
-        <label htmlFor="status">Status</label>
-        <select
-          id="status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as TemplateStatus)}
-        >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error && <p role="alert">{error}</p>}
-
-      <button type="submit" disabled={isSaving}>
-        {isSaving ? "Saving…" : existing ? "Save changes" : "Create item"}
-      </button>
+          Cancel
+        </Link>
+      </FormActions>
     </form>
   );
 }

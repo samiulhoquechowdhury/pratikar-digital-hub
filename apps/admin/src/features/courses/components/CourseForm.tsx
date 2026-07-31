@@ -1,6 +1,16 @@
 "use client";
 
 import type { TemplateStatus } from "@pratikar/types";
+import {
+  Alert,
+  Button,
+  Card,
+  Field,
+  Input,
+  Select,
+  Textarea,
+} from "@pratikar/ui";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -8,6 +18,12 @@ import {
   paiseToRupees,
   rupeesToPaise,
 } from "@/features/templates/lib/fieldSchema";
+import {
+  FormActions,
+  FormGrid,
+  FormRowFull,
+  FormSection,
+} from "@/shared/components/FormLayout";
 
 import { coursesApi, type Course, type CourseModule } from "../api/coursesApi";
 import { validateModules } from "../lib/modules";
@@ -111,78 +127,118 @@ export function CourseForm({ existing }: { existing?: Course }) {
   };
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)}>
-      <div>
-        <label htmlFor="title">Title</label>
-        <input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-      </div>
+    <form onSubmit={(e) => void handleSubmit(e)} className="space-y-6">
+      <FormSection
+        title="Course details"
+        description="What customers see on the course page before enrolling."
+      >
+        <FormGrid>
+          <FormRowFull>
+            <Field label="Title" htmlFor="title">
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="GST for Freelancers"
+              />
+            </Field>
+          </FormRowFull>
 
-      <div>
-        <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
+          <FormRowFull>
+            <Field
+              label="Description"
+              htmlFor="description"
+              hint="Two or three sentences. Shown on the course card and its page."
+            >
+              <Textarea
+                id="description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Filing, invoices, and compliance basics."
+              />
+            </Field>
+          </FormRowFull>
+        </FormGrid>
+      </FormSection>
 
-      <div>
-        <label htmlFor="price">Price (₹)</label>
-        <input
-          id="price"
-          inputMode="decimal"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          placeholder="2499"
-        />
-      </div>
+      <FormSection
+        title="Price and access"
+        description="GST is added at checkout — enter the price before tax."
+      >
+        <FormGrid>
+          <Field label="Price (₹)" htmlFor="price">
+            <Input
+              id="price"
+              inputMode="decimal"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              placeholder="2499"
+            />
+          </Field>
 
-      <div>
-        <label htmlFor="accessDays">Access duration (days)</label>
-        <input
-          id="accessDays"
-          inputMode="numeric"
-          value={accessDays}
-          onChange={(e) => setAccessDays(e.target.value)}
-        />
-        {/* Changing this only affects future enrolments — existing rows
-            already carry a computed expiresAt. */}
-        <small>
-          Applies to new enrolments only. Existing customers keep the window
-          they enrolled under.
-        </small>
-      </div>
+          <Field
+            label="Access duration (days)"
+            htmlFor="accessDays"
+            // Changing this only affects future enrolments — existing rows
+            // already carry a computed expiresAt.
+            hint="Applies to new enrolments only. Existing customers keep the window they enrolled under."
+          >
+            <Input
+              id="accessDays"
+              inputMode="numeric"
+              value={accessDays}
+              onChange={(e) => setAccessDays(e.target.value)}
+            />
+          </Field>
+        </FormGrid>
+      </FormSection>
 
-      <div>
-        <label htmlFor="status">Status</label>
-        <select
-          id="status"
-          value={status}
-          onChange={(e) => setStatus(e.target.value as TemplateStatus)}
+      <Card className="p-6">
+        <ModuleEditor
+          modules={modules}
+          problems={problems}
+          onChange={setModules}
+        />
+      </Card>
+
+      <FormSection
+        title="Publishing"
+        description="A course can only be published once it has at least one module."
+      >
+        <div className="max-w-xs">
+          <Field label="Status" htmlFor="status">
+            <Select
+              id="status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as TemplateStatus)}
+            >
+              {STATUSES.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        </div>
+      </FormSection>
+
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
+      )}
+
+      <FormActions>
+        <Button type="submit" disabled={isSaving}>
+          {isSaving ? "Saving…" : existing ? "Save changes" : "Create course"}
+        </Button>
+        <Link
+          href="/courses"
+          className="text-sm font-medium text-ink-muted hover:text-ink"
         >
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <ModuleEditor
-        modules={modules}
-        problems={problems}
-        onChange={setModules}
-      />
-
-      {error && <p role="alert">{error}</p>}
-
-      <button type="submit" disabled={isSaving}>
-        {isSaving ? "Saving…" : existing ? "Save changes" : "Create course"}
-      </button>
+          Cancel
+        </Link>
+      </FormActions>
     </form>
   );
 }
