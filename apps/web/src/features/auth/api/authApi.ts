@@ -1,4 +1,9 @@
-import type { OtpRequestPayload, OtpVerifyPayload, OtpVerifyResponse } from "@pratikar/types";
+import type {
+  AuthSession,
+  GoogleSignInPayload,
+  OtpRequestPayload,
+  OtpVerifyPayload,
+} from "@pratikar/types";
 
 import { apiClient } from "@/shared/lib/apiClient";
 
@@ -9,7 +14,12 @@ export const authApi = {
     apiClient.post<void>("/auth/otp/request", payload),
 
   verifyOtp: (payload: OtpVerifyPayload) =>
-    apiClient.post<OtpVerifyResponse>("/auth/otp/verify", payload),
+    apiClient.post<AuthSession>("/auth/otp/verify", payload),
+
+  // The API re-verifies the token with Google, so this is a sign-in, not a
+  // claim we're taking on trust from the browser.
+  signInWithGoogle: (payload: GoogleSignInPayload) =>
+    apiClient.post<AuthSession>("/auth/google", payload),
 
   refresh: () => apiClient.post<{ accessToken: string }>("/auth/refresh"),
 

@@ -15,9 +15,20 @@ export class UsersService {
     private readonly audit: AuditService,
   ) {}
 
+  /**
+   * The identifier IS the account. Whether it arrived via a verified OTP or a
+   * verified Google token, the same address resolves to the same user — which
+   * is what lets someone sign up with a code and come back through Google
+   * without ending up with two accounts and one set of purchases.
+   *
+   * `name` is only ever used to fill a blank: Google supplies one and OTP
+   * doesn't, but a name the user has already set is theirs to change, not
+   * ours to overwrite on every sign-in.
+   */
   async findOrCreateByIdentifier(
     identifier: string,
     channel: "email" | "sms",
+    profile?: { name?: string | null },
   ): Promise<{
     user: { id: string; name: string | null; role: Role };
     isNewUser: boolean;
@@ -27,14 +38,27 @@ export class UsersService {
     const existing = await this.prisma.user.findUnique({ where });
 
     if (existing) {
+      const user =
+        existing.name === null && profile?.name
+          ? await this.prisma.user.update({
+              where: { id: existing.id },
+              data: { name: profile.name },
+            })
+          : existing;
+
       return {
-        user: { id: existing.id, name: existing.name, role: existing.role },
+        user: { id: user.id, name: user.name, role: user.role },
         isNewUser: false,
       };
     }
 
     const created = await this.prisma.user.create({
-      data: channel === "email" ? { email: identifier } : { phone: identifier },
+      data: {
+        ...(channel === "email"
+          ? { email: identifier }
+          : { phone: identifier }),
+        name: profile?.name ?? null,
+      },
     });
 
     return {
