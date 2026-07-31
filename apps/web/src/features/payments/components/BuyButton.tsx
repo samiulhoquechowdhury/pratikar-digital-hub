@@ -1,6 +1,7 @@
 "use client";
 
 import type { OrderItemType } from "@pratikar/types";
+import { Alert, Button } from "@pratikar/ui";
 import { formatPaise, grossPaise, GST_RATE } from "@pratikar/utils";
 
 import { useCheckout } from "../hooks/useCheckout";
@@ -30,35 +31,45 @@ export function BuyButton({
   const gross = grossPaise(priceInPaise);
 
   if (status === "paid") {
-    return <p>Payment confirmed. Your purchase is ready below.</p>;
+    return (
+      <Alert tone="success" role="status">
+        Payment confirmed. Your purchase is ready below.
+      </Alert>
+    );
   }
 
   const busy = status === "creating" || status === "open";
 
   return (
-    <div>
-      <button
-        type="button"
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <span className="text-2xl font-semibold text-ink">
+          {formatPaise(gross)}
+        </span>
+        <span className="text-sm text-ink-subtle">
+          {formatPaise(priceInPaise)} + {Math.round(GST_RATE * 100)}% GST
+        </span>
+      </div>
+
+      <Button
         disabled={busy || status === "confirming"}
         onClick={() => void buy(itemType, itemId, label)}
       >
-        {busy ? "Opening checkout…" : `Buy for ${formatPaise(gross)}`}
-      </button>
+        {busy ? "Opening checkout…" : "Buy now"}
+      </Button>
 
       {status === "confirming" && (
-        <p role="status">
+        <Alert tone="info" role="status">
           Confirming your payment with the provider. This usually takes a few
-          seconds — don&apos;t close this page.
-        </p>
+          seconds — please don&apos;t close this page.
+        </Alert>
       )}
 
-      {error && <p role="alert">{error}</p>}
-
-      <p>
-        <small>
-          {formatPaise(priceInPaise)} + {Math.round(GST_RATE * 100)}% GST
-        </small>
-      </p>
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
+      )}
     </div>
   );
 }

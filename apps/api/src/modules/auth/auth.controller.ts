@@ -3,6 +3,7 @@ import { Throttle } from "@nestjs/throttler";
 import type { Request, Response } from "express";
 
 import { AuthService } from "./auth.service";
+import { GoogleSignInDto } from "./dto/google-sign-in.dto";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
 
@@ -11,6 +12,20 @@ import { OtpVerifyDto } from "./dto/otp-verify.dto";
 const readRefreshTokenCookie = (req: Request): string | undefined => {
   const cookies = req.cookies as Record<string, string> | undefined;
   return cookies?.refreshToken;
+};
+
+const REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Web: refresh token as an httpOnly cookie. Android: also present in the JSON
+// body (see AuthService) for encrypted local storage there. Shared by every
+// sign-in path so the two can't drift apart in security-relevant flags.
+const setRefreshCookie = (res: Response, refreshToken: string): void => {
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    maxAge: REFRESH_COOKIE_MAX_AGE_MS,
+  });
 };
 
 @Controller("auth")
@@ -40,14 +55,38 @@ export class AuthController {
       ip: req.ip,
     });
 
-    // Web: refresh token as httpOnly cookie. Android: also present in the
-    // JSON body (see AuthService) for encrypted local storage there.
-    res.cookie("refreshToken", result.refreshToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "lax",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+    setRefreshCookie(res, result.refreshToken);
+
+    return {
+      accessToken: result.accessToken,
+      user: result.user,
+      isNewUser: result.isNewUser,
+    };
+  }
+
+  /**
+   * "Sign in with Google". The body carries the ID token the browser got from
+   * Google Identity Services — a JWT that only means anything to us because
+   * it names our client id as its audience.
+   *
+   * Throttled like OTP verify: the token is unguessable, but this endpoint
+   * does signature verification and a database write, and neither should be
+   * available to an unauthenticated caller in unlimited quantity.
+   */
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @Post("google")
+  @HttpCode(200)
+  async google(
+    @Body() dto: GoogleSignInDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.signInWithGoogle(dto.idToken, {
+      userAgent: req.headers["user-agent"],
+      ip: req.ip,
     });
+
+    setRefreshCookie(res, result.refreshToken);
 
     return {
       accessToken: result.accessToken,

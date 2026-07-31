@@ -1,20 +1,20 @@
 "use client";
 
-import Link from "next/link";
+import { PageBody, PageHeader } from "@pratikar/ui";
 
 import { ReviewQueue } from "@/features/reviews";
 import { RequireStaff } from "@/shared/components/RequireStaff";
 
-export default function ReviewsPage() {
+export default function Page() {
   return (
     <RequireStaff>
-      <main>
-        <p>
-          <Link href="/">← Admin home</Link>
-        </p>
-        <h1>Review queue</h1>
+      <PageHeader
+        title="Review queue"
+        description="Documents customers have paid to have a lawyer review."
+      />
+      <PageBody>
         <ReviewQueue />
-      </main>
+      </PageBody>
     </RequireStaff>
   );
 }

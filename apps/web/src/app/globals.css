@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Base layer only — element defaults that should hold everywhere. Anything
+ * component-shaped belongs in a React component in packages/ui, not here, so
+ * there's one place to look when something renders oddly.
+ */
+@layer base {
+  html {
+    /* Anchor links and router navigations land gently rather than jumping. */
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-canvas text-ink antialiased;
+  }
+
+  /**
+   * Tailwind's preflight strips heading and list styling, which is right for
+   * app chrome but wrong for the long-form legal copy this product exists to
+   * deliver. Rather than restore it globally and fight it back down, screens
+   * that render prose opt in with `.prose-legal` below.
+   */
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-semibold tracking-tight text-ink;
+    text-wrap: balance;
+  }
+
+  /**
+   * A visible focus ring on every interactive element, always. Keyboard and
+   * screen-reader users are not an edge case here: this is a legal-services
+   * product with accessibility obligations, and `outline: none` is the single
+   * most common way to break it.
+   */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-canvas;
+  }
+
+  /* Respect the OS setting rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  /**
+   * Long-form content: template descriptions, course syllabi, anything the
+   * customer actually reads. Capped at a readable measure.
+   */
+  .prose-legal {
+    @apply max-w-prose text-base leading-relaxed text-ink-muted;
+  }
+
+  .prose-legal p + p {
+    @apply mt-4;
+  }
+
+  .prose-legal ul {
+    @apply mt-4 list-disc space-y-2 pl-6;
+  }
+
+  .prose-legal ol {
+    @apply mt-4 list-decimal space-y-2 pl-6;
+  }
+
+  .prose-legal a {
+    @apply text-primary underline underline-offset-2 hover:text-primary-hover;
+  }
+}

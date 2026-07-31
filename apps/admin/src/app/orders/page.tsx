@@ -1,20 +1,20 @@
 "use client";
 
-import Link from "next/link";
+import { PageBody, PageHeader } from "@pratikar/ui";
 
 import { OrderList } from "@/features/orders";
 import { RequireStaff } from "@/shared/components/RequireStaff";
 
-export default function OrdersPage() {
+export default function Page() {
   return (
     <RequireStaff>
-      <main>
-        <p>
-          <Link href="/">← Admin home</Link>
-        </p>
-        <h1>Orders</h1>
+      <PageHeader
+        title="Orders"
+        description="Every order placed, with refunds for Admins and above."
+      />
+      <PageBody>
         <OrderList />
-      </main>
+      </PageBody>
     </RequireStaff>
   );
 }

@@ -1,6 +1,19 @@
 "use client";
 
 import { Role } from "@pratikar/types";
+import {
+  Alert,
+  Badge,
+  EmptyState,
+  Loading,
+  Select,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+  Table,
+} from "@pratikar/ui";
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "@/shared/providers/AuthProvider";
@@ -14,6 +27,27 @@ const ROLES: readonly Role[] = [
   Role.ADMIN,
   Role.SUPER_ADMIN,
 ];
+
+/**
+ * Staff roles are visually separated from customers. On a list that is mostly
+ * customers, the handful of accounts that can refund money or publish content
+ * are the ones worth spotting at a glance.
+ */
+const ROLE_TONE: Record<string, "neutral" | "brand" | "warning"> = {
+  [Role.CUSTOMER]: "neutral",
+  [Role.SUPPORT]: "brand",
+  [Role.CONTENT_MANAGER]: "brand",
+  [Role.ADMIN]: "warning",
+  [Role.SUPER_ADMIN]: "warning",
+};
+
+const LABEL: Record<string, string> = {
+  [Role.CUSTOMER]: "Customer",
+  [Role.SUPPORT]: "Support",
+  [Role.CONTENT_MANAGER]: "Content manager",
+  [Role.ADMIN]: "Admin",
+  [Role.SUPER_ADMIN]: "Super admin",
+};
 
 export function UserList() {
   const { user: currentUser } = useAuth();
@@ -60,57 +94,105 @@ export function UserList() {
     }
   };
 
-  if (isLoading) return <p>Loading users…</p>;
-  if (error) return <p role="alert">{error}</p>;
+  if (isLoading) return <Loading label="Loading users…" />;
+  if (error) {
+    return (
+      <Alert tone="danger" role="alert">
+        {error}
+      </Alert>
+    );
+  }
+  if (users.length === 0) {
+    return (
+      <EmptyState
+        title="No accounts yet"
+        description="Accounts are created the first time someone signs in with a code or with Google."
+      />
+    );
+  }
 
   return (
-    <div>
-      {actionError && <p role="alert">{actionError}</p>}
-      <table>
-        <thead>
-          <tr>
-            <th scope="col">User</th>
-            <th scope="col">Joined</th>
-            <th scope="col">Role</th>
-          </tr>
-        </thead>
-        <tbody>
+    <div className="space-y-4">
+      {actionError && (
+        <Alert tone="danger" role="alert">
+          {actionError}
+        </Alert>
+      )}
+
+      {!canChangeRoles && (
+        <Alert tone="info">
+          Only a Super Admin can change roles. This list is read-only for your
+          account.
+        </Alert>
+      )}
+
+      <Table>
+        <THead>
+          <TR>
+            <TH>User</TH>
+            <TH>Joined</TH>
+            <TH>Role</TH>
+          </TR>
+        </THead>
+        <TBody>
           {users.map((user) => {
             const isSelf = user.id === currentUser?.id;
             return (
-              <tr key={user.id}>
-                <td>{user.email ?? user.phone ?? user.id}</td>
-                <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                <td>
+              <TR key={user.id}>
+                <TD>
+                  <span className="font-medium">
+                    {user.email ?? user.phone ?? user.id}
+                  </span>
+                  {user.name && (
+                    <span className="mt-0.5 block text-xs text-ink-subtle">
+                      {user.name}
+                    </span>
+                  )}
+                </TD>
+                <TD muted>
+                  {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                    day: "numeric",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </TD>
+                <TD>
                   {canChangeRoles && !isSelf ? (
-                    <select
+                    <Select
                       value={user.role}
                       disabled={busyId === user.id}
                       onChange={(e) =>
                         void changeRole(user, e.target.value as Role)
                       }
                       aria-label={`Role for ${user.email ?? user.id}`}
+                      className="max-w-[12rem] py-1.5 text-sm"
                     >
                       {ROLES.map((role) => (
                         <option key={role} value={role}>
-                          {role}
+                          {LABEL[role] ?? role}
                         </option>
                       ))}
-                    </select>
+                    </Select>
                   ) : (
-                    <>
-                      {user.role}
+                    <span className="flex items-center gap-2">
+                      <Badge tone={ROLE_TONE[user.role] ?? "neutral"}>
+                        {LABEL[user.role] ?? user.role}
+                      </Badge>
                       {/* Demoting yourself could leave the system with no
-                          super admin and no way to appoint one. */}
-                      {isSelf && canChangeRoles && " (you)"}
-                    </>
+                            super admin and no way to appoint one. */}
+                      {isSelf && canChangeRoles && (
+                        <span className="text-xs text-ink-subtle">
+                          you — can&apos;t change your own role
+                        </span>
+                      )}
+                    </span>
                   )}
-                </td>
-              </tr>
+                </TD>
+              </TR>
             );
           })}
-        </tbody>
-      </table>
+        </TBody>
+      </Table>
     </div>
   );
 }

@@ -2,6 +2,7 @@ import { createHash, randomBytes } from "node:crypto";
 
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import type { Role } from "@pratikar/types";
 
 import { PrismaService } from "../../prisma/prisma.service";
 
@@ -40,7 +41,23 @@ export class SessionService {
     return { refreshToken };
   }
 
-  async rotateSession(refreshToken: string): Promise<{ accessToken: string }> {
+  /**
+   * Exchanges the refresh cookie for a fresh access token.
+   *
+   * The user is returned alongside it because this is how a browser restores a
+   * session after a reload — the access token lives in memory only, so on
+   * every page load the front end has nothing but the cookie and needs to know
+   * who it belongs to. Sending the id back separately would only mean an
+   * immediate second request for the same row.
+   *
+   * The role comes from the database on every rotation rather than being
+   * carried over from the old token, so a revoked privilege takes effect
+   * within the access token's lifetime instead of lasting 30 days.
+   */
+  async rotateSession(refreshToken: string): Promise<{
+    accessToken: string;
+    user: { id: string; name: string | null; role: Role };
+  }> {
     const session = await this.prisma.session.findUnique({
       where: { refreshTokenHash: this.hash(refreshToken) },
       include: { user: true },
@@ -55,12 +72,21 @@ export class SessionService {
       { expiresIn: "15m" },
     );
 
-    return { accessToken };
+    return {
+      accessToken,
+      user: {
+        id: session.user.id,
+        name: session.user.name,
+        role: session.user.role,
+      },
+    };
   }
 
   async revoke(refreshToken: string, allDevices: boolean): Promise<void> {
     const tokenHash = this.hash(refreshToken);
-    const session = await this.prisma.session.findUnique({ where: { refreshTokenHash: tokenHash } });
+    const session = await this.prisma.session.findUnique({
+      where: { refreshTokenHash: tokenHash },
+    });
     if (!session) return; // already gone — logout is idempotent
 
     if (allDevices) {
@@ -76,4 +102,3 @@ export class SessionService {
     }
   }
 }
-

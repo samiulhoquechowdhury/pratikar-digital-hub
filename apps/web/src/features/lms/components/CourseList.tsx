@@ -1,27 +1,35 @@
 "use client";
 
-import { formatPaise } from "@pratikar/utils";
-import Link from "next/link";
+import { Alert, EmptyState, Loading } from "@pratikar/ui";
 
 import { useCourses } from "../hooks/useCourses";
+
+import { CourseCard } from "./CourseCard";
 
 export function CourseList() {
   const { courses, isLoading, error } = useCourses();
 
-  if (isLoading) return <p>Loading courses…</p>;
-  if (error) return <p role="alert">{error}</p>;
-  if (courses.length === 0) return <p>No courses published yet.</p>;
+  if (isLoading) return <Loading label="Loading courses…" />;
+  if (error)
+    return (
+      <Alert tone="danger" role="alert">
+        {error}
+      </Alert>
+    );
+  if (courses.length === 0) {
+    return (
+      <EmptyState
+        title="No courses published yet"
+        description="New courses appear here as they're released."
+      />
+    );
+  }
 
   return (
-    <ul>
+    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
       {courses.map((course) => (
         <li key={course.id}>
-          <Link href={`/courses/${course.id}`}>{course.title}</Link>{" "}
-          <small>
-            {formatPaise(course.priceInPaise)} · {course.accessDurationDays}{" "}
-            days&apos; access
-          </small>
-          {course.description && <p>{course.description}</p>}
+          <CourseCard course={course} />
         </li>
       ))}
     </ul>

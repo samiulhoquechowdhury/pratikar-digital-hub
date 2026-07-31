@@ -1,0 +1,15 @@
+{
+  "extends": "@pratikar/config/tsconfig.base.json",
+  "compilerOptions": {
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    // No outDir: package.json points main and types at src, so the consuming
+    // Next app compiles this from source. This config exists for typecheck and
+    // ESLint's type-aware rules, not to emit anything.
+    "noEmit": true
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules"]
+}
