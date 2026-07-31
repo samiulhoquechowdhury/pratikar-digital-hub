@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 
 import { CertificateVerifier } from "@/features/lms";
+import { PageBody } from "@/shared/components/ui";
 
 export const metadata: Metadata = {
-  title: "Verify a certificate — Pratikar Digital Hub",
+  title: "Verify a certificate",
   // Verification pages are per-certificate and hold someone's name; there is
   // nothing for a search engine to usefully index and a reason not to.
   robots: { index: false, follow: false },
@@ -17,8 +18,8 @@ export default async function VerifyPage({ params }: VerifyPageProps) {
   const { code } = await params;
 
   return (
-    <main>
+    <PageBody className="max-w-3xl">
       <CertificateVerifier code={code} />
-    </main>
+    </PageBody>
   );
 }

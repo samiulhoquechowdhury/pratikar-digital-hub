@@ -1,11 +1,18 @@
 import { ContentLibraryList } from "@/features/content-library";
+import { PageBody, PageHeader } from "@/shared/components/ui";
+
+export const metadata = { title: "Content library" };
 
 export default function ContentLibraryPage() {
   return (
-    <main>
-      <h1>Content library</h1>
-      <p>E-books and checklists you can buy and download.</p>
-      <ContentLibraryList />
-    </main>
+    <>
+      <PageHeader
+        title="Content library"
+        description="E-books and checklists you can buy once and download whenever you need them."
+      />
+      <PageBody>
+        <ContentLibraryList />
+      </PageBody>
+    </>
   );
 }
