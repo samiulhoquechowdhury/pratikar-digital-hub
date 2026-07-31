@@ -89,12 +89,14 @@ export function ContentLibraryList() {
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <li key={item.id}>
-              <Card className="flex h-full flex-col p-6">
+              <Card className="group flex h-full flex-col p-6 transition-shadow hover:shadow-raised">
                 <div className="flex items-start justify-between gap-3">
                   <h2 className="text-lg">
+                    {/* Navy on hover, not gold: gold on white is 2.10:1 and
+                        fails WCAG at any size (see the Tailwind preset). */}
                     <Link
                       href={`/content-library/${item.id}`}
-                      className="text-ink hover:text-brand"
+                      className="text-ink transition-colors group-hover:text-primary"
                     >
                       {item.title}
                     </Link>

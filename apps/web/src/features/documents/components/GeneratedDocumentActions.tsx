@@ -1,6 +1,7 @@
 "use client";
 
 import type { GeneratedDocumentStatus, Template } from "@pratikar/types";
+import { Alert, Button, Card } from "@pratikar/ui";
 import { useState } from "react";
 
 import { BuyButton } from "@/features/payments";
@@ -48,49 +49,70 @@ export function GeneratedDocumentActions({
   };
 
   return (
-    <section>
-      {status === "GENERATED" && (
-        <BuyButton
-          itemType="DOCUMENT"
-          itemId={documentId}
-          label={template.title}
-          priceInPaise={template.priceInPaise}
-          onPaid={() => setStatus("PAID")}
-        />
-      )}
+    <div className="space-y-6">
+      <Card className="p-6">
+        <h3 className="text-base">Your document</h3>
 
-      {status === "PAID" && (
-        <div>
-          <p>
-            Paid. This link works once — save the file somewhere safe when it
-            downloads.
-          </p>
-          <button type="button" onClick={download} disabled={isDownloading}>
-            {isDownloading ? "Preparing…" : "Download"}
-          </button>
+        <div className="mt-4">
+          {status === "GENERATED" && (
+            <BuyButton
+              itemType="DOCUMENT"
+              itemId={documentId}
+              label={template.title}
+              priceInPaise={template.priceInPaise}
+              onPaid={() => setStatus("PAID")}
+            />
+          )}
+
+          {status === "PAID" && (
+            <div className="space-y-4">
+              {/* Warned before the click, not after: the entitlement is spent
+                  by the request itself, so there is no second chance to
+                  explain what just happened. */}
+              <Alert tone="warning">
+                Paid. This link works once — save the file somewhere safe when
+                it downloads.
+              </Alert>
+              <Button type="button" onClick={download} disabled={isDownloading}>
+                {isDownloading ? "Preparing…" : "Download"}
+              </Button>
+            </div>
+          )}
+
+          {status === "DOWNLOADED" && (
+            <Alert tone="info">
+              Already downloaded. Downloads are one-time, so this document
+              can&apos;t be fetched again — contact support if something went
+              wrong.
+            </Alert>
+          )}
+
+          {error && (
+            <div className="mt-4">
+              <Alert tone="danger" role="alert">
+                {error}
+              </Alert>
+            </div>
+          )}
         </div>
-      )}
+      </Card>
 
-      {status === "DOWNLOADED" && (
-        <p>
-          Already downloaded. Downloads are one-time, so this document
-          can&apos;t be fetched again — contact support if something went wrong.
+      <Card className="p-6">
+        <h3 className="text-base">Lawyer review</h3>
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
+          Have a lawyer check this document and send back comments. Bought
+          separately from the document itself, and available whether or not
+          you&apos;ve downloaded it.
         </p>
-      )}
-
-      {error && <p role="alert">{error}</p>}
-
-      <h3>Lawyer review</h3>
-      <p>
-        Have a lawyer check this document and send back comments. Bought
-        separately from the document itself.
-      </p>
-      <BuyButton
-        itemType="DOCUMENT_REVIEW"
-        itemId={documentId}
-        label={`Review: ${template.title}`}
-        priceInPaise={template.reviewPriceInPaise}
-      />
-    </section>
+        <div className="mt-4">
+          <BuyButton
+            itemType="DOCUMENT_REVIEW"
+            itemId={documentId}
+            label={`Review: ${template.title}`}
+            priceInPaise={template.reviewPriceInPaise}
+          />
+        </div>
+      </Card>
+    </div>
   );
 }

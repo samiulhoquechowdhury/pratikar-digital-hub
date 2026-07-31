@@ -1,5 +1,6 @@
 "use client";
 
+import { Alert, ButtonLink, Card, EmptyState, Loading } from "@pratikar/ui";
 import Link from "next/link";
 
 import { useAuth } from "@/shared/providers/AuthProvider";
@@ -33,25 +34,53 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
 
   if (!user) {
     return (
-      <p>
-        <Link href="/login">Sign in</Link> to generate a document.
-      </p>
+      <EmptyState
+        title="Sign in to generate a document"
+        description="Your answers are saved to your account, so we need to know whose document this is."
+        action={
+          <ButtonLink href={`/login?next=/documents/${templateId}`}>
+            Sign in
+          </ButtonLink>
+        }
+      />
     );
   }
 
-  if (isLoading) return <p>Loading template…</p>;
-  if (templateError || !template)
-    return <p role="alert">{templateError ?? "Template not found."}</p>;
+  if (isLoading) return <Loading label="Loading template…" />;
+
+  if (templateError || !template) {
+    return (
+      <Alert tone="danger" role="alert">
+        {templateError ?? "That template isn't available."}{" "}
+        <Link href="/documents" className="font-semibold underline">
+          Back to templates
+        </Link>
+      </Alert>
+    );
+  }
 
   if (result) {
     return (
-      <div>
-        <h2>{template.title}</h2>
-        <p>
-          Your document has been generated. Filling and PDF conversion run in a
-          background job, so give it a moment if the download isn&apos;t ready
-          straight away.
-        </p>
+      <div className="space-y-6">
+        <Card className="p-6 sm:p-8">
+          <div className="flex items-start gap-4">
+            <span
+              aria-hidden
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-success-subtle text-lg text-success-text"
+            >
+              ✓
+            </span>
+            <div>
+              <h2 className="text-xl">{template.title}</h2>
+              <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
+                Your document has been generated. Filling and PDF conversion run
+                in a background job, so give it a moment if the download
+                isn&apos;t ready straight away.
+              </p>
+            </div>
+          </div>
+        </Card>
+
         <GeneratedDocumentActions
           documentId={result.id}
           template={template}
@@ -62,11 +91,20 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
   }
 
   return (
-    <DynamicTemplateForm
-      template={template}
-      onSubmit={generate}
-      isSubmitting={isSubmitting}
-      error={generateError}
-    />
+    <div className="space-y-6">
+      <Link
+        href="/documents"
+        className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
+      >
+        <span aria-hidden>←</span> All templates
+      </Link>
+
+      <DynamicTemplateForm
+        template={template}
+        onSubmit={generate}
+        isSubmitting={isSubmitting}
+        error={generateError}
+      />
+    </div>
   );
 }

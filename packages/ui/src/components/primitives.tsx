@@ -277,6 +277,21 @@ export function Select({
   return <select className={`${CONTROL} ${className}`} {...props} />;
 }
 
+/**
+ * Four rows by default. Template fields that use a textarea are things like
+ * addresses and recitals — a two-row box makes them look like an afterthought
+ * and hides what the person has already typed.
+ */
+export function Textarea({
+  className = "",
+  rows = 4,
+  ...props
+}: ComponentPropsWithoutRef<"textarea">) {
+  return (
+    <textarea rows={rows} className={`${CONTROL} ${className}`} {...props} />
+  );
+}
+
 /* ----------------------------------------------------------------- loading */
 
 /** Loading copy is announced politely so it isn't silent for screen readers. */
