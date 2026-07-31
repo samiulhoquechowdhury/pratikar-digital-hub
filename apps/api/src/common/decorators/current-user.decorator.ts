@@ -1,12 +1,17 @@
 import { createParamDecorator, type ExecutionContext } from "@nestjs/common";
-import type { Role } from "@pratikar/types";
 
-export interface RequestUser {
-  id: string;
-  role: Role;
-}
+import type {
+  AuthenticatedRequest,
+  RequestUser,
+} from "../types/authenticated-request";
 
-export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext): RequestUser => {
-  const request = ctx.switchToHttp().getRequest();
-  return request.user;
-});
+export type { RequestUser };
+
+export const CurrentUser = createParamDecorator(
+  (_: unknown, ctx: ExecutionContext): RequestUser => {
+    const request = ctx.switchToHttp().getRequest<AuthenticatedRequest>();
+    // Non-null: every route using @CurrentUser is behind JwtAuthGuard, which
+    // either sets `user` or throws before the handler runs.
+    return request.user!;
+  },
+);

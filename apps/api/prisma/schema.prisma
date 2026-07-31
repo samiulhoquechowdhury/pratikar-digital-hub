@@ -88,6 +88,11 @@ model Template {
   priceInPaise       Int
   reviewPriceInPaise Int
   fieldSchema        Json // dynamic form field definitions
+  // Storage key of the source .docx (docxtemplater tags matching fieldSchema
+  // keys) the document-generation worker fills. Nullable because Milestone 2's
+  // Template CRUD is what lets a Content Manager upload this; a template can
+  // exist in DRAFT with a field schema before a file is attached.
+  templateFileKey    String?
   status             TemplateStatus @default(DRAFT)
   createdBy          String
   createdAt          DateTime       @default(now())
@@ -109,7 +114,8 @@ model GeneratedDocument {
   userId       String
   templateId   String
   filledData   Json
-  fileUrl      String // R2 key
+  fileUrl      String // R2 key — clean DOCX, gated behind payment (one-time download)
+  previewFileUrl String? // R2 key — watermarked PDF, free to view before payment (docs/srs.md 3.2 step 3)
   status       GeneratedDocumentStatus  @default(GENERATED)
   downloadedAt DateTime?
   createdAt    DateTime                 @default(now())
@@ -203,9 +209,30 @@ model CourseModule {
   order         Int
   videoAssetId  String // Cloudflare Stream UID
 
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  progress ModuleProgress[]
 
   @@index([courseId, order])
+}
+
+/// One row per module a learner has finished. Course completion is derived by
+/// comparing these against the course's module list rather than stored as a
+/// flag someone can set directly — that's what makes the certificate mean
+/// something.
+///
+/// Unique on (enrollment, module) so re-reporting the same module is
+/// idempotent: playback events arrive more than once.
+model ModuleProgress {
+  id           String   @id @default(uuid())
+  enrollmentId String
+  moduleId     String
+  completedAt  DateTime @default(now())
+
+  enrollment Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  module     CourseModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([enrollmentId, moduleId])
+  @@index([enrollmentId])
 }
 
 model Enrollment {
@@ -217,10 +244,11 @@ model Enrollment {
   expiresAt   DateTime
   completedAt DateTime?
 
-  user        User         @relation(fields: [userId], references: [id])
-  course      Course       @relation(fields: [courseId], references: [id])
-  order       Order        @relation(fields: [orderId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
+  course      Course           @relation(fields: [courseId], references: [id])
+  order       Order            @relation(fields: [orderId], references: [id])
   certificate Certificate?
+  progress    ModuleProgress[]
 
   @@index([userId])
   @@index([expiresAt])

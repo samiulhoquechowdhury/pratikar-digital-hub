@@ -1,12 +1,25 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import { Role } from "@pratikar/types";
 
-import { CurrentUser, type RequestUser } from "../../common/decorators/current-user.decorator";
+import {
+  CurrentUser,
+  type RequestUser,
+} from "../../common/decorators/current-user.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+
 import { DocumentsService } from "./documents.service";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
+import { ReturnReviewDto } from "./dto/return-review.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 
 @Controller("documents")
@@ -22,9 +35,26 @@ export class DocumentsController {
     return this.documentsService.listPublishedTemplates();
   }
 
+  // Declared before "templates/:id" — Nest matches routes in declaration
+  // order, so the literal path has to win over the parameterised one.
+  @Get("templates/all")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listAllTemplates() {
+    return this.documentsService.listAllTemplates();
+  }
+
+  @Get("templates/:id")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  getTemplate(@Param("id") id: string) {
+    return this.documentsService.getTemplateById(id);
+  }
+
   @Post("templates")
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
-  createTemplate(@Body() dto: UpsertTemplateDto, @CurrentUser() user: RequestUser) {
+  createTemplate(
+    @Body() dto: UpsertTemplateDto,
+    @CurrentUser() user: RequestUser,
+  ) {
     return this.documentsService.upsertTemplate(dto, user.id);
   }
 
@@ -69,8 +99,14 @@ export class DocumentsController {
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   returnReview(
     @Param("id") id: string,
-    @Body() body: { reviewedFileUrl: string; notes?: string },
+    @Body() dto: ReturnReviewDto,
+    @CurrentUser() user: RequestUser,
   ) {
-    return this.documentsService.returnReview(id, body.reviewedFileUrl, body.notes);
+    return this.documentsService.returnReview(
+      id,
+      dto.reviewedFileUrl,
+      user.id,
+      dto.notes,
+    );
   }
 }

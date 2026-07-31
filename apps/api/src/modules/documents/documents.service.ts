@@ -1,13 +1,34 @@
-import { ForbiddenException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Role } from "@pratikar/types";
+import { InjectQueue } from "@nestjs/bullmq";
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from "@nestjs/common";
+import { Role } from "@pratikar/types";
+import type { Prisma } from "@prisma/client";
+import type { Queue } from "bullmq";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import {
+  AuditAction,
+  AuditService,
+  AuditTargetType,
+} from "../audit/audit.service";
+import { StorageService } from "../storage/storage.service";
+
+import type { DocumentGenerationJobData } from "./document-generation.processor";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+    private readonly storage: StorageService,
+    @InjectQueue("document-generation")
+    private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
+  ) {}
 
   listPublishedTemplates() {
     return this.prisma.template.findMany({
@@ -16,39 +37,132 @@ export class DocumentsService {
     });
   }
 
-  async upsertTemplate(dto: UpsertTemplateDto, actorUserId: string, templateId?: string) {
-    if (templateId) {
-      return this.prisma.template.update({ where: { id: templateId }, data: dto });
-    }
-    return this.prisma.template.create({ data: { ...dto, createdBy: actorUserId } });
+  /**
+   * Every template regardless of status — the admin Template CRUD screens need
+   * to see DRAFT and ARCHIVED rows, which listPublishedTemplates deliberately
+   * hides from customers. Staff-only at the controller.
+   */
+  listAllTemplates() {
+    return this.prisma.template.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /** Single template of any status, for the admin edit screen. Staff-only. */
+  async getTemplateById(templateId: string) {
+    const template = await this.prisma.template.findUnique({
+      where: { id: templateId },
+    });
+    if (!template) throw new NotFoundException("TEMPLATE_NOT_FOUND");
+    return template;
+  }
+
+  async upsertTemplate(
+    dto: UpsertTemplateDto,
+    actorUserId: string,
+    templateId?: string,
+  ) {
+    // Prisma's Json input type doesn't structurally match the TemplateFieldDto[]
+    // shape (it wants a plain index signature) — this cast is the standard,
+    // safe way to hand validated JSON to a Json column; the DTO's nested
+    // class-validator decorators already checked the shape at the HTTP boundary.
+    const fieldSchema = dto.fieldSchema as unknown as Prisma.InputJsonValue;
+
+    // Template write and its audit row share one transaction — see
+    // AuditService.recordWith for why this is atomic rather than best-effort.
+    return this.prisma.$transaction(async (tx) => {
+      if (templateId) {
+        // Fail before writing the audit row if the id doesn't exist, so an
+        // update of a missing template can't leave a TEMPLATE_UPDATED entry.
+        const existing = await tx.template.findUnique({
+          where: { id: templateId },
+        });
+        if (!existing) throw new NotFoundException("TEMPLATE_NOT_FOUND");
+
+        const updated = await tx.template.update({
+          where: { id: templateId },
+          data: { ...dto, fieldSchema },
+        });
+
+        await this.audit.recordWith(tx, {
+          actorUserId,
+          action: AuditAction.TEMPLATE_UPDATED,
+          targetType: AuditTargetType.TEMPLATE,
+          targetId: updated.id,
+          // Status transitions are the reviewable part of a template edit
+          // (publishing is what makes it purchasable), so record them
+          // explicitly rather than leaving a bare "it changed" entry.
+          metadata: {
+            title: updated.title,
+            statusFrom: existing.status,
+            statusTo: updated.status,
+          },
+        });
+
+        return updated;
+      }
+
+      const created = await tx.template.create({
+        data: { ...dto, fieldSchema, createdBy: actorUserId },
+      });
+
+      await this.audit.recordWith(tx, {
+        actorUserId,
+        action: AuditAction.TEMPLATE_CREATED,
+        targetType: AuditTargetType.TEMPLATE,
+        targetId: created.id,
+        metadata: { title: created.title, status: created.status },
+      });
+
+      return created;
+    });
   }
 
   async generate(userId: string, dto: GenerateDocumentDto) {
-    const template = await this.prisma.template.findUnique({ where: { id: dto.templateId } });
+    const template = await this.prisma.template.findUnique({
+      where: { id: dto.templateId },
+    });
     if (!template || template.status !== "PUBLISHED") {
       throw new NotFoundException("TEMPLATE_NOT_FOUND");
     }
 
-    // TODO: enqueue a `document-generation` BullMQ job (docs/trd.md Section 4.2)
-    // that runs docxtemplater + LibreOffice and uploads the result to R2. The
-    // job writes `fileUrl` back onto this row when it completes — for now the
-    // row is created in GENERATED status with a placeholder fileUrl.
-    return this.prisma.generatedDocument.create({
+    const generatedDocument = await this.prisma.generatedDocument.create({
       data: {
         userId,
         templateId: dto.templateId,
-        filledData: dto.filledData as object,
-        fileUrl: "", // set by the generation job
+        filledData: dto.filledData as Prisma.InputJsonValue,
+        fileUrl: "", // set by the document-generation job once it completes
         status: "GENERATED",
       },
     });
+
+    // Queued rather than run inline (docs/trd.md Section 4.2) — the
+    // LibreOffice conversion step is slow (seconds, not ms) and would
+    // otherwise block the request thread.
+    await this.documentGenerationQueue.add("generate", {
+      generatedDocumentId: generatedDocument.id,
+    });
+
+    return generatedDocument;
   }
 
+  /**
+   * The customer's own documents, for their dashboard.
+   *
+   * Includes the template's prices because a document generated earlier is
+   * commonly paid for later, and quoting a price needs no extra round trip per
+   * row. fileUrl comes back too — harmless, since it's now a storage key that
+   * cannot be fetched without a signature (see StorageService.signUrl).
+   */
   listMine(userId: string) {
     return this.prisma.generatedDocument.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
-      include: { template: { select: { title: true } } },
+      include: {
+        template: {
+          select: { title: true, priceInPaise: true, reviewPriceInPaise: true },
+        },
+      },
     });
   }
 
@@ -66,10 +180,16 @@ export class DocumentsService {
    * rejected — enforced here, not just by link expiry, so a stolen signed URL
    * doesn't help after the legitimate first use either.
    */
-  async consumeDownload(documentId: string, requesterId: string, requesterRole: Role) {
-    const doc = await this.prisma.generatedDocument.findUnique({ where: { id: documentId } });
+  async consumeDownload(
+    documentId: string,
+    requesterId: string,
+    requesterRole: Role,
+  ) {
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: documentId },
+    });
     if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
-    if (doc.userId !== requesterId && requesterRole === ("customer" as Role)) {
+    if (doc.userId !== requesterId && requesterRole === Role.CUSTOMER) {
       throw new ForbiddenException("NOT_YOUR_DOCUMENT");
     }
     if (doc.status === "DOWNLOADED") {
@@ -84,10 +204,24 @@ export class DocumentsService {
       data: { status: "DOWNLOADED", downloadedAt: new Date() },
     });
 
+    // Signed here rather than stored, so the link dies minutes after the
+    // entitlement check that produced it (docs/trd.md Section 8).
+    return { fileUrl: this.storage.signUrl(doc.fileUrl) };
+  }
+
   /** Called by PaymentsService once a document-review order is confirmed paid. */
-  async queueReview(generatedDocumentId: string, requestedByUserId: string, orderId: string) {
+  async queueReview(
+    generatedDocumentId: string,
+    requestedByUserId: string,
+    orderId: string,
+  ) {
     return this.prisma.documentReview.create({
-      data: { generatedDocumentId, requestedByUserId, orderId, status: "QUEUED" },
+      data: {
+        generatedDocumentId,
+        requestedByUserId,
+        orderId,
+        status: "QUEUED",
+      },
     });
   }
 
@@ -95,22 +229,52 @@ export class DocumentsService {
    * Managers claiming the same queue item. Zero rows updated means someone
    * else already claimed it first. */
   async claimReview(reviewId: string, reviewerId: string) {
-    const result = await this.prisma.documentReview.updateMany({
-      where: { id: reviewId, assignedToUserId: null },
-      data: { assignedToUserId: reviewerId, status: "IN_REVIEW" },
+    return this.prisma.$transaction(async (tx) => {
+      // Conditional update, not read-then-write: `assignedToUserId: null` in
+      // the WHERE is what makes the claim atomic under concurrent reviewers
+      // (docs/trd.md 4.3). Keep it that way.
+      const result = await tx.documentReview.updateMany({
+        where: { id: reviewId, assignedToUserId: null },
+        data: { assignedToUserId: reviewerId, status: "IN_REVIEW" },
+      });
+      if (result.count === 0) {
+        throw new ForbiddenException("ALREADY_CLAIMED");
+      }
+
+      await this.audit.recordWith(tx, {
+        actorUserId: reviewerId,
+        action: AuditAction.REVIEW_CLAIMED,
+        targetType: AuditTargetType.DOCUMENT_REVIEW,
+        targetId: reviewId,
+      });
+
+      return tx.documentReview.findUnique({ where: { id: reviewId } });
     });
-    if (result.count === 0) {
-      throw new ForbiddenException("ALREADY_CLAIMED");
-    }
-    return this.prisma.documentReview.findUnique({ where: { id: reviewId } });
   }
 
-  async returnReview(reviewId: string, reviewedFileUrl: string, notes?: string) {
+  async returnReview(
+    reviewId: string,
+    reviewedFileUrl: string,
+    actorUserId: string,
+    notes?: string,
+  ) {
     // TODO: trigger the `notification-dispatch` job here (docs/trd.md Section
     // 6) to send the Android push notification confirmed in docs/srs.md 3.8.
-    return this.prisma.documentReview.update({
-      where: { id: reviewId },
-      data: { status: "RETURNED", reviewedFileUrl, notes },
+    return this.prisma.$transaction(async (tx) => {
+      const returned = await tx.documentReview.update({
+        where: { id: reviewId },
+        data: { status: "RETURNED", reviewedFileUrl, notes },
+      });
+
+      await this.audit.recordWith(tx, {
+        actorUserId,
+        action: AuditAction.REVIEW_RETURNED,
+        targetType: AuditTargetType.DOCUMENT_REVIEW,
+        targetId: reviewId,
+        metadata: { generatedDocumentId: returned.generatedDocumentId },
+      });
+
+      return returned;
     });
   }
 
@@ -118,7 +282,11 @@ export class DocumentsService {
     return this.prisma.documentReview.findMany({
       where: { status: { in: ["QUEUED", "IN_REVIEW"] } },
       orderBy: { createdAt: "asc" },
-      include: { generatedDocument: { include: { template: { select: { title: true } } } } },
+      include: {
+        generatedDocument: {
+          include: { template: { select: { title: true } } },
+        },
+      },
     });
   }
 }

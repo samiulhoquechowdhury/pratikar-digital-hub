@@ -1,11 +1,27 @@
+import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
+import { AuditModule } from "../audit/audit.module";
+import { StorageModule } from "../storage/storage.module";
+
+import { DocumentGenerationProcessor } from "./document-generation.processor";
 import { DocumentsController } from "./documents.controller";
 import { DocumentsService } from "./documents.service";
 
 @Module({
+  imports: [
+    AuditModule,
+    StorageModule,
+    BullModule.registerQueue({
+      name: "document-generation",
+      defaultJobOptions: {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+      },
+    }),
+  ],
   controllers: [DocumentsController],
-  providers: [DocumentsService],
+  providers: [DocumentsService, DocumentGenerationProcessor],
   exports: [DocumentsService],
 })
 export class DocumentsModule {}
