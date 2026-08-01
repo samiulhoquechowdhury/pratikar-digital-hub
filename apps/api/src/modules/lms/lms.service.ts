@@ -19,6 +19,13 @@ import type { UpsertCourseDto } from "./dto/upsert-course.dto";
 
 @Injectable()
 export class LmsService {
+  /**
+   * Aggregate across every quiz in the course needed for a certificate.
+   * Lives here rather than in QuizService because QuizService imports this
+   * one, and the certificate rule belongs with the thing that issues it.
+   */
+  static readonly PASS_PERCENT = 80;
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -265,20 +272,114 @@ export class LmsService {
       update: {},
     });
 
-    const completedCount = await this.prisma.moduleProgress.count({
-      where: { enrollmentId, moduleId: { in: moduleIds } },
-    });
+    // Watching the last video is no longer enough on its own — the quizzes
+    // have to be sat and the aggregate has to clear the pass mark. Both paths
+    // funnel through one place so they can't disagree about what "finished"
+    // means.
+    await this.evaluateCompletion(enrollmentId);
+    return this.progressSummary(enrollmentId, moduleIds.length);
+  }
 
+  /**
+   * The single definition of "this course is complete", called after a video
+   * is finished and after a quiz is submitted.
+   *
+   * A certificate needs three things: every module watched, every module's
+   * quiz sat at least once, and an aggregate of at least PASS_PERCENT across
+   * those quizzes. Retakes are unlimited and the best attempt at each quiz is
+   * what counts, so someone who scores badly can lift their average rather
+   * than being locked out of a course they paid for.
+   *
+   * Safe to call repeatedly: issuing is an atomic claim, so a learner who has
+   * already been certified is left alone.
+   */
+  async evaluateCompletion(enrollmentId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        course: {
+          include: {
+            modules: { select: { id: true, quiz: { select: { id: true } } } },
+          },
+        },
+      },
+    });
+    if (!enrollment || enrollment.completedAt) return null;
+
+    const modules = enrollment.course.modules;
     // A course with no modules can't be completed — otherwise it would be
     // vacuously complete and issue a certificate for nothing.
-    const finished =
-      moduleIds.length > 0 && completedCount === moduleIds.length;
-    if (!finished || enrollment.completedAt) {
-      return this.progressSummary(enrollmentId, moduleIds.length);
+    if (modules.length === 0) return null;
+
+    const watched = await this.prisma.moduleProgress.count({
+      where: { enrollmentId, moduleId: { in: modules.map((m) => m.id) } },
+    });
+    if (watched !== modules.length) return null;
+
+    const quizIds = modules
+      .map((m) => m.quiz?.id)
+      .filter((id): id is string => Boolean(id));
+
+    const assessment = await this.assessQuizzes(enrollmentId, quizIds);
+
+    // "No quizzes" and "quizzes not sat yet" are different answers and must
+    // not share a representation. Collapsing both to null once issued a
+    // certificate at 50%: the last video was watched before the second test
+    // had been taken, the aggregate was unknown, and unknown was read as
+    // "nothing to fail".
+    if (assessment.kind === "unsat") return null;
+    if (
+      assessment.kind === "scored" &&
+      assessment.percent < LmsService.PASS_PERCENT
+    ) {
+      return null;
     }
 
-    await this.issueCertificate(enrollmentId);
-    return this.progressSummary(enrollmentId, moduleIds.length);
+    return this.issueCertificate(
+      enrollmentId,
+      assessment.kind === "scored" ? assessment.percent : null,
+    );
+  }
+
+  /**
+   * How the learner stands across a course's quizzes.
+   *
+   *   none   — the course has no quizzes, so the videos are the whole thing
+   *   unsat  — at least one quiz has never been submitted; not a zero to
+   *            average in, an incomplete course
+   *   scored — every quiz sat, carrying the mean of the best attempt at each
+   */
+  private async assessQuizzes(
+    enrollmentId: string,
+    quizIds: string[],
+  ): Promise<
+    { kind: "none" } | { kind: "unsat" } | { kind: "scored"; percent: number }
+  > {
+    if (quizIds.length === 0) return { kind: "none" };
+
+    const best = await this.prisma.quizAttempt.groupBy({
+      by: ["quizId"],
+      where: {
+        enrollmentId,
+        quizId: { in: quizIds },
+        submittedAt: { not: null },
+      },
+      _max: { scorePercent: true },
+    });
+
+    if (best.length !== quizIds.length) return { kind: "unsat" };
+
+    const total = best.reduce(
+      (sum, row) => sum + (row._max.scorePercent ?? 0),
+      0,
+    );
+    return { kind: "scored", percent: Math.round(total / quizIds.length) };
+  }
+
+  /** The number the progress rail shows, or null before every quiz is sat. */
+  private async aggregateQuizScore(enrollmentId: string, quizIds: string[]) {
+    const assessment = await this.assessQuizzes(enrollmentId, quizIds);
+    return assessment.kind === "scored" ? assessment.percent : null;
   }
 
   /**
@@ -289,7 +390,10 @@ export class LmsService {
    * course and race to create a certificate, and only one can exist per
    * enrolment.
    */
-  private async issueCertificate(enrollmentId: string) {
+  private async issueCertificate(
+    enrollmentId: string,
+    scorePercent: number | null,
+  ) {
     return this.prisma.$transaction(async (tx) => {
       const claimed = await tx.enrollment.updateMany({
         where: { id: enrollmentId, completedAt: null },
@@ -301,6 +405,10 @@ export class LmsService {
         data: {
           enrollmentId,
           verificationCode: randomBytes(8).toString("hex"),
+          // Stored rather than recomputed on each verification: the score a
+          // certificate was earned with shouldn't change because someone
+          // later edited a quiz or moved the pass mark.
+          scorePercent,
         },
       });
     });
@@ -323,6 +431,124 @@ export class LmsService {
     };
   }
 
+  /**
+   * The gated lesson plan for one enrolment: what's unlocked, what's been
+   * watched, what's been scored.
+   *
+   * Every gate is decided here rather than in the browser. The client uses
+   * this to draw locks, but the endpoints behind each step re-check the same
+   * conditions — a lock nobody can see is the only kind that holds.
+   */
+  async getLearnerOutline(enrollmentId: string, userId: string) {
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { id: enrollmentId },
+      include: {
+        certificate: true,
+        course: {
+          include: {
+            modules: {
+              orderBy: { order: "asc" },
+              include: {
+                quiz: {
+                  select: {
+                    id: true,
+                    title: true,
+                    timeLimitSeconds: true,
+                    _count: { select: { questions: true } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+    if (!enrollment) throw new NotFoundException("ENROLLMENT_NOT_FOUND");
+    if (enrollment.userId !== userId) {
+      throw new ForbiddenException("NOT_YOUR_ENROLLMENT");
+    }
+
+    const hasVideoAccess = enrollment.expiresAt > new Date();
+
+    const [progress, attempts] = await Promise.all([
+      this.prisma.moduleProgress.findMany({
+        where: { enrollmentId },
+        select: { moduleId: true },
+      }),
+      this.prisma.quizAttempt.groupBy({
+        by: ["quizId"],
+        where: { enrollmentId, submittedAt: { not: null } },
+        _max: { scorePercent: true },
+        _count: { _all: true },
+      }),
+    ]);
+
+    const watched = new Set(progress.map((p) => p.moduleId));
+    const byQuiz = new Map(attempts.map((a) => [a.quizId, a]));
+
+    // Walk in order, carrying whether everything before this point is done.
+    // A module opens only once the previous one's video AND quiz are behind
+    // you — that sequencing is the whole point of the feature.
+    let previousFinished = true;
+    const modules = enrollment.course.modules.map((courseModule) => {
+      const videoCompleted = watched.has(courseModule.id);
+      const stats = courseModule.quiz
+        ? byQuiz.get(courseModule.quiz.id)
+        : undefined;
+      const attemptCount = stats?._count._all ?? 0;
+
+      const unlocked = previousFinished;
+      const finished =
+        videoCompleted && (!courseModule.quiz || attemptCount > 0);
+      previousFinished = previousFinished && finished;
+
+      return {
+        id: courseModule.id,
+        title: courseModule.title,
+        order: courseModule.order,
+        // The Stream UID is enough to play the video, so it goes out only
+        // while access is live — same rule as the public catalogue.
+        videoAssetId: hasVideoAccess ? courseModule.videoAssetId : undefined,
+        videoCompleted,
+        unlocked,
+        quiz: courseModule.quiz
+          ? {
+              id: courseModule.quiz.id,
+              title: courseModule.quiz.title,
+              questionCount: courseModule.quiz._count.questions,
+              timeLimitSeconds: courseModule.quiz.timeLimitSeconds,
+              attemptCount,
+              bestScorePercent: stats?._max.scorePercent ?? null,
+              // The gate the client draws a padlock for: no test until the
+              // video is done. startAttempt enforces the same thing.
+              unlocked: unlocked && videoCompleted,
+            }
+          : null,
+      };
+    });
+
+    const quizIds = modules
+      .map((m) => m.quiz?.id)
+      .filter((id): id is string => Boolean(id));
+
+    return {
+      enrollmentId,
+      courseId: enrollment.courseId,
+      courseTitle: enrollment.course.title,
+      enrolledAt: enrollment.enrolledAt,
+      expiresAt: enrollment.expiresAt,
+      hasVideoAccess,
+      completedAt: enrollment.completedAt,
+      certificate: enrollment.certificate,
+      passMark: LmsService.PASS_PERCENT,
+      aggregateScorePercent: await this.aggregateQuizScore(
+        enrollmentId,
+        quizIds,
+      ),
+      modules,
+    };
+  }
+
   /** Public endpoint (docs/srs.md Section 7, item 5) — no auth required. */
   async verifyCertificate(verificationCode: string) {
     const certificate = await this.prisma.certificate.findUnique({
@@ -340,6 +566,10 @@ export class LmsService {
       courseTitle: certificate.enrollment.course.title,
       holderName: certificate.enrollment.user.name,
       issuedAt: certificate.issuedAt,
+      // What the holder scored, so a verifier sees the same number printed on
+      // the certificate they're holding.
+      scorePercent: certificate.scorePercent,
+      verificationCode: certificate.verificationCode,
     };
   }
 }

@@ -90,8 +90,10 @@ export function MyCourses() {
             <Card className="group flex h-full flex-col p-6">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-base">
+                  {/* Straight into the classroom, not the sales page — this
+                      list is for courses you already own. */}
                   <Link
-                    href={`/courses/${enrollment.courseId}`}
+                    href={`/learn/${enrollment.id}`}
                     className="text-ink transition-colors group-hover:text-primary"
                   >
                     {enrollment.course.title}
@@ -127,7 +129,7 @@ export function MyCourses() {
 
               {enrollment.certificate && (
                 <Link
-                  href={`/verify/${enrollment.certificate.verificationCode}`}
+                  href={`/learn/${enrollment.id}/certificate`}
                   className="mt-4 inline-block border-t border-line pt-4 text-sm font-semibold text-primary hover:text-primary-hover"
                 >
                   Certificate issued — view it

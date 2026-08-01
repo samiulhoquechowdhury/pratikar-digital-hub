@@ -1,6 +1,7 @@
 "use client";
 
 import { Button, Field, Input } from "@pratikar/ui";
+import Link from "next/link";
 
 import type { CourseModule } from "../api/coursesApi";
 import {
@@ -15,6 +16,8 @@ interface Props {
   modules: CourseModule[];
   problems: ModuleProblem[];
   onChange: (next: CourseModule[]) => void;
+  /** Absent while creating — a module has no id to author a test against yet. */
+  courseId?: string;
 }
 
 /**
@@ -22,7 +25,7 @@ interface Props {
  * every move, so there is no `order` input to get out of step with what's on
  * screen. The number badge is the position, and it's read-only on purpose.
  */
-export function ModuleEditor({ modules, problems, onChange }: Props) {
+export function ModuleEditor({ modules, problems, onChange, courseId }: Props) {
   return (
     <div>
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line pb-4">
@@ -101,6 +104,25 @@ export function ModuleEditor({ modules, problems, onChange }: Props) {
                         className="font-mono text-sm"
                       />
                     </Field>
+
+                    {/*
+                      Only once the module exists server-side: the test is
+                      authored against a module id, and an unsaved row hasn't
+                      got one. Saving the course first is the prerequisite,
+                      which is what the hint says when it isn't available.
+                    */}
+                    {courseId && module.id ? (
+                      <Link
+                        href={`/courses/${courseId}/modules/${module.id}/quiz`}
+                        className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
+                      >
+                        <span aria-hidden>✎</span> Edit this lesson&apos;s test
+                      </Link>
+                    ) : (
+                      <p className="text-xs text-ink-subtle">
+                        Save the course to add a test to this lesson.
+                      </p>
+                    )}
 
                     {hasProblem && (
                       <ul role="alert" className="space-y-1">

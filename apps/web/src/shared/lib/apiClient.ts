@@ -37,4 +37,11 @@ export const apiClient = {
       method: "POST",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  // Added for saving quiz answers as a learner goes: each save replaces that
+  // one question's answer, which is a PUT rather than a POST.
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: "PUT",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 };
