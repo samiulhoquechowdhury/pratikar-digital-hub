@@ -215,6 +215,15 @@ export function CourseDetail({ courseId }: { courseId: string }) {
                   </div>
                 )}
 
+                {/* The primary action once you own the course — the detail
+                    page becomes a doorway to the classroom rather than a
+                    sales page you've already acted on. */}
+                <div className="mt-5">
+                  <ButtonLink href={`/learn/${enrollment.id}`}>
+                    {completed > 0 ? "Continue learning" : "Start learning"}
+                  </ButtonLink>
+                </div>
+
                 <div className="mt-5 border-t border-line pt-4">
                   {hasVideoAccess ? (
                     // Cloudflare Stream is not provisioned yet, so there is no

@@ -198,6 +198,7 @@ export function CourseForm({ existing }: { existing?: Course }) {
           modules={modules}
           problems={problems}
           onChange={setModules}
+          courseId={existing?.id}
         />
       </Card>
 

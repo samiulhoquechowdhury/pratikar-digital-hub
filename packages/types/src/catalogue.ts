@@ -96,4 +96,7 @@ export interface CertificateVerification {
   courseTitle?: string;
   holderName?: string | null;
   issuedAt?: string;
+  /** Aggregate quiz score at issue, so a verifier sees the printed number. */
+  scorePercent?: number | null;
+  verificationCode?: string;
 }

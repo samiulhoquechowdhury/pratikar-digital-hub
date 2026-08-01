@@ -54,4 +54,6 @@ export const apiClient = {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  // `del` rather than `delete`, which is a reserved word as a bare identifier.
+  del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
