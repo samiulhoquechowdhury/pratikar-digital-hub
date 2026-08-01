@@ -24,11 +24,15 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { InvoiceService } from "./invoice/invoice.service";
 import { PaymentsService } from "./payments.service";
 
 @Controller("orders")
 export class PaymentsController {
-  constructor(private readonly paymentsService: PaymentsService) {}
+  constructor(
+    private readonly paymentsService: PaymentsService,
+    private readonly invoices: InvoiceService,
+  ) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -72,6 +76,24 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   listMine(@CurrentUser() user: RequestUser) {
     return this.paymentsService.listMyOrders(user.id);
+  }
+
+  /**
+   * The GST invoice for an order, with a short-lived download URL.
+   *
+   * Staff may read any invoice; a customer is scoped to their own orders by
+   * passing their id from the token as the ownership check. An invoice carries
+   * a name, contact details and what somebody bought, so "knows the order id"
+   * is not sufficient authorisation to read one.
+   */
+  @Get(":id/invoice")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  invoice(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    const isStaff =
+      user.role === Role.SUPPORT ||
+      user.role === Role.ADMIN ||
+      user.role === Role.SUPER_ADMIN;
+    return this.invoices.getForOrder(id, isStaff ? null : user.id);
   }
 
   @Post(":id/refund")

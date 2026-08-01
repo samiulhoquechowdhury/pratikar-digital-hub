@@ -22,6 +22,8 @@ import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { paymentsApi } from "../api/paymentsApi";
 
+import { InvoiceButton } from "./InvoiceButton";
+
 /** Whatever the order was for — only one of these associations is ever set. */
 function describe(order: CustomerOrder): string {
   if (order.contentLibraryItem) return order.contentLibraryItem.title;
@@ -105,11 +107,12 @@ export function MyPurchases() {
           <TH align="right">Total</TH>
           <TH>Status</TH>
           <TH align="right">Date</TH>
+          <TH align="right">Invoice</TH>
         </TR>
       </THead>
       <TBody>
         {orders.length === 0 ? (
-          <TEmpty colSpan={5}>You haven&apos;t bought anything yet.</TEmpty>
+          <TEmpty colSpan={6}>You haven&apos;t bought anything yet.</TEmpty>
         ) : (
           orders.map((order) => (
             <TR key={order.id}>
@@ -128,6 +131,18 @@ export function MyPurchases() {
                   month: "short",
                   year: "numeric",
                 })}
+              </TD>
+              {/*
+                Only paid and refunded orders have one. A refunded order keeps
+                its invoice — the sale happened, and cancelling it is a credit
+                note rather than the invoice disappearing.
+              */}
+              <TD align="right">
+                {order.status === "PAID" || order.status === "REFUNDED" ? (
+                  <InvoiceButton orderId={order.id} />
+                ) : (
+                  <span className="text-xs text-ink-subtle">—</span>
+                )}
               </TD>
             </TR>
           ))

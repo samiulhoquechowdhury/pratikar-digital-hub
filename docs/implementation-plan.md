@@ -58,7 +58,7 @@ Nothing has actually run yet. That's the first gap to close — not more design,
 3. Certificate display + the public verification page (`/certificates/verify/:code` already exists on the backend — this is purely a frontend page, no auth).
 4. Customer Dashboard: My Documents, My Purchases, My Courses, order history/invoices — the aggregation screen tying Milestones 1–3 together.
 
-**Blocker worth resolving here:** GST invoice format/GSTIN handling needs a real answer before `Invoice` generation is more than a stub — this is an accounting question, not an engineering one, and shouldn't be guessed at.
+**Blocker worth resolving here:** ~~GST invoice format/GSTIN handling needs a real answer before `Invoice` generation is more than a stub~~ — **built 2026-08-01.** Invoices are now numbered, taxed, rendered and downloadable; what remains is data, not engineering. Set `COMPANY_LEGAL_NAME`, `COMPANY_GSTIN`, `COMPANY_ADDRESS` and `COMPANY_STATE_CODE` and the PROFORMA watermark comes off. Until they are set, sales are still recorded and numbered correctly — they just are not valid tax invoices.
 
 ---
 
@@ -104,7 +104,7 @@ Pulled from across SRS/TRD so they're in one place instead of scattered:
 2. Refund policy specifics, especially for one-time-download documents
 3. Master document-template taxonomy (100 templates)
 4. Reviewer role granularity (Content Manager vs. a distinct Reviewer permission)
-5. GST invoice format/GSTIN requirements
+5. GST invoice format/GSTIN requirements — _engineering done 2026-08-01; now just needs the company's registration details and a CA's sign-off on the four SAC codes_
 6. Affiliate & Franchise requirements (full scoping pass needed)
 7. Content-library re-download policy (one-time like documents, or unlimited?)
 

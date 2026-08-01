@@ -412,14 +412,54 @@ model Order {
 }
 
 model Invoice {
-  id            String   @id @default(uuid())
-  orderId       String   @unique
-  invoiceNumber String   @unique // sequential, GST-compliant format
+  id            String @id @default(uuid())
+  orderId       String @unique
+  invoiceNumber String @unique // sequential, GST-compliant format
+  /// The financial year the serial belongs to, e.g. "2026-27". Rule 46(b)
+  /// requires the series to be consecutive and unique *within* a financial
+  /// year, so the counter resets every April and the year is part of the
+  /// identity of the number.
+  financialYear String
+  /// The buyer's GSTIN, when they have one and want input credit. Null for
+  /// B2C, which is every sale today — nothing collects it yet.
   gstin         String?
-  pdfUrl        String
-  createdAt     DateTime @default(now())
+
+  // Money, in paise, snapshotted at issue time rather than derived from the
+  // Order on read. An invoice is a statement about what was charged on a
+  // date; recomputing it later would silently rewrite history the day the
+  // rate or the place-of-supply rules change.
+  taxableAmount  Int
+  cgstAmount     Int
+  sgstAmount     Int
+  igstAmount     Int
+  totalAmount    Int
+  /// The rate that produced the amounts above, e.g. 18.
+  taxRatePercent Int
+  /// Two-letter state code the supply was made to. This is what decides
+  /// CGST+SGST (intra-state) versus IGST (inter-state), so it is recorded
+  /// rather than recalculated.
+  placeOfSupply  String
+
+  /// Storage key, never a URL — same rule as GeneratedDocument.fileUrl: a
+  /// signed URL expires, so one persisted here would be dead on arrival.
+  /// Null until the PDF has been rendered. The row is the invoice; the PDF is
+  /// a rendering of it, and the row has to exist even if rendering fails.
+  pdfKey    String?
+  createdAt DateTime @default(now())
 
   order Order @relation(fields: [orderId], references: [id])
+}
+
+/// One row per financial year holding the last serial issued.
+///
+/// Exists because GST wants a *consecutive* series: allocating numbers with
+/// `count() + 1`, or reading-then-writing this row, both hand the same number
+/// to two concurrent webhooks. allocate-number.ts increments it in a single
+/// atomic statement instead — see the comment there.
+model InvoiceCounter {
+  financialYear String   @id
+  lastSequence  Int      @default(0)
+  updatedAt     DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------

@@ -139,23 +139,65 @@ export function OrderList() {
                 <Badge tone={STATUS_TONE[order.status]}>{order.status}</Badge>
               </TD>
               <TD align="right">
-                {order.status === "PAID" && canRefund(user?.role) && (
-                  // Brand red, reserved for the irreversible action on the
-                  // screen. Nothing else here is destructive.
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => void refund(order)}
-                    disabled={busyId === order.id}
-                  >
-                    {busyId === order.id ? "Refunding…" : "Refund"}
-                  </Button>
-                )}
+                <div className="flex items-center justify-end gap-3">
+                  {/* A refund doesn't remove the invoice — the sale happened.
+                      Reversing it is a credit note, which we don't issue yet. */}
+                  {(order.status === "PAID" || order.status === "REFUNDED") && (
+                    <InvoiceLink orderId={order.id} />
+                  )}
+                  {order.status === "PAID" && canRefund(user?.role) && (
+                    // Brand red, reserved for the irreversible action on the
+                    // screen. Nothing else here is destructive.
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => void refund(order)}
+                      disabled={busyId === order.id}
+                    >
+                      {busyId === order.id ? "Refunding…" : "Refund"}
+                    </Button>
+                  )}
+                </div>
               </TD>
             </TR>
           ))}
         </TBody>
       </Table>
     </div>
+  );
+}
+
+/** Opens one order's invoice PDF, fetching its signed URL on click. */
+function InvoiceLink({ orderId }: { orderId: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+
+  const open = async () => {
+    setState("loading");
+    try {
+      const invoice = await ordersApi.invoice(orderId);
+      window.open(invoice.downloadUrl, "_blank", "noopener,noreferrer");
+      setState("idle");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "error") {
+    return (
+      <span className="text-xs text-danger-text" role="alert">
+        No invoice
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void open()}
+      disabled={state === "loading"}
+      className="text-sm font-semibold text-primary hover:text-primary-hover disabled:opacity-50"
+    >
+      {state === "loading" ? "Opening…" : "Invoice"}
+    </button>
   );
 }

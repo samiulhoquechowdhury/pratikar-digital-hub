@@ -15,6 +15,7 @@ import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { InvoiceService } from "./invoice/invoice.service";
 import { RazorpayService } from "./razorpay.service";
 
 // GST rate is a placeholder — the actual applicable rate depends on how these
@@ -43,6 +44,7 @@ export class PaymentsService {
     private readonly documentsService: DocumentsService,
     private readonly lmsService: LmsService,
     private readonly audit: AuditService,
+    private readonly invoices: InvoiceService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -116,9 +118,21 @@ export class PaymentsService {
       where: { id: order.id, status: "PENDING" },
       data: { status: "PAID", razorpayPaymentId: event.razorpayPaymentId },
     });
-    if (claimed.count === 0) return;
+    if (claimed.count > 0) {
+      await this.grantEntitlement(order);
+    }
 
-    await this.grantEntitlement(order);
+    // Outside the claim guard on purpose. If an earlier delivery granted the
+    // entitlement and then died before the invoice was written, the retry is
+    // the only chance we get to notice — and an untaxed sale is a legal
+    // problem, not a missing row. issueForOrder is idempotent, so running it
+    // on every delivery for a paid order costs a lookup and self-heals.
+    //
+    // Failing loudly here is deliberate: Razorpay retries a non-2xx, which is
+    // what we want when an invoice could not be raised for money we took.
+    if (claimed.count > 0 || order.status === "PAID") {
+      await this.invoices.issueForOrder(order.id);
+    }
   }
 
   /**
