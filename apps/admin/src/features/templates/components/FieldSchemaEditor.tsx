@@ -1,7 +1,7 @@
 "use client";
 
 import type { TemplateFieldSchema, TemplateFieldType } from "@pratikar/types";
-import { Button, Field, Input, Select } from "@pratikar/ui";
+import { Button, Field, IconButton, Input, Select } from "@pratikar/ui";
 
 import {
   FIELD_TYPES,
@@ -25,10 +25,6 @@ const TYPE_LABELS: Record<TemplateFieldType, string> = {
   number: "Number",
   select: "Dropdown",
 };
-
-/** Small square button used for the reorder and remove controls. */
-const ICON_BUTTON =
-  "rounded-control border border-line-strong bg-surface px-2 py-1 text-xs text-ink-muted hover:bg-surface-sunken disabled:opacity-40";
 
 /**
  * The form-builder-for-forms: what a Content Manager edits here becomes the
@@ -310,36 +306,31 @@ export function FieldSchemaEditor({ schema, problems, onChange }: Props) {
                   </div>
 
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button
-                      type="button"
+                    <IconButton
+                      label="Move up"
                       onClick={() =>
                         onChange(moveField(schema, index, index - 1))
                       }
                       disabled={index === 0}
-                      className={ICON_BUTTON}
                     >
-                      <span className="sr-only">Move up</span>
-                      <span aria-hidden>↑</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↑
+                    </IconButton>
+                    <IconButton
+                      label="Move down"
                       onClick={() =>
                         onChange(moveField(schema, index, index + 1))
                       }
                       disabled={index === schema.length - 1}
-                      className={ICON_BUTTON}
                     >
-                      <span className="sr-only">Move down</span>
-                      <span aria-hidden>↓</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↓
+                    </IconButton>
+                    <IconButton
+                      label="Remove field {index + 1}"
+                      tone="danger"
                       onClick={() => onChange(removeField(schema, index))}
-                      className="rounded-control border border-danger-border px-2 py-1 text-xs text-danger-text hover:bg-danger-subtle"
                     >
-                      <span className="sr-only">Remove field {index + 1}</span>
-                      <span aria-hidden>×</span>
-                    </button>
+                      ×
+                    </IconButton>
                   </div>
                 </div>
               </li>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import { Alert, Button, ButtonLink, SkeletonText } from "@pratikar/ui";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
@@ -57,7 +57,8 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
     };
   }, [code]);
 
-  if (isLoading) return <Loading label="Loading your certificate…" />;
+  if (isLoading)
+    return <SkeletonText lines={5} label="Loading your certificate…" />;
   if (error || !outline) {
     return (
       <Alert tone="danger" role="alert">

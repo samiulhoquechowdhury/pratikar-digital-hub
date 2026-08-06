@@ -29,6 +29,7 @@ export function QuizResult({
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
         <div
+          data-surface="inverse"
           className={`px-6 py-8 text-center ${passed ? "bg-hero-navy" : "bg-surface-inverse-deep"}`}
         >
           {/* Score ring: the number is the headline, so it gets the room. */}

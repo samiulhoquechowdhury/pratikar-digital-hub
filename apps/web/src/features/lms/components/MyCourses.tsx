@@ -7,7 +7,7 @@ import {
   ButtonLink,
   Card,
   EmptyState,
-  Loading,
+  SkeletonCards,
 } from "@pratikar/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -58,7 +58,8 @@ export function MyCourses() {
       />
     );
   }
-  if (isLoading) return <Loading label="Loading your courses…" />;
+  if (isLoading)
+    return <SkeletonCards count={2} label="Loading your courses…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">

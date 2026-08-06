@@ -1,6 +1,12 @@
 "use client";
 
-import { Alert, ButtonLink, Card, EmptyState, Loading } from "@pratikar/ui";
+import {
+  Alert,
+  ButtonLink,
+  Card,
+  EmptyState,
+  SkeletonForm,
+} from "@pratikar/ui";
 import Link from "next/link";
 
 import { useAuth } from "@/shared/providers/AuthProvider";
@@ -46,7 +52,8 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
     );
   }
 
-  if (isLoading) return <Loading label="Loading template…" />;
+  if (isLoading)
+    return <SkeletonForm fields={5} label="Loading this template…" />;
 
   if (templateError || !template) {
     return (

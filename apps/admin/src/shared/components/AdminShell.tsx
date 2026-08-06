@@ -42,7 +42,10 @@ export function AdminShell({ children }: { children: ReactNode }) {
         stays light: staff read tables and fill forms here all day, and a dark
         data surface makes both harder.
       */}
-      <aside className="hidden w-64 shrink-0 flex-col bg-surface-inverse-deep lg:flex">
+      <aside
+        data-surface="inverse"
+        className="hidden w-64 shrink-0 flex-col bg-surface-inverse-deep lg:flex"
+      >
         <div className="flex h-16 items-center gap-2.5 border-b border-line-inverse px-5">
           <span
             aria-hidden
@@ -112,6 +115,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             work on desktop, so this is a fallback, not the primary layout. */}
         <nav
           aria-label="Sections"
+          data-surface="inverse"
           className="flex gap-1 overflow-x-auto border-b border-line-inverse bg-surface-inverse-deep px-3 py-2 lg:hidden"
         >
           {NAV.map((item) => (

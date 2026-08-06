@@ -51,7 +51,7 @@ const AVAILABLE_NOW = [
 export default function AssistantPage() {
   return (
     <>
-      <section className="bg-hero-navy">
+      <section data-surface="inverse" className="bg-hero-navy">
         <div className="mx-auto max-w-shell px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand">
             In development

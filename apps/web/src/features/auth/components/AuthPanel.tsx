@@ -53,7 +53,10 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
-      <section className="hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
+      <section
+        data-surface="inverse"
+        className="hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
+      >
         <div className="max-w-md">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
             Pratikar Digital Hub

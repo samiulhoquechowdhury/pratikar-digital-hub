@@ -37,9 +37,32 @@
    * screen-reader users are not an edge case here: this is a legal-services
    * product with accessibility obligations, and `outline: none` is the single
    * most common way to break it.
+   *
+   * ── WHY THIS IS A VARIABLE AND NOT JUST `ring-primary` ────────────────────
+   * It used to be. `ring-primary` is navy #0b1f3a, and the sticky header, the
+   * hero and the footer are all `surface-inverse` — navy #0b1f3a. The ring was
+   * the same colour as the background it sat on, so keyboard focus was
+   * *invisible* on every nav link, the AI button and sign-in. `ring-offset`
+   * made it worse by painting a light halo on those dark surfaces.
+   *
+   * The colour now follows the surface: navy on light (17.7:1), gold on navy
+   * (7.86:1). Dark regions declare themselves with `data-surface="inverse"`.
+   *
+   * `outline` rather than `ring` on purpose — an outline follows the element's
+   * own shape and its offset gap shows whatever is actually behind it, so
+   * there is no offset colour to get wrong in the first place.
    */
+  :root {
+    --focus-ring: theme(colors.primary.DEFAULT);
+  }
+
+  [data-surface="inverse"] {
+    --focus-ring: theme(colors.brand.DEFAULT);
+  }
+
   :focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-canvas;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
   }
 
   /* Respect the OS setting rather than animating regardless. */

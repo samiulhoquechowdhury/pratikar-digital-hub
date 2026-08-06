@@ -7,7 +7,7 @@ import {
   ButtonLink,
   Card,
   EmptyState,
-  Loading,
+  SkeletonText,
 } from "@pratikar/ui";
 import Link from "next/link";
 import { useState } from "react";
@@ -70,7 +70,7 @@ export function ContentItemDetail({ itemId }: { itemId: string }) {
     );
   }
 
-  if (isLoading) return <Loading />;
+  if (isLoading) return <SkeletonText lines={5} label="Loading this item…" />;
 
   if (error) {
     return (

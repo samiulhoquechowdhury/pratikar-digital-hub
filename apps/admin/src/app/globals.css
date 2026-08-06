@@ -26,9 +26,24 @@
    * Staff use this panel all day, largely by keyboard. A visible focus ring is
    * not decoration here — it's how someone tabbing through a review queue
    * knows where they are.
+   *
+   * The colour follows the surface. It used to be a flat `ring-primary`, which
+   * is navy — the same navy as the sidebar it had to show up against, so
+   * focus was effectively invisible on every navigation item in the panel.
+   * Navy on light (17.7:1), gold on navy (7.86:1); dark regions say so with
+   * `data-surface="inverse"`. See apps/web's globals.css for the longer note.
    */
+  :root {
+    --focus-ring: theme(colors.primary.DEFAULT);
+  }
+
+  [data-surface="inverse"] {
+    --focus-ring: theme(colors.brand.DEFAULT);
+  }
+
   :focus-visible {
-    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-canvas;
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
   }
 
   @media (prefers-reduced-motion: reduce) {

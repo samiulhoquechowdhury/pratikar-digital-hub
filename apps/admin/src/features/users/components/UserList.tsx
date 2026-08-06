@@ -5,8 +5,8 @@ import {
   Alert,
   Badge,
   EmptyState,
-  Loading,
   Select,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -94,7 +94,8 @@ export function UserList() {
     }
   };
 
-  if (isLoading) return <Loading label="Loading users…" />;
+  if (isLoading)
+    return <SkeletonTable rows={6} columns={4} label="Loading users…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -126,11 +127,11 @@ export function UserList() {
         </Alert>
       )}
 
-      <Table>
+      <Table label="Users">
         <THead>
           <TR>
             <TH>User</TH>
-            <TH>Joined</TH>
+            <TH secondary>Joined</TH>
             <TH>Role</TH>
           </TR>
         </THead>
@@ -149,7 +150,7 @@ export function UserList() {
                     </span>
                   )}
                 </TD>
-                <TD muted>
+                <TD secondary muted>
                   {new Date(user.createdAt).toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",

@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Loading, PageBody, PageHeader } from "@pratikar/ui";
+import { Alert, PageBody, PageHeader, SkeletonForm } from "@pratikar/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -43,7 +43,7 @@ function EditQuiz({
   if (isLoading) {
     return (
       <PageBody>
-        <Loading label="Loading…" />
+        <SkeletonForm fields={4} label="Loading this test…" />
       </PageBody>
     );
   }

@@ -23,7 +23,10 @@ export function RequireStaff({ children }: { children: React.ReactNode }) {
       // Full navy page rather than the shell: there's no navigation worth
       // offering someone who isn't signed in, and an empty sidebar would just
       // be a list of links that all bounce back here.
-      <main className="grid min-h-screen place-items-center bg-hero-navy px-4 py-12">
+      <main
+        data-surface="inverse"
+        className="grid min-h-screen place-items-center bg-hero-navy px-4 py-12"
+      >
         <div className="w-full max-w-md">
           <div className="mb-8 flex items-center justify-center gap-2.5">
             <span

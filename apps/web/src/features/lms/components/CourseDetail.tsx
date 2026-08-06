@@ -6,7 +6,7 @@ import {
   ButtonLink,
   Card,
   EmptyState,
-  Loading,
+  SkeletonText,
 } from "@pratikar/ui";
 import Link from "next/link";
 
@@ -41,7 +41,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     refreshEnrollment,
   } = useCourse(courseId, !!user);
 
-  if (isLoading) return <Loading label="Loading course…" />;
+  if (isLoading) return <SkeletonText lines={6} label="Loading this course…" />;
 
   if (error) {
     return (
@@ -68,7 +68,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     <article>
       {/* Navy header, matching the course card's band — the card and the page
           it opens should look like the same object. */}
-      <header className="bg-hero-navy">
+      <header data-surface="inverse" className="bg-hero-navy">
         <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
           <Link
             href="/courses"

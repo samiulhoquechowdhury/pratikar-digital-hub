@@ -1,7 +1,7 @@
 "use client";
 
 import type { CertificateVerification } from "@pratikar/types";
-import { Alert, Card, Loading } from "@pratikar/ui";
+import { Alert, Card, SkeletonText } from "@pratikar/ui";
 import { useEffect, useState } from "react";
 
 import { lmsApi } from "../api/lmsApi";
@@ -40,7 +40,8 @@ export function CertificateVerifier({ code }: { code: string }) {
     };
   }, [code]);
 
-  if (isLoading) return <Loading label="Checking this certificate…" />;
+  if (isLoading)
+    return <SkeletonText lines={4} label="Checking this certificate…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">

@@ -45,7 +45,9 @@ export function HeroSearch() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="What do you need? e.g. rent agreement"
-          className="min-w-0 flex-1 rounded-control border border-transparent bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
+          // The global focus-visible outline is deliberately left in place —
+          // see the note in SiteSearch.
+          className="min-w-0 flex-1 rounded-control border border-transparent bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-subtle focus:border-brand"
         />
         <button
           type="submit"

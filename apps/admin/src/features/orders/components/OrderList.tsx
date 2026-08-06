@@ -6,7 +6,7 @@ import {
   Badge,
   Button,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -86,7 +86,8 @@ export function OrderList() {
     }
   };
 
-  if (isLoading) return <Loading label="Loading orders…" />;
+  if (isLoading)
+    return <SkeletonTable rows={6} columns={6} label="Loading orders…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">
@@ -110,12 +111,12 @@ export function OrderList() {
         </Alert>
       )}
 
-      <Table>
+      <Table label="Orders">
         <THead>
           <TR>
-            <TH>Placed</TH>
+            <TH secondary>Placed</TH>
             <TH>Customer</TH>
-            <TH>Item</TH>
+            <TH secondary>Item</TH>
             <TH align="right">Total</TH>
             <TH>Status</TH>
             <TH align="right">
@@ -126,11 +127,13 @@ export function OrderList() {
         <TBody>
           {orders.map((order) => (
             <TR key={order.id}>
-              <TD muted>
+              <TD secondary muted>
                 {new Date(order.createdAt).toLocaleDateString("en-IN")}
               </TD>
               <TD>{order.user.email ?? order.user.phone ?? order.userId}</TD>
-              <TD muted>{order.itemType}</TD>
+              <TD secondary muted>
+                {order.itemType}
+              </TD>
               {/* GST included — this is what actually left the customer. */}
               <TD align="right">
                 ₹{paiseToRupees(order.amount + order.gstAmount)}
@@ -152,9 +155,10 @@ export function OrderList() {
                       variant="danger"
                       size="sm"
                       onClick={() => void refund(order)}
-                      disabled={busyId === order.id}
+                      loading={busyId === order.id}
+                      loadingLabel="Refunding…"
                     >
-                      {busyId === order.id ? "Refunding…" : "Refund"}
+                      Refund
                     </Button>
                   )}
                 </div>

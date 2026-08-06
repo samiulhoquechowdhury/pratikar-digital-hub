@@ -6,7 +6,7 @@ import {
   Badge,
   ButtonLink,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TEmpty,
@@ -89,7 +89,10 @@ export function MyPurchases() {
       />
     );
   }
-  if (isLoading) return <Loading label="Loading your purchases…" />;
+  if (isLoading)
+    return (
+      <SkeletonTable rows={4} columns={6} label="Loading your purchases…" />
+    );
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -99,14 +102,16 @@ export function MyPurchases() {
   }
 
   return (
-    <Table>
+    <Table label="Your purchases">
       <THead>
         <TR>
           <TH>Item</TH>
-          <TH>Type</TH>
+          <TH secondary>Type</TH>
           <TH align="right">Total</TH>
           <TH>Status</TH>
-          <TH align="right">Date</TH>
+          <TH align="right" secondary>
+            Date
+          </TH>
           <TH align="right">Invoice</TH>
         </TR>
       </THead>
@@ -117,7 +122,9 @@ export function MyPurchases() {
           orders.map((order) => (
             <TR key={order.id}>
               <TD>{describe(order)}</TD>
-              <TD muted>{ITEM_TYPE_LABELS[order.itemType]}</TD>
+              <TD secondary muted>
+                {ITEM_TYPE_LABELS[order.itemType]}
+              </TD>
               {/* GST included — see formatOrderTotal. */}
               <TD align="right">{formatOrderTotal(order)}</TD>
               <TD>
@@ -125,7 +132,7 @@ export function MyPurchases() {
                   {STATUS[order.status].label}
                 </Badge>
               </TD>
-              <TD align="right" muted>
+              <TD secondary align="right" muted>
                 {new Date(order.createdAt).toLocaleDateString("en-IN", {
                   day: "numeric",
                   month: "short",

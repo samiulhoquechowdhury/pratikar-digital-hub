@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Badge, Loading, PageBody, PageHeader } from "@pratikar/ui";
+import { Alert, Badge, PageBody, PageHeader, SkeletonForm } from "@pratikar/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 
@@ -28,7 +28,7 @@ function EditTemplate({ id }: { id: string }) {
   if (isLoading) {
     return (
       <PageBody>
-        <Loading label="Loading template…" />
+        <SkeletonForm fields={6} label="Loading this template…" />
       </PageBody>
     );
   }

@@ -8,7 +8,7 @@ import {
   EmptyState,
   Field,
   Input,
-  Loading,
+  SkeletonList,
   Textarea,
 } from "@pratikar/ui";
 import { useState } from "react";
@@ -97,7 +97,8 @@ export function ReviewQueue() {
     returnReview,
   } = useReviewQueue();
 
-  if (isLoading) return <Loading label="Loading review queue…" />;
+  if (isLoading)
+    return <SkeletonList rows={5} label="Loading the review queue…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -164,9 +165,10 @@ export function ReviewQueue() {
                       <Button
                         type="button"
                         onClick={() => void claim(review.id)}
-                        disabled={busyId === review.id}
+                        loading={busyId === review.id}
+                        loadingLabel="Claiming…"
                       >
-                        {busyId === review.id ? "Claiming…" : "Claim"}
+                        Claim
                       </Button>
                     </>
                   )}

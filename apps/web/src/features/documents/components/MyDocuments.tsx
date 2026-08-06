@@ -7,7 +7,7 @@ import {
   ButtonLink,
   Card,
   EmptyState,
-  Loading,
+  SkeletonList,
 } from "@pratikar/ui";
 import { useEffect, useState } from "react";
 
@@ -73,7 +73,7 @@ export function MyDocuments() {
       />
     );
   }
-  if (isLoading) return <Loading label="Loading your documents…" />;
+  if (isLoading) return <SkeletonList label="Loading your documents…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">

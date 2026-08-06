@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, EmptyState, Loading } from "@pratikar/ui";
+import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
 
 import { useCourses } from "../hooks/useCourses";
 
@@ -9,7 +9,7 @@ import { CourseCard } from "./CourseCard";
 export function CourseList() {
   const { courses, isLoading, error } = useCourses();
 
-  if (isLoading) return <Loading label="Loading courses…" />;
+  if (isLoading) return <SkeletonCards label="Loading courses…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">

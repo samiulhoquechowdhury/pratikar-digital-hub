@@ -1,7 +1,7 @@
 "use client";
 
 import type { OutlineModule } from "@pratikar/types";
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import { Alert, Button, ButtonLink, Skeleton } from "@pratikar/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -35,7 +35,7 @@ export function LessonPlayer({ enrollmentId }: { enrollmentId: string }) {
     if (next) setActiveId(next.id);
   }, [outline, activeId]);
 
-  if (isLoading) return <Loading label="Loading your course…" />;
+  if (isLoading) return <LessonSkeleton />;
   if (error || !outline) {
     return (
       <Alert tone="danger" role="alert">
@@ -96,6 +96,43 @@ export function LessonPlayer({ enrollmentId }: { enrollmentId: string }) {
         activeId={active?.id ?? null}
         onSelect={setActiveId}
       />
+    </div>
+  );
+}
+
+/**
+ * The classroom's own loading shape.
+ *
+ * A generic skeleton would be wrong here: this screen is a wide stage beside a
+ * narrow syllabus, and collapsing that to a stack of bars would make the
+ * layout jump sideways the moment the outline arrives.
+ */
+function LessonSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
+    >
+      <span className="sr-only">Loading your course…</span>
+
+      <div className="space-y-6">
+        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <Skeleton className="aspect-video rounded-none" />
+          <div className="space-y-3 p-6">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="mt-6 h-9 w-44 rounded-control" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
+        <Skeleton className="h-3 w-24" />
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-control" />
+        ))}
+      </div>
     </div>
   );
 }
@@ -171,9 +208,11 @@ function LessonStage({
                 <Button
                   type="button"
                   onClick={onMarkWatched}
-                  disabled={busy || !canWatch}
+                  loading={busy}
+                  loadingLabel="Saving…"
+                  disabled={!canWatch}
                 >
-                  {busy ? "Saving…" : "Mark lesson as watched"}
+                  Mark lesson as watched
                 </Button>
                 <span className="text-xs text-ink-subtle">
                   Becomes automatic once video hosting is connected.
