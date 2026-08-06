@@ -350,3 +350,144 @@ describe("LmsService.completeModule", () => {
     });
   });
 });
+
+/**
+ * The certificate gate once a course has quizzes.
+ *
+ * These exist because a live walk-through issued a certificate at a 50%
+ * aggregate. The cause: "this course has no quizzes" and "the quizzes haven't
+ * been sat yet" were both represented as null, and evaluateCompletion read
+ * null as "nothing to fail". Watching the last video before taking the last
+ * test was enough to mint a certificate the learner hadn't earned — and that
+ * certificate is what the public verification page vouches for to an employer.
+ */
+describe("LmsService.evaluateCompletion with quizzes", () => {
+  const future = new Date(Date.now() + 86_400_000);
+
+  const build = (opts: {
+    modules: { id: string; quiz: { id: string } | null }[];
+    watched: number;
+    /** Best submitted score per quiz, keyed by quiz id. */
+    best?: Record<string, number>;
+  }) => {
+    const tx = {
+      enrollment: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
+      certificate: { create: jest.fn().mockResolvedValue({ id: "cert-1" }) },
+    };
+    const prisma = {
+      enrollment: {
+        findUnique: jest.fn().mockResolvedValue({
+          id: "enr-1",
+          userId: "learner-1",
+          completedAt: null,
+          expiresAt: future,
+          course: { modules: opts.modules },
+        }),
+      },
+      moduleProgress: { count: jest.fn().mockResolvedValue(opts.watched) },
+      quizAttempt: {
+        groupBy: jest.fn().mockResolvedValue(
+          Object.entries(opts.best ?? {}).map(([quizId, percent]) => ({
+            quizId,
+            _max: { scorePercent: percent },
+          })),
+        ),
+      },
+      $transaction: jest.fn((cb: (client: typeof tx) => unknown) => cb(tx)),
+    };
+    const service = new LmsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+    );
+    return { service, tx };
+  };
+
+  const TWO_QUIZZES = [
+    { id: "mod-1", quiz: { id: "quiz-1" } },
+    { id: "mod-2", quiz: { id: "quiz-2" } },
+  ];
+
+  /** The exact regression: every video watched, one test never sat. */
+  it("issues nothing while a quiz is still unsat, however many videos are done", async () => {
+    const { service, tx } = build({
+      modules: TWO_QUIZZES,
+      watched: 2,
+      best: { "quiz-1": 100 },
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    expect(tx.certificate.create).not.toHaveBeenCalled();
+  });
+
+  it("issues nothing when the aggregate is below the pass mark", async () => {
+    const { service, tx } = build({
+      modules: TWO_QUIZZES,
+      watched: 2,
+      best: { "quiz-1": 100, "quiz-2": 50 }, // 75%
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    expect(tx.certificate.create).not.toHaveBeenCalled();
+  });
+
+  it("issues at exactly the pass mark", async () => {
+    const { service, tx } = build({
+      modules: TWO_QUIZZES,
+      watched: 2,
+      best: { "quiz-1": 90, "quiz-2": 70 }, // 80%
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    expect(tx.certificate.create).toHaveBeenCalled();
+  });
+
+  /** The score is recorded so a later edit to a quiz can't re-describe it. */
+  it("stores the aggregate on the certificate", async () => {
+    const { service, tx } = build({
+      modules: TWO_QUIZZES,
+      watched: 2,
+      best: { "quiz-1": 100, "quiz-2": 80 }, // 90%
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    const calls = tx.certificate.create.mock.calls as {
+      data?: { scorePercent?: number | null };
+    }[][];
+    expect(calls[0]?.[0]?.data?.scorePercent).toBe(90);
+  });
+
+  /** A course with no tests at all is still completed by watching it. */
+  it("issues on video completion alone when the course has no quizzes", async () => {
+    const { service, tx } = build({
+      modules: [
+        { id: "mod-1", quiz: null },
+        { id: "mod-2", quiz: null },
+      ],
+      watched: 2,
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    const calls = tx.certificate.create.mock.calls as {
+      data?: { scorePercent?: number | null };
+    }[][];
+    expect(tx.certificate.create).toHaveBeenCalled();
+    expect(calls[0]?.[0]?.data?.scorePercent).toBeNull();
+  });
+
+  it("issues nothing while a video is still unwatched", async () => {
+    const { service, tx } = build({
+      modules: TWO_QUIZZES,
+      watched: 1,
+      best: { "quiz-1": 100, "quiz-2": 100 },
+    });
+
+    await service.evaluateCompletion("enr-1");
+
+    expect(tx.certificate.create).not.toHaveBeenCalled();
+  });
+});

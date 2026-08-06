@@ -19,10 +19,29 @@ export interface AuthenticatedUser {
   role: Role;
 }
 
-export interface OtpVerifyResponse {
+/**
+ * What every successful sign-in returns, whichever way you got there. OTP and
+ * Google deliberately produce the same shape — the front end stores a session
+ * without needing to know which door it came through.
+ */
+export interface AuthSession {
   accessToken: string;
   user: AuthenticatedUser;
+  /** True the first time an identifier is seen — the UI greets rather than welcomes back. */
   isNewUser: boolean;
   // refreshToken is omitted here on purpose for the web flow (httpOnly cookie);
   // the API includes it in the raw JSON body only for the Android client.
+}
+
+/** @deprecated Use AuthSession — kept so existing imports keep resolving. */
+export type OtpVerifyResponse = AuthSession;
+
+export interface GoogleSignInPayload {
+  /**
+   * The `credential` field from Google Identity Services: a JWT signed by
+   * Google that names our client id as its audience. Not a secret in the
+   * usual sense — it is single-purpose and short-lived — but it is a bearer
+   * credential, so it only ever travels to our own API.
+   */
+  idToken: string;
 }

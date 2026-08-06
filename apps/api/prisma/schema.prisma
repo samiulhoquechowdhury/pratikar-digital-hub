@@ -211,6 +211,7 @@ model CourseModule {
 
   course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   progress ModuleProgress[]
+  quiz     Quiz?
 
   @@index([courseId, order])
 }
@@ -244,11 +245,12 @@ model Enrollment {
   expiresAt   DateTime
   completedAt DateTime?
 
-  user        User             @relation(fields: [userId], references: [id])
-  course      Course           @relation(fields: [courseId], references: [id])
-  order       Order            @relation(fields: [orderId], references: [id])
-  certificate Certificate?
-  progress    ModuleProgress[]
+  user         User             @relation(fields: [userId], references: [id])
+  course       Course           @relation(fields: [courseId], references: [id])
+  order        Order            @relation(fields: [orderId], references: [id])
+  certificate  Certificate?
+  progress     ModuleProgress[]
+  quizAttempts QuizAttempt[]
 
   @@index([userId])
   @@index([expiresAt])
@@ -259,10 +261,105 @@ model Certificate {
   enrollmentId     String   @unique
   verificationCode String   @unique
   issuedAt         DateTime @default(now())
+  /// Aggregate percentage across every quiz at the moment of issue, kept so
+  /// the certificate can state the score it was earned with and so a later
+  /// change to the pass mark can't retroactively re-describe an issued one.
+  scorePercent     Int?
 
   enrollment Enrollment @relation(fields: [enrollmentId], references: [id])
 
   @@index([verificationCode])
+}
+
+// ---------------------------------------------------------------------------
+// Assessments
+//
+// One quiz per module, taken after that module's video and before the next
+// module unlocks. Correct answers live only in QuizOption.isCorrect and are
+// never selected into a learner-facing response — see LmsQuizService.
+// ---------------------------------------------------------------------------
+
+model Quiz {
+  id       String @id @default(uuid())
+  moduleId String @unique
+  title    String?
+  /// The timer, in seconds. Enforced server-side: QuizAttempt.expiresAt is
+  /// computed from this at start, and answers saved after it are rejected.
+  timeLimitSeconds Int      @default(600)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  module    CourseModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  attempts  QuizAttempt[]
+}
+
+model QuizQuestion {
+  id     String @id @default(uuid())
+  quizId String
+  prompt String
+  order  Int
+
+  quiz    Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  options QuizOption[]
+  answers QuizAnswer[]
+
+  @@unique([quizId, order])
+  @@index([quizId])
+}
+
+model QuizOption {
+  id         String  @id @default(uuid())
+  questionId String
+  text       String
+  order      Int
+  /// Never leaves the server for a learner. Marking this optional would let a
+  /// question exist with no right answer, so scoring treats a question with no
+  /// correct option as unanswerable and skips it.
+  isCorrect  Boolean @default(false)
+
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers  QuizAnswer[]
+
+  @@unique([questionId, order])
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id           String    @id @default(uuid())
+  quizId       String
+  enrollmentId String
+  startedAt    DateTime  @default(now())
+  /// startedAt + Quiz.timeLimitSeconds, frozen at start. A later edit to the
+  /// quiz's time limit must not shorten an attempt already under way.
+  expiresAt    DateTime
+  submittedAt  DateTime?
+  /// 0-100, null until submitted. Retakes are unlimited and the best score is
+  /// what counts toward the certificate.
+  scorePercent Int?
+
+  quiz       Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  enrollment Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  answers    QuizAnswer[]
+
+  @@index([enrollmentId, quizId])
+  @@index([quizId])
+}
+
+model QuizAnswer {
+  id         String  @id @default(uuid())
+  attemptId  String
+  questionId String
+  /// Null means the learner saw the question and left it blank, which scores
+  /// the same as wrong but is worth distinguishing in a review screen.
+  selectedOptionId String?
+
+  attempt  QuizAttempt  @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  question QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selected QuizOption?  @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
 }
 
 // ---------------------------------------------------------------------------

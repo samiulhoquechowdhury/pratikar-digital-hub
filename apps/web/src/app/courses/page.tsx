@@ -1,11 +1,19 @@
+import { PageBody, PageHeader } from "@pratikar/ui";
+
 import { CourseList } from "@/features/lms";
+
+export const metadata = { title: "Courses" };
 
 export default function CoursesPage() {
   return (
-    <main>
-      <h1>Courses</h1>
-      <p>Video courses with a certificate on completion.</p>
-      <CourseList />
-    </main>
+    <>
+      <PageHeader
+        title="Courses"
+        description="Video courses with a certificate on completion. Access runs for a fixed period from the day you enrol."
+      />
+      <PageBody>
+        <CourseList />
+      </PageBody>
+    </>
   );
 }

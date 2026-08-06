@@ -1,6 +1,16 @@
 "use client";
 
 import { CONTENT_CATEGORIES } from "@pratikar/types";
+import {
+  Alert,
+  Badge,
+  ButtonLink,
+  Card,
+  EmptyState,
+  Field,
+  Loading,
+  Select,
+} from "@pratikar/ui";
 import { formatPaise } from "@pratikar/utils";
 import Link from "next/link";
 import { useState } from "react";
@@ -30,46 +40,86 @@ export function ContentLibraryList() {
   // show a visitor — same as templates.
   if (!user) {
     return (
-      <p>
-        <Link href="/login">Sign in</Link> to browse the content library.
-      </p>
+      <EmptyState
+        title="Sign in to browse the library"
+        description="E-books and checklists are available to signed-in customers."
+        action={<ButtonLink href="/login">Sign in</ButtonLink>}
+      />
     );
   }
 
   return (
-    <div>
-      <label htmlFor="category">Category</label>
-      <select
-        id="category"
-        value={category}
-        onChange={(e) => setCategory(e.target.value)}
-      >
-        <option value="">All categories</option>
-        {CONTENT_CATEGORIES.map((value) => (
-          <option key={value} value={value}>
-            {CATEGORY_LABELS[value] ?? value}
-          </option>
-        ))}
-      </select>
+    <div className="space-y-6">
+      <div className="max-w-xs">
+        <Field label="Category" htmlFor="category">
+          <Select
+            id="category"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="">All categories</option>
+            {CONTENT_CATEGORIES.map((value) => (
+              <option key={value} value={value}>
+                {CATEGORY_LABELS[value] ?? value}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      </div>
 
-      {isLoading && <p>Loading…</p>}
-      {error && <p role="alert">{error}</p>}
-      {!isLoading && !error && items.length === 0 && (
-        <p>Nothing published in this category yet.</p>
+      {isLoading && <Loading />}
+      {error && (
+        <Alert tone="danger" role="alert">
+          {error}
+        </Alert>
       )}
 
-      <ul>
-        {items.map((item) => (
-          <li key={item.id}>
-            <Link href={`/content-library/${item.id}`}>{item.title}</Link>{" "}
-            <small>
-              {item.type === "EBOOK" ? "E-book" : "Checklist"} ·{" "}
-              {CATEGORY_LABELS[item.category] ?? item.category} ·{" "}
-              {formatPaise(item.priceInPaise)}
-            </small>
-          </li>
-        ))}
-      </ul>
+      {!isLoading && !error && items.length === 0 && (
+        <EmptyState
+          title="Nothing here yet"
+          description={
+            category
+              ? "No items published in this category. Try another one."
+              : "New e-books and checklists appear here as they're published."
+          }
+        />
+      )}
+
+      {items.length > 0 && (
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((item) => (
+            <li key={item.id}>
+              <Card className="group flex h-full flex-col p-6 transition-shadow hover:shadow-raised">
+                <div className="flex items-start justify-between gap-3">
+                  <h2 className="text-lg">
+                    {/* Navy on hover, not gold: gold on white is 2.10:1 and
+                        fails WCAG at any size (see the Tailwind preset). */}
+                    <Link
+                      href={`/content-library/${item.id}`}
+                      className="text-ink transition-colors group-hover:text-primary"
+                    >
+                      {item.title}
+                    </Link>
+                  </h2>
+                  <Badge tone="brand">
+                    {item.type === "EBOOK" ? "E-book" : "Checklist"}
+                  </Badge>
+                </div>
+
+                <p className="mt-2 flex-1 text-sm text-ink-muted">
+                  {CATEGORY_LABELS[item.category] ?? item.category}
+                </p>
+
+                <div className="mt-5 border-t border-line pt-4">
+                  <span className="text-lg font-semibold text-ink">
+                    {formatPaise(item.priceInPaise)}
+                  </span>
+                </div>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

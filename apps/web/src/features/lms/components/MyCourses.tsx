@@ -1,6 +1,14 @@
 "use client";
 
 import type { Enrollment } from "@pratikar/types";
+import {
+  Alert,
+  Badge,
+  ButtonLink,
+  Card,
+  EmptyState,
+  Loading,
+} from "@pratikar/ui";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -8,7 +16,12 @@ import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { lmsApi } from "../api/lmsApi";
 
-const formatDate = (iso: string) => new Date(iso).toLocaleDateString("en-IN");
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 
 export function MyCourses() {
   const { user } = useAuth();
@@ -39,42 +52,90 @@ export function MyCourses() {
 
   if (!user) {
     return (
-      <p>
-        <Link href="/login">Sign in</Link> to see your courses.
-      </p>
+      <EmptyState
+        title="Sign in to see your courses"
+        action={<ButtonLink href="/login?next=/dashboard">Sign in</ButtonLink>}
+      />
     );
   }
-  if (isLoading) return <p>Loading your courses…</p>;
-  if (error) return <p role="alert">{error}</p>;
+  if (isLoading) return <Loading label="Loading your courses…" />;
+  if (error) {
+    return (
+      <Alert tone="danger" role="alert">
+        {error}
+      </Alert>
+    );
+  }
   if (enrollments.length === 0) {
     return (
-      <p>
-        You&apos;re not enrolled in anything yet.{" "}
-        <Link href="/courses">Browse courses</Link>.
-      </p>
+      <EmptyState
+        title="You're not enrolled in anything yet"
+        description="Courses end in a certificate with a code anyone can verify."
+        action={<ButtonLink href="/courses">Browse courses</ButtonLink>}
+      />
     );
   }
 
   return (
-    <ul>
+    <ul className="grid gap-4 sm:grid-cols-2">
       {enrollments.map((enrollment) => {
         // An expired enrolment isn't gone — it keeps its certificate and only
         // loses playback, so it stays listed rather than disappearing.
         const expired = new Date(enrollment.expiresAt) <= new Date();
         const done = enrollment.progress?.length ?? 0;
         const total = enrollment.course._count?.modules ?? 0;
+
         return (
           <li key={enrollment.id}>
-            <Link href={`/courses/${enrollment.courseId}`}>
-              {enrollment.course.title}
-            </Link>{" "}
-            <small>
-              {total > 0 && `${done} of ${total} lessons · `}
-              {expired
-                ? `access ended ${formatDate(enrollment.expiresAt)}`
-                : `access until ${formatDate(enrollment.expiresAt)}`}
-              {enrollment.certificate && " · certificate issued"}
-            </small>
+            <Card className="group flex h-full flex-col p-6">
+              <div className="flex items-start justify-between gap-3">
+                <h3 className="text-base">
+                  {/* Straight into the classroom, not the sales page — this
+                      list is for courses you already own. */}
+                  <Link
+                    href={`/learn/${enrollment.id}`}
+                    className="text-ink transition-colors group-hover:text-primary"
+                  >
+                    {enrollment.course.title}
+                  </Link>
+                </h3>
+                <Badge tone={expired ? "neutral" : "success"}>
+                  {expired ? "Access ended" : "Active"}
+                </Badge>
+              </div>
+
+              {total > 0 && (
+                <div className="mt-4">
+                  <p className="text-sm text-ink-muted">
+                    {done} of {total} lessons completed
+                  </p>
+                  <div
+                    aria-hidden
+                    className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-sunken"
+                  >
+                    <div
+                      className="h-full rounded-full bg-brand"
+                      style={{ width: `${(done / total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <p className="mt-4 flex-1 text-sm text-ink-subtle">
+                {expired
+                  ? `Access ended ${formatDate(enrollment.expiresAt)}`
+                  : `Access until ${formatDate(enrollment.expiresAt)}`}
+              </p>
+
+              {enrollment.certificate && (
+                <Link
+                  href={`/learn/${enrollment.id}/certificate`}
+                  className="mt-4 inline-block border-t border-line pt-4 text-sm font-semibold text-primary hover:text-primary-hover"
+                >
+                  Certificate issued — view it
+                </Link>
+              )}
+            </Card>
           </li>
         );
       })}

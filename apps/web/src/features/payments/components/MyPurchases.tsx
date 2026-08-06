@@ -1,8 +1,21 @@
 "use client";
 
 import type { CustomerOrder } from "@pratikar/types";
+import {
+  Alert,
+  Badge,
+  ButtonLink,
+  EmptyState,
+  Loading,
+  TBody,
+  TD,
+  TEmpty,
+  TH,
+  THead,
+  TR,
+  Table,
+} from "@pratikar/ui";
 import { formatOrderTotal } from "@pratikar/utils";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { useAuth } from "@/shared/providers/AuthProvider";
@@ -22,6 +35,21 @@ const ITEM_TYPE_LABELS: Record<CustomerOrder["itemType"], string> = {
   DOCUMENT_REVIEW: "Lawyer review",
   CONTENT_ITEM: "Content library",
   COURSE: "Course",
+};
+
+/**
+ * Status is a badge rather than raw text, and never colour alone — the label
+ * carries the meaning on its own, so it still reads correctly in greyscale or
+ * to anyone who can't distinguish the tones.
+ */
+const STATUS: Record<
+  CustomerOrder["status"],
+  { label: string; tone: "success" | "warning" | "danger" | "neutral" }
+> = {
+  PAID: { label: "Paid", tone: "success" },
+  PENDING: { label: "Pending", tone: "warning" },
+  FAILED: { label: "Failed", tone: "danger" },
+  REFUNDED: { label: "Refunded", tone: "neutral" },
 };
 
 export function MyPurchases() {
@@ -53,38 +81,58 @@ export function MyPurchases() {
 
   if (!user) {
     return (
-      <p>
-        <Link href="/login">Sign in</Link> to see your purchases.
-      </p>
+      <EmptyState
+        title="Sign in to see your purchases"
+        action={<ButtonLink href="/login?next=/dashboard">Sign in</ButtonLink>}
+      />
     );
   }
-  if (isLoading) return <p>Loading your purchases…</p>;
-  if (error) return <p role="alert">{error}</p>;
-  if (orders.length === 0) return <p>You haven&apos;t bought anything yet.</p>;
+  if (isLoading) return <Loading label="Loading your purchases…" />;
+  if (error) {
+    return (
+      <Alert tone="danger" role="alert">
+        {error}
+      </Alert>
+    );
+  }
 
   return (
-    <table>
-      <thead>
-        <tr>
-          <th scope="col">Item</th>
-          <th scope="col">Type</th>
-          <th scope="col">Total</th>
-          <th scope="col">Status</th>
-          <th scope="col">Date</th>
-        </tr>
-      </thead>
-      <tbody>
-        {orders.map((order) => (
-          <tr key={order.id}>
-            <td>{describe(order)}</td>
-            <td>{ITEM_TYPE_LABELS[order.itemType]}</td>
-            {/* GST included — see formatOrderTotal. */}
-            <td>{formatOrderTotal(order)}</td>
-            <td>{order.status}</td>
-            <td>{new Date(order.createdAt).toLocaleDateString("en-IN")}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <Table>
+      <THead>
+        <TR>
+          <TH>Item</TH>
+          <TH>Type</TH>
+          <TH align="right">Total</TH>
+          <TH>Status</TH>
+          <TH align="right">Date</TH>
+        </TR>
+      </THead>
+      <TBody>
+        {orders.length === 0 ? (
+          <TEmpty colSpan={5}>You haven&apos;t bought anything yet.</TEmpty>
+        ) : (
+          orders.map((order) => (
+            <TR key={order.id}>
+              <TD>{describe(order)}</TD>
+              <TD muted>{ITEM_TYPE_LABELS[order.itemType]}</TD>
+              {/* GST included — see formatOrderTotal. */}
+              <TD align="right">{formatOrderTotal(order)}</TD>
+              <TD>
+                <Badge tone={STATUS[order.status].tone}>
+                  {STATUS[order.status].label}
+                </Badge>
+              </TD>
+              <TD align="right" muted>
+                {new Date(order.createdAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </TD>
+            </TR>
+          ))
+        )}
+      </TBody>
+    </Table>
   );
 }

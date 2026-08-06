@@ -7,6 +7,7 @@ import {
   Logger,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
+import type { Role } from "@pratikar/types";
 
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -14,6 +15,7 @@ import { UsersService } from "../users/users.service";
 
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
+import { GoogleAuthService } from "./google-auth.service";
 import { OtpService } from "./otp.service";
 import { SessionService } from "./session.service";
 
@@ -28,6 +30,7 @@ export class AuthService {
     private readonly sessionService: SessionService,
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
+    private readonly googleAuthService: GoogleAuthService,
   ) {}
 
   async requestOtp(dto: OtpRequestDto): Promise<void> {
@@ -113,19 +116,28 @@ export class AuthService {
         dto.channel,
       );
 
-    // 6. Issue tokens. Access token short-lived JWT; refresh token opaque,
-    // stored hashed, multi-device-safe (session created, none revoked).
-    const accessToken = this.jwtService.sign(
-      { sub: user.id, role: user.role },
-      { expiresIn: "15m" },
-    );
-    const { refreshToken } = await this.sessionService.createSession({
-      userId: user.id,
-      userAgent: context.userAgent,
-      ip: context.ip,
-    });
+    // 6. Issue tokens.
+    return { ...(await this.issueSession(user, context)), isNewUser };
+  }
 
-    return { accessToken, refreshToken, user, isNewUser };
+  /**
+   * Google sign-in. Deliberately joins the OTP flow at step 6: once Google has
+   * verified the address, we know exactly what a correct OTP would have told
+   * us, so the same account resolution and the same session are issued. No
+   * second class of login, no separate token shape.
+   */
+  async signInWithGoogle(
+    idToken: string,
+    context: { userAgent?: string; ip?: string },
+  ) {
+    const profile = await this.googleAuthService.verify(idToken);
+
+    const { user, isNewUser } =
+      await this.usersService.findOrCreateByIdentifier(profile.email, "email", {
+        name: profile.name,
+      });
+
+    return { ...(await this.issueSession(user, context)), isNewUser };
   }
 
   async refreshSession(refreshToken: string | undefined) {
@@ -136,6 +148,28 @@ export class AuthService {
   async logout(refreshToken: string | undefined, allDevices: boolean) {
     if (refreshToken)
       await this.sessionService.revoke(refreshToken, allDevices);
+  }
+
+  /**
+   * Access token is a short-lived JWT; the refresh token is opaque and stored
+   * hashed. Creating a session never revokes the others, so signing in on a
+   * phone doesn't sign you out on a laptop.
+   */
+  private async issueSession(
+    user: { id: string; name: string | null; role: Role },
+    context: { userAgent?: string; ip?: string },
+  ) {
+    const accessToken = this.jwtService.sign(
+      { sub: user.id, role: user.role },
+      { expiresIn: "15m" },
+    );
+    const { refreshToken } = await this.sessionService.createSession({
+      userId: user.id,
+      userAgent: context.userAgent,
+      ip: context.ip,
+    });
+
+    return { accessToken, refreshToken, user };
   }
 
   private async sendOtp(
