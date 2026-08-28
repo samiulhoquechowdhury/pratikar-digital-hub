@@ -12,11 +12,38 @@ import { AdminShell } from "./AdminShell";
  * gate — every route behind it is independently role-guarded on the API, so
  * bypassing this in the browser gains nothing but 403s.
  *
- * The token is memory-only, so a page refresh lands back here until the
- * /auth/refresh flow is wired.
+ * The token is memory-only, so a reload starts signed out and AuthProvider
+ * exchanges the httpOnly refresh cookie for a new one. `isRestoring` covers
+ * that gap: without it the sign-in form flashes on every reload in front of
+ * someone who is, a moment later, signed in.
  */
 export function RequireStaff({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, isRestoring } = useAuth();
+
+  if (isRestoring) {
+    return (
+      <main
+        data-surface="inverse"
+        className="grid min-h-screen place-items-center bg-hero-navy px-4 py-12"
+      >
+        {/*
+          Deliberately just the mark, with no spinner and no "loading" copy.
+          This resolves in well under a second on a warm cookie, and a message
+          that appears and vanishes that fast reads as a flicker rather than
+          as feedback. Screen readers still get the status.
+        */}
+        <span role="status" className="sr-only">
+          Restoring your session…
+        </span>
+        <span
+          aria-hidden
+          className="grid h-10 w-10 place-items-center rounded-control bg-brand text-lg font-bold text-on-brand"
+        >
+          P
+        </span>
+      </main>
+    );
+  }
 
   if (!user) {
     return (
