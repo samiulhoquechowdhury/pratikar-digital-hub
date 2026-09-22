@@ -9,10 +9,12 @@ import {
   EmptyState,
   SkeletonText,
 } from "@pratikar/ui";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 
 import { BuyButton } from "@/features/payments";
+import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { contentLibraryApi } from "../api/contentLibraryApi";
@@ -98,7 +100,7 @@ export function ContentItemDetail({ itemId }: { itemId: string }) {
         href="/content-library"
         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
       >
-        <span aria-hidden>←</span> Back to the library
+        <Icon icon={ArrowLeft} /> Back to the library
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
@@ -130,7 +132,7 @@ export function ContentItemDetail({ itemId }: { itemId: string }) {
                     aria-hidden
                     className="grid h-6 w-6 place-items-center rounded-full bg-success-subtle text-xs text-success-text"
                   >
-                    ✓
+                    <Icon icon={Check} size="xs" />
                   </span>
                   <h2 className="text-base">You own this</h2>
                 </div>

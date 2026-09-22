@@ -1,6 +1,16 @@
+import {
+  ArrowRight,
+  Briefcase,
+  Building2,
+  GraduationCap,
+  House,
+  ListChecks,
+  Receipt,
+} from "lucide-react";
 import Link from "next/link";
 
 import { FeaturedCourses, HeroSearch } from "@/features/home";
+import { Icon } from "@/shared/components/Icon";
 
 /**
  * Category tiles, in the pattern Coursera and Udemy open with: show the
@@ -12,37 +22,37 @@ const CATEGORIES = [
     href: "/documents",
     label: "Rent & property",
     hint: "Agreements, notices, sale deeds",
-    icon: "🏠",
+    icon: House,
   },
   {
     href: "/documents",
     label: "Employment",
     hint: "Offer letters, contracts, NDAs",
-    icon: "📄",
+    icon: Briefcase,
   },
   {
     href: "/documents",
     label: "Business",
     hint: "Partnerships, vendors, compliance",
-    icon: "🏢",
+    icon: Building2,
   },
   {
     href: "/content-library?category=BUSINESS_COMPLIANCE",
     label: "GST & filings",
     hint: "Guides that keep you compliant",
-    icon: "🧾",
+    icon: Receipt,
   },
   {
     href: "/content-library?category=CHECKLISTS_REFERENCE",
     label: "Checklists",
     hint: "What to check before you sign",
-    icon: "✅",
+    icon: ListChecks,
   },
   {
     href: "/courses",
     label: "Certificate courses",
     hint: "Learn it properly, prove it",
-    icon: "🎓",
+    icon: GraduationCap,
   },
 ];
 
@@ -167,10 +177,10 @@ export default function HomePage() {
               <li key={category.label}>
                 <Link
                   href={category.href}
-                  className="flex items-start gap-3 rounded-card border border-line bg-surface p-4 transition-colors hover:border-brand-border hover:bg-brand-subtle"
+                  className="group flex items-start gap-3 rounded-card border border-line bg-surface p-4 transition-colors hover:border-brand-border hover:bg-brand-subtle"
                 >
-                  <span aria-hidden className="text-xl leading-none">
-                    {category.icon}
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-control bg-brand-subtle text-gold-ink transition-colors group-hover:bg-brand group-hover:text-on-brand">
+                    <Icon icon={category.icon} size="md" />
                   </span>
                   <span>
                     <span className="block text-sm font-semibold text-ink">
@@ -207,7 +217,7 @@ export default function HomePage() {
                   className="mt-5 inline-flex items-center gap-1 text-sm font-semibold text-primary hover:text-primary-hover"
                 >
                   {product.cta}
-                  <span aria-hidden>→</span>
+                  <Icon icon={ArrowRight} />
                 </Link>
               </li>
             ))}

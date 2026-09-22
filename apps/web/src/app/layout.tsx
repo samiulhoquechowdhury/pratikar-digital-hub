@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Source_Serif_4 } from "next/font/google";
 
 import { SiteFooter } from "@/shared/components/SiteFooter";
 import { SiteHeader } from "@/shared/components/SiteHeader";
@@ -13,6 +13,26 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
+});
+
+/**
+ * The display face, used only on page and section titles.
+ *
+ * A single sans across an entire legal-services product reads as generic —
+ * Inter is the safe default precisely because it is everywhere. A serif on the
+ * headings does the work the subject actually asks for: contracts, statutes
+ * and certificates are set in serif, and the association is what carries
+ * authority. Source Serif rather than a traditional book face because the
+ * interface around it is Swiss-plain, and a bookish serif would fight it.
+ *
+ * Restraint is the point. Body copy, labels, tables and every control stay
+ * Inter, so the serif marks hierarchy instead of decorating the page.
+ */
+const displaySerif = Source_Serif_4({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "600", "700"],
+  variable: "--font-display",
 });
 
 export const metadata: Metadata = {
@@ -29,7 +49,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${displaySerif.variable}`}>
       <body className="flex min-h-screen flex-col font-sans">
         <AuthProvider>
           {/*

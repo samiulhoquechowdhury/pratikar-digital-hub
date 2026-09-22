@@ -33,6 +33,23 @@
   }
 
   /**
+   * Page and section titles take the display serif; h3 and below stay Inter.
+   *
+   * The split is the point. Titles are where a reader decides what kind of
+   * place this is, and serif is what legal documents are set in. Card titles,
+   * labels and table headings are where they scan and act, and a serif there
+   * would slow the scanning down for no gain.
+   *
+   * Tracking is reset rather than inherited: `tracking-tight` flatters a
+   * geometric sans but crowds a serif's own spacing at display sizes.
+   */
+  h1,
+  h2 {
+    @apply font-display font-semibold;
+    letter-spacing: -0.012em;
+  }
+
+  /**
    * A visible focus ring on every interactive element, always. Keyboard and
    * screen-reader users are not an edge case here: this is a legal-services
    * product with accessibility obligations, and `outline: none` is the single

@@ -1,5 +1,8 @@
+import { ArrowRight } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
+
+import { Icon } from "@/shared/components/Icon";
 
 export const metadata: Metadata = {
   title: "AI legal assistant",
@@ -109,7 +112,7 @@ export default function AssistantPage() {
                     aria-hidden
                     className="mt-4 text-sm font-semibold text-primary"
                   >
-                    →
+                    <Icon icon={ArrowRight} />
                   </span>
                 </Link>
               </li>

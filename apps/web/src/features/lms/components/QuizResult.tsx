@@ -2,6 +2,9 @@
 
 import type { QuizAttemptResult } from "@pratikar/types";
 import { Badge, ButtonLink } from "@pratikar/ui";
+import { Check, Minus, X } from "lucide-react";
+
+import { Icon } from "@/shared/components/Icon";
 
 /**
  * The result screen, including which answer was right.
@@ -106,10 +109,32 @@ export function QuizResult({
                               : "border-line text-ink-muted"
                         }`}
                       >
-                        <span aria-hidden>
-                          {option.isCorrect ? "✓" : isChosen ? "✕" : "·"}
+                        {/*
+                          The marker used to be the only thing saying which
+                          option was right, and it was aria-hidden — so a
+                          screen reader reviewing the test heard "your answer"
+                          but never whether it was correct. Colour alone was
+                          carrying the result. The icon stays decorative; the
+                          words below say it.
+                        */}
+                        <span className="grid w-4 shrink-0 place-items-center">
+                          {option.isCorrect ? (
+                            <Icon icon={Check} />
+                          ) : isChosen ? (
+                            <Icon icon={X} />
+                          ) : (
+                            <Icon icon={Minus} className="opacity-40" />
+                          )}
                         </span>
-                        <span>{option.text}</span>
+                        <span>
+                          {option.isCorrect && (
+                            <span className="sr-only">Correct answer: </span>
+                          )}
+                          {isChosen && !option.isCorrect && (
+                            <span className="sr-only">Incorrect: </span>
+                          )}
+                          {option.text}
+                        </span>
                         {isChosen && (
                           <span className="ml-auto shrink-0 text-xs font-medium">
                             your answer

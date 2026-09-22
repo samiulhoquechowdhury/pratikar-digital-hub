@@ -1,8 +1,11 @@
 "use client";
 
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import { isGoogleSignInEnabled } from "../lib/googleIdentity";
 import { safeRedirectPath } from "../lib/redirect";
@@ -71,7 +74,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
                   aria-hidden
                   className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-on-brand"
                 >
-                  ✓
+                  <Icon icon={Check} size="xs" />
                 </span>
                 <span className="text-sm leading-relaxed text-ink-inverse-muted">
                   {promise}

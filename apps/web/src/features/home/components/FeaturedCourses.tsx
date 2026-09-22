@@ -1,8 +1,10 @@
 "use client";
 
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 import { CourseCard, useCourses } from "@/features/lms";
+import { Icon } from "@/shared/components/Icon";
 
 /** How many fit one row on a wide screen without the grid going ragged. */
 const MAX_SHOWN = 4;
@@ -34,7 +36,7 @@ export function FeaturedCourses() {
           href="/courses"
           className="text-sm font-semibold text-primary hover:text-primary-hover"
         >
-          All courses <span aria-hidden>→</span>
+          All courses <Icon icon={ArrowRight} />
         </Link>
       </div>
 

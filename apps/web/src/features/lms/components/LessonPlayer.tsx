@@ -2,8 +2,11 @@
 
 import type { OutlineModule } from "@pratikar/types";
 import { Alert, Button, ButtonLink, Skeleton } from "@pratikar/ui";
+import { Check, Lock, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import { lmsApi } from "../api/lmsApi";
 import { useCourseOutline } from "../hooks/useCourseOutline";
@@ -169,7 +172,7 @@ function LessonStage({
                 aria-hidden
                 className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-brand/40 bg-brand/10 text-2xl text-brand"
               >
-                ▶
+                <Icon icon={Play} size="lg" className="translate-x-0.5" />
               </span>
               <p className="mt-4 text-sm font-medium text-ink-inverse">
                 {canWatch
@@ -194,7 +197,7 @@ function LessonStage({
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
             {lesson.videoCompleted ? (
               <span className="inline-flex items-center gap-2 text-sm font-medium text-success-text">
-                <span aria-hidden>✓</span> Lesson completed
+                <Icon icon={Check} /> Lesson completed
               </span>
             ) : (
               <>
@@ -264,7 +267,7 @@ function LessonStage({
               </div>
             ) : (
               <p className="flex items-center gap-2 text-sm text-ink-muted">
-                <span aria-hidden>🔒</span>
+                <Icon icon={Lock} />
                 Finish the lesson above to unlock this test.
               </p>
             )}

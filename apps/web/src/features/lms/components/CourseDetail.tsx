@@ -8,9 +8,11 @@ import {
   EmptyState,
   SkeletonText,
 } from "@pratikar/ui";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 
 import { BuyButton } from "@/features/payments";
+import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useCourse } from "../hooks/useCourse";
@@ -74,7 +76,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
             href="/courses"
             className="inline-flex items-center gap-1 text-sm font-medium text-ink-inverse-muted hover:text-brand"
           >
-            <span aria-hidden>←</span> All courses
+            <Icon icon={ArrowLeft} /> All courses
           </Link>
 
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-brand">
@@ -126,9 +128,10 @@ export function CourseDetail({ courseId }: { courseId: string }) {
                             : "bg-surface-sunken text-ink-muted"
                         }`}
                       >
-                        {done ? "✓" : index + 1}
+                        {done ? <Icon icon={Check} /> : index + 1}
                       </span>
                       <span className="min-w-0 flex-1 text-sm font-medium text-ink">
+                        {done && <span className="sr-only">Completed: </span>}
                         {module.title}
                       </span>
                       {done && <Badge tone="success">Completed</Badge>}
