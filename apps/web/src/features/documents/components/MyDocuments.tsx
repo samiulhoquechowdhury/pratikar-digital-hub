@@ -1,26 +1,11 @@
 "use client";
 
-import type { GeneratedDocument, Template } from "@pratikar/types";
-import {
-  Alert,
-  Badge,
-  ButtonLink,
-  Card,
-  EmptyState,
-  SkeletonList,
-} from "@pratikar/ui";
-import { useEffect, useState } from "react";
+import type { GeneratedDocument } from "@pratikar/types";
+import { Badge, ButtonLink, Card, EmptyState } from "@pratikar/ui";
 
-import { useAuth } from "@/shared/providers/AuthProvider";
-
-import { documentsApi } from "../api/documentsApi";
+import type { MyDocument } from "../api/documentsApi";
 
 import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
-
-/** listMine joins the template so a row can be labelled and priced. */
-type MyDocument = GeneratedDocument & {
-  template: Pick<Template, "title" | "priceInPaise" | "reviewPriceInPaise">;
-};
 
 /** What each status means to the person looking at it, not to the database. */
 const STATUS: Record<
@@ -37,50 +22,13 @@ const STATUS: Record<
  * on — pay, download, or nothing. Documents are commonly generated in one
  * sitting and paid for in another, so the dashboard has to be able to finish
  * the transaction, not just report on it.
+ *
+ * Presentational: the account is loaded once by useDashboardData and handed
+ * down. This used to fetch for itself, along with its own auth gate, loading
+ * state and error — which is how a signed-out visitor ended up looking at
+ * three separate "Sign in" cards down one page.
  */
-export function MyDocuments() {
-  const { user } = useAuth();
-  const [documents, setDocuments] = useState<MyDocument[]>([]);
-  const [isLoading, setIsLoading] = useState(!!user);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-
-    documentsApi
-      .listMine()
-      .then((result) => {
-        if (!cancelled) setDocuments(result as MyDocument[]);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Couldn't load your documents.");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  if (!user) {
-    return (
-      <EmptyState
-        title="Sign in to see your documents"
-        action={<ButtonLink href="/login?next=/dashboard">Sign in</ButtonLink>}
-      />
-    );
-  }
-  if (isLoading) return <SkeletonList label="Loading your documents…" />;
-  if (error) {
-    return (
-      <Alert tone="danger" role="alert">
-        {error}
-      </Alert>
-    );
-  }
+export function MyDocuments({ documents }: { documents: MyDocument[] }) {
   if (documents.length === 0) {
     return (
       <EmptyState
