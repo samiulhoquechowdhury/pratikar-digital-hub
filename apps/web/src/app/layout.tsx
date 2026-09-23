@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 
+import { AssistantLauncher } from "@/features/assistant";
 import { SiteFooter } from "@/shared/components/SiteFooter";
 import { SiteHeader } from "@/shared/components/SiteHeader";
 import { AuthProvider } from "@/shared/providers/AuthProvider";
@@ -70,6 +71,14 @@ export default function RootLayout({
           </main>
 
           <SiteFooter />
+
+          {/*
+            Last in the tree so it sits above the page without a z-index
+            contest, and after the footer in the tab order — the assistant is
+            an aside, and a keyboard user shouldn't meet it before the content
+            they came for.
+          */}
+          <AssistantLauncher />
         </AuthProvider>
       </body>
     </html>
