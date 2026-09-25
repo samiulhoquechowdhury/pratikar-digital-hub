@@ -39,6 +39,32 @@ describe("financialYearOf", () => {
     expect(financialYearOf(new Date(`${date}T00:00:00+05:30`))).toBe(expected);
   });
 
+  /**
+   * The boundary is a fact about India, not about the host clock.
+   *
+   * This is the assertion that was missing. The original implementation read
+   * getFullYear()/getMonth(), so it passed on a developer machine set to IST
+   * and failed in CI — and would have mis-numbered real invoices on a UTC
+   * server for the first five and a half hours of every financial year.
+   *
+   * There is no timezone-switching here on purpose: Node reads TZ once at
+   * startup, so setting process.env.TZ mid-test changes nothing and would
+   * only look like coverage. The real coverage is that these two instants sit
+   * on opposite sides of the boundary in IST but the *same* side of it in
+   * UTC — so a local-time implementation fails them on any non-IST host,
+   * which is exactly what CI is.
+   */
+  it("uses the IST boundary regardless of where the server runs", () => {
+    // 1 April 00:30 IST — still 31 March in UTC.
+    expect(financialYearOf(new Date("2026-04-01T00:30:00+05:30"))).toBe(
+      "2026-27",
+    );
+    // 31 March 23:30 IST — the last half hour of the old year.
+    expect(financialYearOf(new Date("2026-03-31T23:30:00+05:30"))).toBe(
+      "2025-26",
+    );
+  });
+
   it("handles the turn of the century without producing a 3-digit suffix", () => {
     expect(financialYearOf(new Date("2099-05-01T00:00:00+05:30"))).toBe(
       "2099-00",
