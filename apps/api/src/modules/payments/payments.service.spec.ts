@@ -12,7 +12,9 @@ import {
 } from "../audit/audit.service";
 import type { DocumentsService } from "../documents/documents.service";
 import type { LmsService } from "../lms/lms.service";
+import type { NotificationSender } from "../notifications/notification-sender.service";
 
+import type { CreditNoteService } from "./invoice/credit-note.service";
 import type { InvoiceService } from "./invoice/invoice.service";
 import { PaymentsService } from "./payments.service";
 import type { RazorpayService } from "./razorpay.service";
@@ -22,6 +24,15 @@ import type { RazorpayService } from "./razorpay.service";
  * double refund and the audit row that records who authorised it are the two
  * things worth pinning down.
  */
+
+/** Reads a mock's first argument through an explicit type, not through `any`. */
+function firstCall<T>(mock: jest.Mock): T {
+  const calls = mock.mock.calls as unknown as [T][];
+  const call = calls[0];
+  if (!call) throw new Error("expected the mock to have been called");
+  return call[0];
+}
+
 describe("PaymentsService.refund", () => {
   const paidOrder = {
     id: "ord-1",
@@ -33,13 +44,21 @@ describe("PaymentsService.refund", () => {
     razorpayPaymentId: "pay_abc",
   };
 
+  const creditNotes = { issueForRefundedOrder: jest.fn() };
+  const notifications = { send: jest.fn() };
+
   const build = (order: unknown, refundImpl = jest.fn()) => {
+    creditNotes.issueForRefundedOrder.mockClear();
+    notifications.send.mockClear();
     const tx = {
       order: { update: jest.fn() },
       auditLog: { create: jest.fn() },
     };
     const prisma = {
       order: { findUnique: jest.fn().mockResolvedValue(order) },
+      enrollment: { updateMany: jest.fn() },
+      generatedDocument: { updateMany: jest.fn() },
+      documentReview: { updateMany: jest.fn() },
       $transaction: jest.fn((cb: (client: typeof tx) => unknown) => cb(tx)),
     };
     const razorpay = { refund: refundImpl } as unknown as RazorpayService;
@@ -50,8 +69,10 @@ describe("PaymentsService.refund", () => {
       {} as LmsService,
       new AuditService(prisma as unknown as PrismaService),
       {} as InvoiceService,
+      creditNotes as unknown as CreditNoteService,
+      notifications as unknown as NotificationSender,
     );
-    return { service, prisma, tx, razorpay };
+    return { service, prisma, tx, razorpay, creditNotes, notifications };
   };
 
   it("records who authorised the refund, the amount, and the payment reference", async () => {
@@ -118,6 +139,117 @@ describe("PaymentsService.refund", () => {
       NotFoundException,
     );
   });
+
+  // ── what a refund has to undo ───────────────────────────────────────────
+  // Until this existed, refunding a course left the customer holding both the
+  // course and the money.
+
+  it("expires the enrolment when a course is refunded", async () => {
+    const { service, prisma } = build({ ...paidOrder, itemType: "COURSE" });
+
+    await service.refund("ord-1", "admin-1");
+
+    const call = firstCall<{
+      where: { orderId: string };
+      data: { expiresAt: Date };
+    }>(prisma.enrollment.updateMany);
+    expect(call.where.orderId).toBe("ord-1");
+    // Expired, not deleted: the learner may hold a certificate, and the
+    // public verification page has to keep vouching for it.
+    expect(call.data.expiresAt.getTime()).toBeLessThanOrEqual(Date.now());
+  });
+
+  it("blocks a refunded document that has not been downloaded", async () => {
+    const { service, prisma } = build({
+      ...paidOrder,
+      itemType: "DOCUMENT",
+      generatedDocumentId: "doc-1",
+    });
+
+    await service.refund("ord-1", "admin-1");
+
+    expect(prisma.generatedDocument.updateMany).toHaveBeenCalledWith({
+      // Scoped to PAID on purpose: once a file is on someone's disk, a status
+      // change does not retrieve it, and overwriting DOWNLOADED would erase
+      // the evidence that it went out — which is what a dispute turns on.
+      where: { id: "doc-1", status: "PAID" },
+      data: { status: "REFUNDED" },
+    });
+  });
+
+  it("cancels a review that has not been returned", async () => {
+    const { service, prisma } = build({
+      ...paidOrder,
+      itemType: "DOCUMENT_REVIEW",
+      generatedDocumentId: "doc-1",
+    });
+
+    await service.refund("ord-1", "admin-1");
+
+    expect(prisma.documentReview.updateMany).toHaveBeenCalledWith({
+      where: { orderId: "ord-1", status: { in: ["QUEUED", "IN_REVIEW"] } },
+      data: { status: "CANCELLED" },
+    });
+  });
+
+  it("revokes nothing for a content item — the order is the entitlement", async () => {
+    const { service, prisma } = build({
+      ...paidOrder,
+      itemType: "CONTENT_ITEM",
+    });
+
+    await service.refund("ord-1", "admin-1");
+
+    // Moving the order to REFUNDED already closes access, because the
+    // download check looks for a PAID order for that user and item.
+    expect(prisma.enrollment.updateMany).not.toHaveBeenCalled();
+    expect(prisma.generatedDocument.updateMany).not.toHaveBeenCalled();
+    expect(prisma.documentReview.updateMany).not.toHaveBeenCalled();
+  });
+
+  /**
+   * GST reverses a supply with a credit note under s34, not by deleting or
+   * amending the invoice — both parties have already reported it.
+   */
+  it("issues a credit note, passing the reason through", async () => {
+    const { service, creditNotes } = build(paidOrder);
+
+    await service.refund("ord-1", "admin-1", "Duplicate purchase");
+
+    expect(creditNotes.issueForRefundedOrder).toHaveBeenCalledWith(
+      "ord-1",
+      "Duplicate purchase",
+    );
+  });
+
+  it("tells the customer their refund is on its way", async () => {
+    const { service, prisma } = build(paidOrder);
+    prisma.order.findUnique
+      .mockResolvedValueOnce(paidOrder)
+      .mockResolvedValueOnce({
+        ...paidOrder,
+        user: { name: "Asha", email: "asha@example.com" },
+        generatedDocument: { template: { title: "Rent Agreement" } },
+      });
+
+    await service.refund("ord-1", "admin-1");
+
+    expect(notifications.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "refund", to: "asha@example.com" }),
+    );
+  });
+
+  it("does not issue a credit note when the refund was refused", async () => {
+    const { service, creditNotes } = build({
+      ...paidOrder,
+      status: "REFUNDED",
+    });
+
+    await expect(service.refund("ord-1", "admin-1")).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(creditNotes.issueForRefundedOrder).not.toHaveBeenCalled();
+  });
 });
 
 /**
@@ -147,6 +279,8 @@ describe("PaymentsService.handleWebhook", () => {
       },
     });
 
+  const notifications = { send: jest.fn() };
+
   const build = (
     opts: {
       order?: unknown;
@@ -174,6 +308,7 @@ describe("PaymentsService.handleWebhook", () => {
     } as unknown as RazorpayService;
     const lms = { enroll: jest.fn() };
     const invoices = { issueForOrder: jest.fn() };
+    notifications.send.mockClear();
     const service = new PaymentsService(
       prisma as unknown as PrismaService,
       razorpay,
@@ -181,8 +316,10 @@ describe("PaymentsService.handleWebhook", () => {
       lms as unknown as LmsService,
       {} as AuditService,
       invoices as unknown as InvoiceService,
+      {} as CreditNoteService,
+      notifications as unknown as NotificationSender,
     );
-    return { service, prisma, lms, invoices };
+    return { service, prisma, lms, invoices, notifications };
   };
 
   it("marks the order paid and grants the entitlement", async () => {
@@ -304,6 +441,36 @@ describe("PaymentsService.handleWebhook", () => {
     await service.handleWebhook(capturedEvent(), "sig");
 
     expect(invoices.issueForOrder).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Razorpay redelivers until it sees a 2xx. Confirmation mail is scoped to
+   * the delivery that actually claimed the order, or one payment would send
+   * a receipt every time the webhook was retried.
+   */
+  it("sends one confirmation for a payment, not one per delivery", async () => {
+    const { service, prisma } = build();
+    prisma.order.findUnique.mockResolvedValue({
+      ...pendingOrder,
+      amount: 100_000,
+      gstAmount: 18_000,
+      user: { name: "Asha", email: "asha@example.com" },
+      course: { title: "GST for Freelancers" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+    expect(notifications.send).toHaveBeenCalledTimes(1);
+
+    // The same payment arriving again: the conditional update matches
+    // nothing, so nothing inside that guard runs a second time. build()
+    // resets the shared mock, so this counts the redelivery on its own.
+    const again = build({
+      updateCount: 0,
+      order: { ...pendingOrder, status: "PAID" },
+    });
+    await again.service.handleWebhook(capturedEvent(), "sig");
+
+    expect(notifications.send).not.toHaveBeenCalled();
   });
 
   it("does not invoice a failed payment", async () => {

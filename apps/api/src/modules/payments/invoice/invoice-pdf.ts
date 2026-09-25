@@ -4,6 +4,17 @@ import { formatRupees, stateName } from "./gst";
 import type { SellerIdentity } from "./invoice-config";
 
 export interface InvoiceView {
+  /**
+   * What this document is. A credit note is laid out identically to the
+   * invoice it reverses — same supplier, same buyer, same tax heads — because
+   * the reader is checking one against the other, and two different layouts
+   * make that harder for no reason.
+   */
+  kind?: "invoice" | "credit-note";
+  /** Only on a credit note: the invoice number being reversed. */
+  reverses?: string;
+  /** Only on a credit note: why. */
+  reason?: string | null;
   invoiceNumber: string;
   issuedAt: Date;
   /** Null when the company's GST details aren't configured — see below. */
@@ -69,13 +80,27 @@ function drawInvoice(doc: PDFKit.PDFDocument, view: InvoiceView): void {
   // An unconfigured deployment must not produce something that reads as a
   // valid tax invoice. It still gets a number and a full breakdown — the sale
   // is real and has to be recorded — but the document says what it is.
+  const isNote = view.kind === "credit-note";
+  const title = seller
+    ? isNote
+      ? "CREDIT NOTE"
+      : "TAX INVOICE"
+    : isNote
+      ? "PROFORMA CREDIT NOTE — NOT VALID"
+      : "PROFORMA — NOT A VALID TAX INVOICE";
   doc
     .fillColor(seller ? INK : "#8a1c1c")
     .font("Helvetica-Bold")
     .fontSize(seller ? 16 : 14)
-    .text(seller ? "TAX INVOICE" : "PROFORMA — NOT A VALID TAX INVOICE", {
-      align: "center",
-    });
+    .text(title, { align: "center" });
+
+  if (isNote && view.reverses) {
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor(MUTED)
+      .text(`Reverses tax invoice ${view.reverses}`, { align: "center" });
+  }
 
   if (!seller) {
     doc
@@ -114,7 +139,14 @@ function drawInvoice(doc: PDFKit.PDFDocument, view: InvoiceView): void {
   const metaX = PAGE_MARGIN + width * 0.6;
   const metaWidth = width * 0.4;
   doc.font("Helvetica").fontSize(9).fillColor(INK);
-  labelled(doc, "Invoice no.", view.invoiceNumber, metaX, topY, metaWidth);
+  labelled(
+    doc,
+    isNote ? "Credit note no." : "Invoice no.",
+    view.invoiceNumber,
+    metaX,
+    topY,
+    metaWidth,
+  );
   labelled(
     doc,
     "Date",
@@ -165,6 +197,15 @@ function drawInvoice(doc: PDFKit.PDFDocument, view: InvoiceView): void {
         ? `GSTIN: ${view.buyer.gstin}`
         : "Unregistered (B2C supply)",
     );
+
+  if (isNote && view.reason) {
+    doc.moveDown(0.6);
+    doc
+      .font("Helvetica")
+      .fontSize(9)
+      .fillColor(MUTED)
+      .text(`Reason: ${view.reason}`, PAGE_MARGIN, doc.y, { width });
+  }
 
   doc.moveDown(1);
 
@@ -224,7 +265,7 @@ function drawInvoice(doc: PDFKit.PDFDocument, view: InvoiceView): void {
     .fontSize(8)
     .fillColor(MUTED)
     .text(
-      "This is a computer-generated invoice and is valid without a signature.",
+      `This is a computer-generated ${isNote ? "credit note" : "invoice"} and is valid without a signature.`,
       PAGE_MARGIN,
       doc.y,
       { width, align: "center" },

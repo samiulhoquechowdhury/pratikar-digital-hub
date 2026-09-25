@@ -6,6 +6,7 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import type { NotificationSender } from "../notifications/notification-sender.service";
 
 import { DocumentsService } from "./documents.service";
 import type { UpsertTemplateDto } from "./dto/upsert-template.dto";
@@ -54,6 +55,7 @@ describe("DocumentsService template mutations", () => {
     new DocumentsService(
       prisma as PrismaService,
       new AuditService(prisma as PrismaService),
+      { send: jest.fn() } as unknown as NotificationSender,
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
     );

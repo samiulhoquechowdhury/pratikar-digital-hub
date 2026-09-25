@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 
-import { allocateInvoiceNumber } from "./allocate-number";
+import { allocateDocumentNumber } from "./allocate-number";
 import { resolvePlaceOfSupply, splitTax } from "./gst";
 import { InvoiceConfig } from "./invoice-config";
 import { renderInvoicePdf, type InvoiceView } from "./invoice-pdf";
@@ -70,8 +70,9 @@ export class InvoiceService {
       invoice = await this.prisma.$transaction(async (tx) => {
         // Inside the transaction so a failure below rolls the counter back and
         // leaves no gap in the series.
-        const allocated = await allocateInvoiceNumber(
+        const allocated = await allocateDocumentNumber(
           tx,
+          "INV",
           this.config.numberPrefix,
           issuedAt,
         );
@@ -79,7 +80,7 @@ export class InvoiceService {
         return tx.invoice.create({
           data: {
             orderId: order.id,
-            invoiceNumber: allocated.invoiceNumber,
+            invoiceNumber: allocated.number,
             financialYear: allocated.financialYear,
             gstin: null,
             taxableAmount: order.amount,

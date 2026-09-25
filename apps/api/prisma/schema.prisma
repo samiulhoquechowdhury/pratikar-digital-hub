@@ -44,16 +44,25 @@ model User {
 }
 
 model OtpRequest {
-  id          String    @id @default(uuid())
-  identifier  String
-  channel     String // "email" | "sms"
-  codeHash    String
-  attempts    Int       @default(0)
-  consumedAt  DateTime?
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  identifier String
+  channel    String // "email" | "sms"
+  codeHash   String
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  /// Who asked. Nullable because rows written before this existed have none,
+  /// and because a request can arrive without a usable address. Used to stop
+  /// one host bombing many identifiers — the per-identifier limit alone
+  /// cannot see that pattern.
+  ip         String?
 
   @@index([identifier, channel, consumedAt])
+  /// Serves the rate-limit windows: "requests for this identifier since X"
+  /// and "requests from this IP since X".
+  @@index([identifier, createdAt])
+  @@index([ip, createdAt])
 }
 
 model Session {
@@ -107,6 +116,10 @@ enum GeneratedDocumentStatus {
   GENERATED
   PAID
   DOWNLOADED
+  /// Payment reversed. Distinct from GENERATED: the document was paid for and
+  /// then refunded, which is not the same as never having been bought, and
+  /// the download check must refuse it either way.
+  REFUNDED
 }
 
 model GeneratedDocument {
@@ -132,6 +145,9 @@ enum DocumentReviewStatus {
   QUEUED
   IN_REVIEW
   RETURNED
+  /// The order behind this review was refunded. Kept rather than deleted so
+  /// a reviewer who already spent time on it still has the record.
+  CANCELLED
 }
 
 model DocumentReview {
@@ -400,7 +416,8 @@ model Order {
   updatedAt         DateTime      @updatedAt
 
   user     User      @relation(fields: [userId], references: [id])
-  invoice  Invoice?
+  invoice    Invoice?
+  creditNote CreditNote?
   review   DocumentReview?
 
   // Polymorphic-by-itemType references — exactly one of these is set,
@@ -454,19 +471,60 @@ model Invoice {
   pdfKey    String?
   createdAt DateTime @default(now())
 
-  order Order @relation(fields: [orderId], references: [id])
+  order      Order       @relation(fields: [orderId], references: [id])
+  creditNote CreditNote?
 }
 
-/// One row per financial year holding the last serial issued.
+/// The document that reverses an invoice (CGST s34).
 ///
-/// Exists because GST wants a *consecutive* series: allocating numbers with
+/// A refund does not delete or amend the invoice — the supply happened and the
+/// invoice is a true record of what was charged on that date. Cancelling it is
+/// a separate numbered document, in its own series, that the buyer and the
+/// supplier both report.
+model CreditNote {
+  id            String @id @default(uuid())
+  orderId       String @unique
+  invoiceId     String @unique
+  noteNumber    String @unique
+  financialYear String
+
+  // Mirrors the invoice being reversed, snapshotted for the same reason: this
+  // states what was actually credited, not what today's rate would compute.
+  taxableAmount  Int
+  cgstAmount     Int
+  sgstAmount     Int
+  igstAmount     Int
+  totalAmount    Int
+  taxRatePercent Int
+  placeOfSupply  String
+
+  /// Why the supply was reversed. Printed on the note.
+  reason    String?
+  /// Storage key, never a URL — same rule as Invoice.pdfKey.
+  pdfKey    String?
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+/// One row per (series, financial year) holding the last serial issued.
+///
+/// Exists because GST wants *consecutive* series: allocating numbers with
 /// `count() + 1`, or reading-then-writing this row, both hand the same number
 /// to two concurrent webhooks. allocate-number.ts increments it in a single
 /// atomic statement instead — see the comment there.
-model InvoiceCounter {
-  financialYear String   @id
+///
+/// Keyed by series as well as year because a credit note may not continue the
+/// invoice numbering (Rule 53) — it runs its own sequence, and the two must
+/// not be able to collide on a shared counter.
+model DocumentCounter {
+  series        String
+  financialYear String
   lastSequence  Int      @default(0)
   updatedAt     DateTime @updatedAt
+
+  @@id([series, financialYear])
 }
 
 // ---------------------------------------------------------------------------

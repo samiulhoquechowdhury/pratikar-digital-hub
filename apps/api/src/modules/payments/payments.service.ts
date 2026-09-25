@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 
@@ -13,8 +14,10 @@ import {
 } from "../audit/audit.service";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
+import { NotificationSender } from "../notifications/notification-sender.service";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { CreditNoteService } from "./invoice/credit-note.service";
 import { InvoiceService } from "./invoice/invoice.service";
 import { RazorpayService } from "./razorpay.service";
 
@@ -38,6 +41,8 @@ interface RazorpayWebhookBody {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpay: RazorpayService,
@@ -45,6 +50,8 @@ export class PaymentsService {
     private readonly lmsService: LmsService,
     private readonly audit: AuditService,
     private readonly invoices: InvoiceService,
+    private readonly creditNotes: CreditNoteService,
+    private readonly notifications: NotificationSender,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -133,6 +140,69 @@ export class PaymentsService {
     if (claimed.count > 0 || order.status === "PAID") {
       await this.invoices.issueForOrder(order.id);
     }
+
+    // Only on the delivery that actually claimed the order, so a Razorpay
+    // redelivery does not send a second confirmation for one payment.
+    if (claimed.count > 0) {
+      await this.notifyPurchase(order.id);
+    }
+  }
+
+  /**
+   * Tells the customer their payment went through.
+   *
+   * Queued rather than sent here: Razorpay retries anything that is not a
+   * fast 2xx, so waiting on a mail provider would make a slow afternoon at
+   * Resend look like a failed payment.
+   */
+  private async notifyPurchase(orderId: string) {
+    try {
+      await this.sendPurchaseEmail(orderId);
+    } catch (error) {
+      // The payment is captured and the entitlement granted. A throw here
+      // would return a non-2xx, and Razorpay would redeliver a payment that
+      // has already been processed.
+      this.logger.error(
+        `Payment for ${orderId} succeeded but its confirmation did not: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private async sendPurchaseEmail(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: { select: { name: true, email: true } },
+        generatedDocument: {
+          include: { template: { select: { title: true } } },
+        },
+        contentLibraryItem: { select: { title: true } },
+        course: { select: { title: true } },
+      },
+    });
+    if (!order?.user?.email) return;
+
+    const destination =
+      order.itemType === "COURSE"
+        ? { path: "/dashboard#courses", label: "Start the course" }
+        : order.itemType === "CONTENT_ITEM"
+          ? { path: "/dashboard#purchases", label: "Download it" }
+          : { path: "/dashboard#documents", label: "Open your document" };
+
+    await this.notifications.send({
+      type: "purchase",
+      to: order.user.email,
+      payload: {
+        customerName: order.user.name,
+        itemTitle: describePurchase(order),
+        amountInPaise: order.amount,
+        gstInPaise: order.gstAmount,
+        destinationPath: destination.path,
+        destinationLabel: destination.label,
+      },
+    });
   }
 
   /**
@@ -221,7 +291,7 @@ export class PaymentsService {
    * Admin-direct refund (docs/srs.md Section 7, item 6 — confirmed, no
    * Support-approval step). Reverses the entitlement granted above.
    */
-  async refund(orderId: string, actorUserId: string) {
+  async refund(orderId: string, actorUserId: string, reason?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -267,10 +337,110 @@ export class PaymentsService {
       });
     });
 
-    // TODO: revoke the entitlement — e.g. expire the Enrollment immediately
-    // for COURSE orders. Left as a TODO since exact revocation semantics per
-    // item type aren't fully pinned down yet (docs/srs.md Section 8, item 1
-    // touches this for documents specifically).
+    // Both of these run after the transaction, and neither is allowed to
+    // undo the refund by failing: the money has already moved at Razorpay and
+    // the order is already REFUNDED. A credit note that failed to render can
+    // be reissued; a refund that "failed" after the money left cannot.
+    await this.revokeEntitlement(order);
+    await this.creditNotes.issueForRefundedOrder(order.id, reason);
+
+    await this.notifyRefund(order.id, order.amount + order.gstAmount);
+  }
+
+  /**
+   * Tells the customer their refund is on its way.
+   *
+   * Swallows its own failures deliberately. By the time this runs the money
+   * has moved at Razorpay, the order is REFUNDED and the entitlement is
+   * revoked — all of it committed. Letting a lookup or a queue hiccup throw
+   * from here would surface to the operator as "the refund failed", and they
+   * would quite reasonably try again.
+   */
+  private async notifyRefund(orderId: string, totalInPaise: number) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          user: { select: { name: true, email: true } },
+          generatedDocument: {
+            include: { template: { select: { title: true } } },
+          },
+          contentLibraryItem: { select: { title: true } },
+          course: { select: { title: true } },
+        },
+      });
+      if (!order?.user?.email) return;
+
+      await this.notifications.send({
+        type: "refund",
+        to: order.user.email,
+        payload: {
+          customerName: order.user.name,
+          itemTitle: describePurchase(order),
+          totalInPaise,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Refund for ${orderId} succeeded but its notification did not: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * Takes back what the payment granted.
+   *
+   * Each item type granted something different, so each has to be undone
+   * differently — and one of them needs nothing at all, which is worth
+   * stating rather than leaving as an apparent omission.
+   */
+  private async revokeEntitlement(order: {
+    id: string;
+    itemType: string;
+    generatedDocumentId: string | null;
+  }) {
+    switch (order.itemType) {
+      case "COURSE":
+        // Expire rather than delete. The learner may hold a certificate, and
+        // the public verification page has to keep vouching for it — a
+        // refund reverses access to the videos, not the fact that someone
+        // sat the tests and passed.
+        await this.prisma.enrollment.updateMany({
+          where: { orderId: order.id },
+          data: { expiresAt: new Date() },
+        });
+        break;
+
+      case "DOCUMENT":
+        if (order.generatedDocumentId) {
+          // Only if it has not already been downloaded. Once the file is on
+          // someone's disk, flipping a status does not retrieve it, and
+          // overwriting DOWNLOADED would erase the evidence that it went out
+          // — which is exactly what a refund dispute turns on.
+          await this.prisma.generatedDocument.updateMany({
+            where: { id: order.generatedDocumentId, status: "PAID" },
+            data: { status: "REFUNDED" },
+          });
+        }
+        break;
+
+      case "DOCUMENT_REVIEW":
+        // Cancel rather than delete, so a reviewer who already spent time on
+        // it keeps the record.
+        await this.prisma.documentReview.updateMany({
+          where: { orderId: order.id, status: { in: ["QUEUED", "IN_REVIEW"] } },
+          data: { status: "CANCELLED" },
+        });
+        break;
+
+      case "CONTENT_ITEM":
+        // Nothing to revoke: a PAID order for this user and item *is* the
+        // entitlement — ContentLibraryService.download looks for exactly
+        // that — so moving the order to REFUNDED has already closed access.
+        break;
+    }
   }
 
   private async resolveAmount(
@@ -321,5 +491,26 @@ export class PaymentsService {
       case "COURSE":
         return { courseId: itemId };
     }
+  }
+}
+
+/** What the customer would call the thing they bought. */
+function describePurchase(order: {
+  itemType: string;
+  generatedDocument?: { template: { title: string } } | null;
+  contentLibraryItem?: { title: string } | null;
+  course?: { title: string } | null;
+}): string {
+  switch (order.itemType) {
+    case "DOCUMENT":
+      return order.generatedDocument?.template.title ?? "your document";
+    case "DOCUMENT_REVIEW":
+      return `${order.generatedDocument?.template.title ?? "your document"} — professional review`;
+    case "CONTENT_ITEM":
+      return order.contentLibraryItem?.title ?? "your download";
+    case "COURSE":
+      return order.course?.title ?? "your course";
+    default:
+      return "your purchase";
   }
 }

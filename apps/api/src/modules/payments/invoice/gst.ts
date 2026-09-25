@@ -54,13 +54,33 @@ export const stateName = (code: string): string =>
   STATE_NAMES[code] ?? "Unknown state";
 
 /**
+ * India observes no daylight saving, so a fixed offset is exact — and simpler
+ * than going through Intl for two integers.
+ */
+const IST_OFFSET_MS = (5 * 60 + 30) * 60_000;
+
+/**
  * The Indian financial year runs 1 April – 31 March, so January to March
  * belongs to the year that started the previous April. Returned as "2026-27"
  * because that is how it is written on an invoice.
+ *
+ * ── WHY THIS IS COMPUTED IN IST, NOT IN LOCAL TIME ────────────────────────
+ * It used to call getFullYear() and getMonth(), which read the *server's*
+ * timezone. That is right on a machine set to IST and wrong everywhere else:
+ * on a UTC server — which is what this deploys to — 1 April 00:30 IST is
+ * still 31 March, so an invoice raised in the first five and a half hours of
+ * a financial year was numbered into the previous year's series, after that
+ * series had closed. A serial issued into a closed year is the kind of thing
+ * a GST audit asks about, and nothing in the running system would have
+ * flagged it.
+ *
+ * The financial year is a fact about India, not about where the server runs,
+ * so the boundary is evaluated in IST regardless of the host clock.
  */
 export function financialYearOf(date: Date): string {
-  const year = date.getFullYear();
-  const startYear = date.getMonth() >= 3 ? year : year - 1;
+  const ist = new Date(date.getTime() + IST_OFFSET_MS);
+  const year = ist.getUTCFullYear();
+  const startYear = ist.getUTCMonth() >= 3 ? year : year - 1;
   const endShort = String((startYear + 1) % 100).padStart(2, "0");
   return `${startYear}-${endShort}`;
 }
