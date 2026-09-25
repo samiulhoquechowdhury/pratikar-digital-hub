@@ -1,8 +1,11 @@
 "use client";
 
 import type { CertificateVerification } from "@pratikar/types";
-import { Alert, Card, Loading } from "@pratikar/ui";
+import { Alert, Card, SkeletonText } from "@pratikar/ui";
+import { ShieldCheck, ShieldX } from "lucide-react";
 import { useEffect, useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import { lmsApi } from "../api/lmsApi";
 
@@ -40,7 +43,8 @@ export function CertificateVerifier({ code }: { code: string }) {
     };
   }, [code]);
 
-  if (isLoading) return <Loading label="Checking this certificate…" />;
+  if (isLoading)
+    return <SkeletonText lines={4} label="Checking this certificate…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">
@@ -58,7 +62,7 @@ export function CertificateVerifier({ code }: { code: string }) {
             aria-hidden
             className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-surface-sunken text-lg text-ink-muted"
           >
-            ✕
+            <Icon icon={ShieldX} size="md" />
           </span>
           <div>
             <h1 className="text-2xl">Not a valid certificate</h1>
@@ -82,7 +86,7 @@ export function CertificateVerifier({ code }: { code: string }) {
           aria-hidden
           className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-success text-lg text-ink-inverse"
         >
-          ✓
+          <Icon icon={ShieldCheck} size="md" />
         </span>
         <div>
           <h1 className="text-2xl text-success-text">Valid certificate</h1>

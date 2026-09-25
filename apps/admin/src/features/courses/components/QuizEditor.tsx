@@ -6,8 +6,9 @@ import {
   Button,
   Card,
   Field,
+  IconButton,
   Input,
-  Loading,
+  SkeletonForm,
   Textarea,
 } from "@pratikar/ui";
 import Link from "next/link";
@@ -28,9 +29,6 @@ import {
   validateQuiz,
   type QuizProblem,
 } from "../lib/quizDraft";
-
-const ICON_BUTTON =
-  "rounded-control border border-line-strong bg-surface px-2 py-1 text-xs text-ink-muted hover:bg-surface-sunken disabled:opacity-40";
 
 /**
  * Authoring one module's test.
@@ -158,7 +156,7 @@ export function QuizEditor({
     }
   };
 
-  if (isLoading) return <Loading label="Loading this test…" />;
+  if (isLoading) return <SkeletonForm fields={4} label="Loading this test…" />;
 
   return (
     <div className="space-y-6">
@@ -308,21 +306,18 @@ export function QuizEditor({
                               )}`}
                               className="py-1.5 text-sm"
                             />
-                            <button
-                              type="button"
+                            <IconButton
+                              label="Remove option {optionIndex + 1}"
+                              tone="danger"
                               disabled={question.options.length <= 2}
                               onClick={() =>
                                 setQuestions(
                                   removeOption(questions, index, optionIndex),
                                 )
                               }
-                              className="rounded-control border border-danger-border px-2 py-1.5 text-xs text-danger-text hover:bg-danger-subtle disabled:opacity-40"
                             >
-                              <span className="sr-only">
-                                Remove option {optionIndex + 1}
-                              </span>
-                              <span aria-hidden>×</span>
-                            </button>
+                              ×
+                            </IconButton>
                           </li>
                         ))}
                       </ul>
@@ -351,40 +346,33 @@ export function QuizEditor({
                   </div>
 
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button
-                      type="button"
+                    <IconButton
+                      label="Move up"
                       disabled={index === 0}
                       onClick={() =>
                         setQuestions(moveQuestion(questions, index, index - 1))
                       }
-                      className={ICON_BUTTON}
                     >
-                      <span className="sr-only">Move up</span>
-                      <span aria-hidden>↑</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↑
+                    </IconButton>
+                    <IconButton
+                      label="Move down"
                       disabled={index === questions.length - 1}
                       onClick={() =>
                         setQuestions(moveQuestion(questions, index, index + 1))
                       }
-                      className={ICON_BUTTON}
                     >
-                      <span className="sr-only">Move down</span>
-                      <span aria-hidden>↓</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↓
+                    </IconButton>
+                    <IconButton
+                      label="Remove question {index + 1}"
+                      tone="danger"
                       onClick={() =>
                         setQuestions(removeQuestion(questions, index))
                       }
-                      className="rounded-control border border-danger-border px-2 py-1 text-xs text-danger-text hover:bg-danger-subtle"
                     >
-                      <span className="sr-only">
-                        Remove question {index + 1}
-                      </span>
-                      <span aria-hidden>×</span>
-                    </button>
+                      ×
+                    </IconButton>
                   </div>
                 </div>
               </li>
@@ -427,7 +415,7 @@ export function QuizEditor({
 
       <FormActions>
         <Button type="button" onClick={() => void save()} disabled={isSaving}>
-          {isSaving ? "Saving…" : existed ? "Save changes" : "Create test"}
+          {existed ? "Save changes" : "Create test"}
         </Button>
         <Link
           href={`/courses/${courseId}`}

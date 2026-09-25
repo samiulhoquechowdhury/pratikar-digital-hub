@@ -8,8 +8,8 @@ import {
   Card,
   EmptyState,
   Field,
-  Loading,
   Select,
+  SkeletonCards,
 } from "@pratikar/ui";
 import { formatPaise } from "@pratikar/utils";
 import Link from "next/link";
@@ -67,7 +67,9 @@ export function ContentLibraryList() {
         </Field>
       </div>
 
-      {isLoading && <Loading />}
+      {isLoading && (
+        <SkeletonCards media={false} label="Loading the content library…" />
+      )}
       {error && (
         <Alert tone="danger" role="alert">
           {error}

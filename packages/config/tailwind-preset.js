@@ -186,6 +186,17 @@ module.exports = {
       // --font-sans is set by next/font in each app's root layout, so the font
       // is self-hosted and swappable per app without touching this preset.
       fontFamily: {
+        // Display is opt-in: apps/web sets --font-display and applies it to
+        // page and section titles; apps/admin leaves it unset and falls
+        // through to the sans stack, which is right for a tool people use all
+        // day rather than read.
+        display: [
+          "var(--font-display)",
+          "ui-serif",
+          "Georgia",
+          "Times New Roman",
+          "serif",
+        ],
         sans: [
           "var(--font-sans)",
           "ui-sans-serif",

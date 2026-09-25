@@ -56,7 +56,11 @@ export function SiteSearch({
         onChange={(event) => setQuery(event.target.value)}
         autoFocus={autoFocus}
         placeholder="Search documents, courses, guides"
-        className="w-full rounded-full border border-line-inverse bg-surface-inverse-deep py-2 pl-10 pr-4 text-sm text-ink-inverse placeholder:text-ink-inverse-muted/70 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        // No `focus:outline-none` here. The gold border is the aesthetic
+        // treatment; the global focus-visible outline is the accessibility
+        // guarantee, and a component opting out of it is how keyboard
+        // navigation quietly breaks.
+        className="w-full rounded-full border border-line-inverse bg-surface-inverse-deep py-2 pl-10 pr-4 text-sm text-ink-inverse placeholder:text-ink-inverse-muted/70 focus:border-brand"
       />
     </form>
   );

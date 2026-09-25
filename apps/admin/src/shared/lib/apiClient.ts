@@ -31,7 +31,11 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    // TODO: on 401, attempt one refresh via /auth/refresh, then retry once.
+    // A 401 here means the access token expired mid-session. Recovering it is
+    // AuthProvider's job, not this wrapper's: retrying inside `request` would
+    // need to reach back into React state to store the new token, and two
+    // concurrent 401s would race to refresh the same cookie. Session recovery
+    // happens once, on mount. See shared/providers/AuthProvider.
     throw new ApiError(res.status, await res.text());
   }
 

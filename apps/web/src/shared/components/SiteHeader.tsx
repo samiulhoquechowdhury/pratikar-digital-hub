@@ -34,7 +34,10 @@ export function SiteHeader() {
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line-inverse bg-surface-inverse">
+    <header
+      data-surface="inverse"
+      className="sticky top-0 z-40 border-b border-line-inverse bg-surface-inverse"
+    >
       <div className="mx-auto flex h-16 max-w-shell items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
         <Link
           href="/"

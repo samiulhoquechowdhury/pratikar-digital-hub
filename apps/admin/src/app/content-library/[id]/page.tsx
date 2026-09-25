@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Badge, Loading, PageBody, PageHeader } from "@pratikar/ui";
+import { Alert, Badge, PageBody, PageHeader, SkeletonForm } from "@pratikar/ui";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -53,7 +53,7 @@ function EditContentItem({ id }: { id: string }) {
   if (isLoading) {
     return (
       <PageBody>
-        <Loading label="Loading item…" />
+        <SkeletonForm fields={5} label="Loading this item…" />
       </PageBody>
     );
   }

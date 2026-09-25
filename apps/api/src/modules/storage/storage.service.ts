@@ -4,6 +4,7 @@ import * as path from "node:path";
 
 import {
   GetObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -19,6 +20,13 @@ import { Injectable, Logger } from "@nestjs/common";
 /** Long enough to start a download, short enough that a leaked link rots. */
 const DOWNLOAD_URL_TTL_MS = 5 * 60_000;
 
+/** One object in the bucket, as the catalogue screen needs it. */
+export interface StoredObject {
+  key: string;
+  sizeInBytes: number;
+  lastModified: string | null;
+}
+
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
@@ -29,8 +37,15 @@ export class StorageService {
 
   constructor() {
     const accountId = process.env.R2_ACCOUNT_ID;
-    const accessKeyId = process.env.R2_ACCESS_KEY;
-    const secretAccessKey = process.env.R2_SECRET_KEY;
+    // Cloudflare's dashboard and every AWS SDK call these ACCESS_KEY_ID and
+    // SECRET_ACCESS_KEY, so that is what anyone copying credentials across
+    // will type. Those names win; the shorter pair is still read so existing
+    // deployments keep working. Getting this wrong is silent — the service
+    // just falls back to local disk — which is exactly why both are accepted.
+    const accessKeyId =
+      process.env.R2_ACCESS_KEY_ID ?? process.env.R2_ACCESS_KEY;
+    const secretAccessKey =
+      process.env.R2_SECRET_ACCESS_KEY ?? process.env.R2_SECRET_KEY;
 
     this.r2 =
       accountId && accessKeyId && secretAccessKey && this.bucket
@@ -38,13 +53,26 @@ export class StorageService {
             region: "auto",
             endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
             credentials: { accessKeyId, secretAccessKey },
+            // R2 addresses objects as <endpoint>/<bucket>/<key>. Without this
+            // the SDK defaults to virtual-hosted style and puts the bucket in
+            // the hostname, which has no DNS record — every read and write
+            // then fails with EAI_AGAIN, and it fails only once R2 is actually
+            // configured, so local-disk development never surfaces it.
+            forcePathStyle: true,
           })
         : null;
 
     if (!this.r2) {
       fs.mkdirSync(this.localDir, { recursive: true });
+      const missing = [
+        !accountId && "R2_ACCOUNT_ID",
+        !accessKeyId && "R2_ACCESS_KEY_ID",
+        !secretAccessKey && "R2_SECRET_ACCESS_KEY",
+        !this.bucket && "R2_BUCKET",
+      ].filter(Boolean);
       this.logger.warn(
-        `R2 env vars not set — storing uploads on local disk at ${this.localDir} instead.`,
+        `R2 not configured (missing ${missing.join(", ")}) — storing uploads ` +
+          `on local disk at ${this.localDir} instead.`,
       );
     }
   }
@@ -65,6 +93,67 @@ export class StorageService {
     const filePath = path.join(this.localDir, key);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, body);
+  }
+
+  /**
+   * Everything stored under `prefix`, for cataloguing files that were put in
+   * the bucket directly rather than uploaded through the app.
+   *
+   * Paginates to exhaustion. R2 caps a page at 1000 keys and the catalogue is
+   * already past that, so stopping at the first page would silently hide
+   * whatever sorted last — which is the sort of omission nobody notices until
+   * a customer asks where a document went.
+   *
+   * Local-disk mode walks the directory instead, so this works in development
+   * without R2 configured.
+   */
+  async list(prefix = ""): Promise<StoredObject[]> {
+    if (!this.r2) return this.listLocal(prefix);
+
+    const found: StoredObject[] = [];
+    let token: string | undefined;
+    do {
+      const page = await this.r2.send(
+        new ListObjectsV2Command({
+          Bucket: this.bucket,
+          Prefix: prefix || undefined,
+          ContinuationToken: token,
+          MaxKeys: 1000,
+        }),
+      );
+      for (const item of page.Contents ?? []) {
+        // A "folder" in object storage is a zero-byte key ending in "/" —
+        // an artefact of the upload tool, not a file anyone can buy.
+        if (!item.Key || item.Key.endsWith("/")) continue;
+        found.push({
+          key: item.Key,
+          sizeInBytes: item.Size ?? 0,
+          lastModified: item.LastModified?.toISOString() ?? null,
+        });
+      }
+      token = page.IsTruncated ? page.NextContinuationToken : undefined;
+    } while (token);
+
+    return found;
+  }
+
+  private listLocal(prefix: string): StoredObject[] {
+    const root = path.join(this.localDir, prefix);
+    if (!fs.existsSync(root)) return [];
+    const walk = (dir: string): StoredObject[] =>
+      fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) return walk(full);
+        const stat = fs.statSync(full);
+        return [
+          {
+            key: path.relative(this.localDir, full),
+            sizeInBytes: stat.size,
+            lastModified: stat.mtime.toISOString(),
+          },
+        ];
+      });
+    return walk(root);
   }
 
   async read(key: string): Promise<Buffer> {

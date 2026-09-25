@@ -231,7 +231,7 @@ export function CourseForm({ existing }: { existing?: Course }) {
 
       <FormActions>
         <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving…" : existing ? "Save changes" : "Create course"}
+          {existing ? "Save changes" : "Create course"}
         </Button>
         <Link
           href="/courses"

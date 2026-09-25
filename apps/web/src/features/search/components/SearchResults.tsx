@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Badge, EmptyState, Loading } from "@pratikar/ui";
+import { Alert, Badge, EmptyState, SkeletonCards } from "@pratikar/ui";
 import { formatPaise } from "@pratikar/utils";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -55,7 +55,8 @@ export function SearchResults() {
     );
   }
 
-  if (isLoading) return <Loading label={`Searching for “${query}”…`} />;
+  if (isLoading)
+    return <SkeletonCards media={false} label={`Searching for “${query}”…`} />;
 
   return (
     <div className="space-y-10">

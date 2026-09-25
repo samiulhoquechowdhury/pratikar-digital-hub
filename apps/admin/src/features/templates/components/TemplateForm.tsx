@@ -231,7 +231,7 @@ export function TemplateForm({ existing }: Props) {
 
       <FormActions>
         <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving…" : existing ? "Save changes" : "Create template"}
+          {existing ? "Save changes" : "Create template"}
         </Button>
         <Link
           href="/templates"

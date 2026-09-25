@@ -5,7 +5,7 @@ import {
   Badge,
   ButtonLink,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -50,7 +50,8 @@ export function CourseList() {
     };
   }, []);
 
-  if (isLoading) return <Loading label="Loading courses…" />;
+  if (isLoading)
+    return <SkeletonTable rows={6} columns={8} label="Loading courses…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -70,14 +71,20 @@ export function CourseList() {
   }
 
   return (
-    <Table>
+    <Table label="Courses">
       <THead>
         <TR>
           <TH>Title</TH>
           <TH>Status</TH>
-          <TH align="right">Modules</TH>
-          <TH align="right">Enrolled</TH>
-          <TH align="right">Access</TH>
+          <TH align="right" secondary>
+            Modules
+          </TH>
+          <TH align="right" secondary>
+            Enrolled
+          </TH>
+          <TH align="right" secondary>
+            Access
+          </TH>
           <TH align="right">Price</TH>
           <TH align="right">
             <span className="sr-only">Actions</span>
@@ -108,13 +115,13 @@ export function CourseList() {
               <TD>
                 <Badge tone={STATUS_TONE[course.status]}>{course.status}</Badge>
               </TD>
-              <TD align="right" muted>
+              <TD secondary align="right" muted>
                 {modules}
               </TD>
-              <TD align="right" muted>
+              <TD secondary align="right" muted>
                 {course._count?.enrollments ?? 0}
               </TD>
-              <TD align="right" muted>
+              <TD secondary align="right" muted>
                 {course.accessDurationDays}d
               </TD>
               <TD align="right">₹{paiseToRupees(course.priceInPaise)}</TD>

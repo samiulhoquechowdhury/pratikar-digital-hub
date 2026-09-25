@@ -42,7 +42,21 @@ export function AdminShell({ children }: { children: ReactNode }) {
         stays light: staff read tables and fill forms here all day, and a dark
         data surface makes both harder.
       */}
-      <aside className="hidden w-64 shrink-0 flex-col bg-surface-inverse-deep lg:flex">
+      {/*
+        Fixed to the viewport on desktop rather than scrolling with the page.
+        It was a flex child, so on a long orders table or a course form the
+        navigation scrolled away and moving between sections meant scrolling
+        back up first. The content column below offsets itself by the same
+        width, which is what keeps it out from under the sidebar.
+
+        The nav inside already scrolls on its own (flex-1 overflow-y-auto), so
+        a section list taller than the window stays reachable instead of being
+        clipped against the account footer.
+      */}
+      <aside
+        data-surface="inverse"
+        className="hidden w-64 shrink-0 flex-col bg-surface-inverse-deep lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex"
+      >
         <div className="flex h-16 items-center gap-2.5 border-b border-line-inverse px-5">
           <span
             aria-hidden
@@ -107,11 +121,14 @@ export function AdminShell({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      {/* pl matches the fixed sidebar's width — a fixed element is out of
+          flow, so without this the content would sit underneath it. */}
+      <div className="flex min-w-0 flex-1 flex-col lg:pl-64">
         {/* Small screens get the same nav as a horizontal strip. Staff mostly
             work on desktop, so this is a fallback, not the primary layout. */}
         <nav
           aria-label="Sections"
+          data-surface="inverse"
           className="flex gap-1 overflow-x-auto border-b border-line-inverse bg-surface-inverse-deep px-3 py-2 lg:hidden"
         >
           {NAV.map((item) => (

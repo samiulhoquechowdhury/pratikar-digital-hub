@@ -5,7 +5,7 @@ import {
   Badge,
   ButtonLink,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -28,7 +28,8 @@ const STATUS_TONE = {
 export function TemplateList() {
   const { templates, isLoading, error } = useTemplates();
 
-  if (isLoading) return <Loading label="Loading templates…" />;
+  if (isLoading)
+    return <SkeletonTable rows={6} columns={7} label="Loading templates…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">
@@ -49,13 +50,15 @@ export function TemplateList() {
   }
 
   return (
-    <Table>
+    <Table label="Templates">
       <THead>
         <TR>
           <TH>Title</TH>
-          <TH>Category</TH>
+          <TH secondary>Category</TH>
           <TH>Status</TH>
-          <TH align="right">Fields</TH>
+          <TH align="right" secondary>
+            Fields
+          </TH>
           <TH align="right">Price</TH>
           <TH align="right">
             <span className="sr-only">Actions</span>
@@ -73,13 +76,15 @@ export function TemplateList() {
                 {template.title}
               </Link>
             </TD>
-            <TD muted>{template.category}</TD>
+            <TD secondary muted>
+              {template.category}
+            </TD>
             <TD>
               <Badge tone={STATUS_TONE[template.status]}>
                 {template.status}
               </Badge>
             </TD>
-            <TD align="right" muted>
+            <TD secondary align="right" muted>
               {template.fieldSchema.length}
             </TD>
             <TD align="right">₹{paiseToRupees(template.priceInPaise)}</TD>

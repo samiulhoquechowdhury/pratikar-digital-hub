@@ -7,3 +7,4 @@
 // components ship without their styles.
 export * from "./components/primitives";
 export * from "./components/DataTable";
+export * from "./components/Skeleton";

@@ -1,117 +1,75 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+
+import { AssistantChat } from "@/features/assistant";
 
 export const metadata: Metadata = {
   title: "AI legal assistant",
   description:
-    "What the Pratikar AI assistant will do, and what you can use today.",
+    "A preview of the Pratikar assistant, with scripted answers about our documents, courses and guides.",
 };
 
 /**
  * The destination behind the header's "Ask AI" button.
  *
- * There is no assistant yet — it's Milestone 4, and the module in the API is
- * still a folder scaffold. This page says so plainly rather than showing a
- * chat box that can't answer, because on a legal site an assistant that
- * appears to work and doesn't is worse than one that isn't there.
+ * ── A DELIBERATE REVERSAL ─────────────────────────────────────────────────
+ * This page used to be a description of a chat that didn't exist, and argued
+ * that showing a chat box which can't answer is worse than showing none. The
+ * interface is now here, ahead of the model, so the conversation design can
+ * be settled and demonstrated before Milestone 4 builds retrieval behind it.
+ *
+ * The original concern was right and has not gone away, so it is answered in
+ * the build rather than dismissed: every reply is scripted, the preview
+ * labelling is persistent rather than a dismissible notice, unmatched
+ * questions say plainly that they can't be answered instead of improvising,
+ * and nothing in the script gives advice. What stays is the boundary — it
+ * points at material, and it is not a substitute for the lawyer review.
  */
-const PLANNED = [
+const LIMITS = [
   {
-    title: "Find the right document",
-    body: "Describe your situation in your own words — 'my tenant is three months behind' — and get pointed at the template that fits, instead of guessing from a list.",
+    title: "What it does here",
+    body: "Answers a handful of scripted questions about our templates, courses and guides, and links you to the page behind each one.",
   },
   {
-    title: "Fill it in by conversation",
-    body: "Answer questions one at a time instead of facing a long form. The same field schema that drives the manual form drives the conversation, so nothing is lost either way.",
+    title: "What it will do",
+    body: "Search everything on this site and show where each answer came from — plus fill a document in by conversation instead of a long form.",
   },
   {
-    title: "Answer questions from our material",
-    body: "Grounded in the templates, courses, and guides on this site — with a link to where each answer came from, so you can read the source yourself.",
-  },
-];
-
-const AVAILABLE_NOW = [
-  {
-    href: "/documents",
-    label: "Browse document templates",
-    hint: "Search by name and fill in the form yourself",
-  },
-  {
-    href: "/courses",
-    label: "Take a certificate course",
-    hint: "Video courses with a verifiable certificate",
-  },
-  {
-    href: "/content-library",
-    label: "Read a guide or checklist",
-    hint: "E-books and reference sheets you can keep",
+    title: "What it won't do",
+    body: "Give legal advice, or replace the lawyer review you can add to any document you generate.",
   },
 ];
 
 export default function AssistantPage() {
   return (
     <>
-      <section className="bg-hero-navy">
-        <div className="mx-auto max-w-shell px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
+      <section data-surface="inverse" className="bg-hero-navy">
+        <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
           <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand">
-            In development
+            Preview
           </span>
           <h1 className="mt-5 max-w-2xl text-4xl text-ink-inverse">
             An assistant that speaks plain language
           </h1>
           <p className="mt-4 max-w-prose text-base leading-relaxed text-ink-inverse-muted">
-            The AI assistant isn&apos;t live yet. Here&apos;s what it will do
-            when it is — and what you can already use today.
+            Try it below. The answers are scripted for now — the assistant that
+            reads our whole library is still being built.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-shell px-4 py-16 sm:px-6 lg:px-8">
-        <h2 className="text-2xl">What it will do</h2>
-        <ul className="mt-8 grid gap-6 sm:grid-cols-3">
-          {PLANNED.map((item) => (
-            <li
-              key={item.title}
-              className="rounded-card border border-line bg-surface p-6 shadow-card"
-            >
-              <h3 className="text-base">{item.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                {item.body}
-              </p>
-            </li>
-          ))}
-        </ul>
-
-        <p className="mt-8 max-w-prose text-sm leading-relaxed text-ink-muted">
-          It will point you at material and help you complete a form. It
-          won&apos;t give legal advice, and it won&apos;t replace the lawyer
-          review you can add to any generated document.
-        </p>
+      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
+        <AssistantChat />
       </section>
 
       <section className="border-t border-line bg-canvas">
-        <div className="mx-auto max-w-shell px-4 py-16 sm:px-6 lg:px-8">
-          <h2 className="text-2xl">What you can use today</h2>
-          <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-            {AVAILABLE_NOW.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className="flex h-full flex-col rounded-card border border-line bg-surface p-6 transition-shadow hover:shadow-raised"
-                >
-                  <span className="text-base font-semibold text-ink">
-                    {item.label}
-                  </span>
-                  <span className="mt-2 flex-1 text-sm text-ink-muted">
-                    {item.hint}
-                  </span>
-                  <span
-                    aria-hidden
-                    className="mt-4 text-sm font-semibold text-primary"
-                  >
-                    →
-                  </span>
-                </Link>
+        <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
+          <ul className="grid gap-6 sm:grid-cols-3">
+            {LIMITS.map((item) => (
+              <li key={item.title}>
+                <h2 className="text-base">{item.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+                  {item.body}
+                </p>
               </li>
             ))}
           </ul>

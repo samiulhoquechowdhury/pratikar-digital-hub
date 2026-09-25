@@ -55,7 +55,7 @@ export function BuyButton({
         disabled={busy || status === "confirming"}
         onClick={() => void buy(itemType, itemId, label)}
       >
-        {busy ? "Opening checkout…" : "Buy now"}
+        Buy now
       </Button>
 
       {status === "confirming" && (

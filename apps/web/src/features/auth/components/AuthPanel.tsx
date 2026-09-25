@@ -1,8 +1,11 @@
 "use client";
 
+import { Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import { isGoogleSignInEnabled } from "../lib/googleIdentity";
 import { safeRedirectPath } from "../lib/redirect";
@@ -53,7 +56,10 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
-      <section className="hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
+      <section
+        data-surface="inverse"
+        className="hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
+      >
         <div className="max-w-md">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
             Pratikar Digital Hub
@@ -68,7 +74,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
                   aria-hidden
                   className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-on-brand"
                 >
-                  ✓
+                  <Icon icon={Check} size="xs" />
                 </span>
                 <span className="text-sm leading-relaxed text-ink-inverse-muted">
                   {promise}

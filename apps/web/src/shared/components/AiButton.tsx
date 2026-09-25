@@ -8,9 +8,10 @@ import Link from "next/link";
  * outrank "Sign up" in the header. The outline keeps it obviously special
  * without taking the top slot.
  *
- * The "Soon" tag is not decoration. The assistant is Milestone 4 and isn't
- * built, and a prominent header button that silently leads to an apology is
- * worse than one that says so up front.
+ * The tag is not decoration. It said "Soon" while the destination was a
+ * description of a chat that didn't exist; there is now a working preview
+ * with scripted answers, so it says "Preview" — still honest that this isn't
+ * the finished assistant, without claiming there is nothing to try.
  */
 export function AiButton({ className = "" }: { className?: string }) {
   return (
@@ -29,7 +30,7 @@ export function AiButton({ className = "" }: { className?: string }) {
       </svg>
       Ask AI
       <span className="rounded-full bg-surface-inverse-deep px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-ink-inverse-muted group-hover:bg-on-brand group-hover:text-brand">
-        Soon
+        Preview
       </span>
     </Link>
   );

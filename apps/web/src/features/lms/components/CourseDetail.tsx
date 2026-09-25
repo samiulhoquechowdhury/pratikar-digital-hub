@@ -6,11 +6,13 @@ import {
   ButtonLink,
   Card,
   EmptyState,
-  Loading,
+  SkeletonText,
 } from "@pratikar/ui";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 
 import { BuyButton } from "@/features/payments";
+import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useCourse } from "../hooks/useCourse";
@@ -41,7 +43,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     refreshEnrollment,
   } = useCourse(courseId, !!user);
 
-  if (isLoading) return <Loading label="Loading course…" />;
+  if (isLoading) return <SkeletonText lines={6} label="Loading this course…" />;
 
   if (error) {
     return (
@@ -68,13 +70,13 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     <article>
       {/* Navy header, matching the course card's band — the card and the page
           it opens should look like the same object. */}
-      <header className="bg-hero-navy">
+      <header data-surface="inverse" className="bg-hero-navy">
         <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
           <Link
             href="/courses"
             className="inline-flex items-center gap-1 text-sm font-medium text-ink-inverse-muted hover:text-brand"
           >
-            <span aria-hidden>←</span> All courses
+            <Icon icon={ArrowLeft} /> All courses
           </Link>
 
           <p className="mt-6 text-xs font-semibold uppercase tracking-[0.16em] text-brand">
@@ -126,9 +128,10 @@ export function CourseDetail({ courseId }: { courseId: string }) {
                             : "bg-surface-sunken text-ink-muted"
                         }`}
                       >
-                        {done ? "✓" : index + 1}
+                        {done ? <Icon icon={Check} /> : index + 1}
                       </span>
                       <span className="min-w-0 flex-1 text-sm font-medium text-ink">
+                        {done && <span className="sr-only">Completed: </span>}
                         {module.title}
                       </span>
                       {done && <Badge tone="success">Completed</Badge>}

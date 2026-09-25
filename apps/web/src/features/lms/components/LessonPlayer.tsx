@@ -1,9 +1,12 @@
 "use client";
 
 import type { OutlineModule } from "@pratikar/types";
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import { Alert, Button, ButtonLink, Skeleton } from "@pratikar/ui";
+import { Check, Lock, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import { lmsApi } from "../api/lmsApi";
 import { useCourseOutline } from "../hooks/useCourseOutline";
@@ -35,7 +38,7 @@ export function LessonPlayer({ enrollmentId }: { enrollmentId: string }) {
     if (next) setActiveId(next.id);
   }, [outline, activeId]);
 
-  if (isLoading) return <Loading label="Loading your course…" />;
+  if (isLoading) return <LessonSkeleton />;
   if (error || !outline) {
     return (
       <Alert tone="danger" role="alert">
@@ -100,6 +103,43 @@ export function LessonPlayer({ enrollmentId }: { enrollmentId: string }) {
   );
 }
 
+/**
+ * The classroom's own loading shape.
+ *
+ * A generic skeleton would be wrong here: this screen is a wide stage beside a
+ * narrow syllabus, and collapsing that to a stack of bars would make the
+ * layout jump sideways the moment the outline arrives.
+ */
+function LessonSkeleton() {
+  return (
+    <div
+      role="status"
+      aria-busy="true"
+      className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start"
+    >
+      <span className="sr-only">Loading your course…</span>
+
+      <div className="space-y-6">
+        <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+          <Skeleton className="aspect-video rounded-none" />
+          <div className="space-y-3 p-6">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-6 w-2/3" />
+            <Skeleton className="mt-6 h-9 w-44 rounded-control" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-3 rounded-card border border-line bg-surface p-4 shadow-card">
+        <Skeleton className="h-3 w-24" />
+        {Array.from({ length: 4 }, (_, i) => (
+          <Skeleton key={i} className="h-12 w-full rounded-control" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** The lesson itself: video, then the test that gates what comes next. */
 function LessonStage({
   module: lesson,
@@ -132,7 +172,7 @@ function LessonStage({
                 aria-hidden
                 className="mx-auto grid h-14 w-14 place-items-center rounded-full border border-brand/40 bg-brand/10 text-2xl text-brand"
               >
-                ▶
+                <Icon icon={Play} size="lg" className="translate-x-0.5" />
               </span>
               <p className="mt-4 text-sm font-medium text-ink-inverse">
                 {canWatch
@@ -157,7 +197,7 @@ function LessonStage({
           <div className="mt-6 flex flex-wrap items-center gap-3 border-t border-line pt-5">
             {lesson.videoCompleted ? (
               <span className="inline-flex items-center gap-2 text-sm font-medium text-success-text">
-                <span aria-hidden>✓</span> Lesson completed
+                <Icon icon={Check} /> Lesson completed
               </span>
             ) : (
               <>
@@ -171,9 +211,11 @@ function LessonStage({
                 <Button
                   type="button"
                   onClick={onMarkWatched}
-                  disabled={busy || !canWatch}
+                  loading={busy}
+                  loadingLabel="Saving…"
+                  disabled={!canWatch}
                 >
-                  {busy ? "Saving…" : "Mark lesson as watched"}
+                  Mark lesson as watched
                 </Button>
                 <span className="text-xs text-ink-subtle">
                   Becomes automatic once video hosting is connected.
@@ -225,7 +267,7 @@ function LessonStage({
               </div>
             ) : (
               <p className="flex items-center gap-2 text-sm text-ink-muted">
-                <span aria-hidden>🔒</span>
+                <Icon icon={Lock} />
                 Finish the lesson above to unlock this test.
               </p>
             )}

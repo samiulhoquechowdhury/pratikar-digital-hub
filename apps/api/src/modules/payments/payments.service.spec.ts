@@ -13,6 +13,7 @@ import {
 import type { DocumentsService } from "../documents/documents.service";
 import type { LmsService } from "../lms/lms.service";
 
+import type { InvoiceService } from "./invoice/invoice.service";
 import { PaymentsService } from "./payments.service";
 import type { RazorpayService } from "./razorpay.service";
 
@@ -48,6 +49,7 @@ describe("PaymentsService.refund", () => {
       {} as DocumentsService,
       {} as LmsService,
       new AuditService(prisma as unknown as PrismaService),
+      {} as InvoiceService,
     );
     return { service, prisma, tx, razorpay };
   };
@@ -171,14 +173,16 @@ describe("PaymentsService.handleWebhook", () => {
       verifyWebhookSignature: jest.fn().mockReturnValue(signatureValid),
     } as unknown as RazorpayService;
     const lms = { enroll: jest.fn() };
+    const invoices = { issueForOrder: jest.fn() };
     const service = new PaymentsService(
       prisma as unknown as PrismaService,
       razorpay,
       {} as DocumentsService,
       lms as unknown as LmsService,
       {} as AuditService,
+      invoices as unknown as InvoiceService,
     );
-    return { service, prisma, lms };
+    return { service, prisma, lms, invoices };
   };
 
   it("marks the order paid and grants the entitlement", async () => {
@@ -260,5 +264,53 @@ describe("PaymentsService.handleWebhook", () => {
     await expect(
       service.handleWebhook(capturedEvent(), "sig"),
     ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // ── GST invoicing ────────────────────────────────────────────────────────
+  // Taking money without raising an invoice is a legal problem, not a missing
+  // row, so these sit alongside the entitlement tests rather than in a corner.
+
+  it("raises the invoice when the payment is captured", async () => {
+    const { service, invoices } = build();
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(invoices.issueForOrder).toHaveBeenCalledWith("ord-1");
+  });
+
+  /**
+   * The gap this closes: an earlier delivery marked the order PAID and then
+   * died before the invoice was written. On redelivery the conditional update
+   * matches nothing, so anything inside that guard never runs again — which
+   * would leave a paid order permanently uninvoiced. Issuing is therefore
+   * outside the guard and relies on being idempotent.
+   */
+  it("still raises the invoice on redelivery of an order already marked paid", async () => {
+    const { service, invoices, lms } = build({
+      updateCount: 0,
+      order: { ...pendingOrder, status: "PAID" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(invoices.issueForOrder).toHaveBeenCalledWith("ord-1");
+    // ...without handing over the goods a second time.
+    expect(lms.enroll).not.toHaveBeenCalled();
+  });
+
+  it("does not invoice an order that never left PENDING", async () => {
+    const { service, invoices } = build({ updateCount: 0 });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(invoices.issueForOrder).not.toHaveBeenCalled();
+  });
+
+  it("does not invoice a failed payment", async () => {
+    const { service, invoices } = build();
+
+    await service.handleWebhook(capturedEvent("payment.failed"), "sig");
+
+    expect(invoices.issueForOrder).not.toHaveBeenCalled();
   });
 });

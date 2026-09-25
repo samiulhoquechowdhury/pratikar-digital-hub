@@ -1,8 +1,16 @@
 "use client";
 
-import { Alert, ButtonLink, Card, EmptyState, Loading } from "@pratikar/ui";
+import {
+  Alert,
+  ButtonLink,
+  Card,
+  EmptyState,
+  SkeletonForm,
+} from "@pratikar/ui";
+import { ArrowLeft, Check } from "lucide-react";
 import Link from "next/link";
 
+import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useGenerateDocument } from "../hooks/useGenerateDocument";
@@ -46,7 +54,8 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
     );
   }
 
-  if (isLoading) return <Loading label="Loading template…" />;
+  if (isLoading)
+    return <SkeletonForm fields={5} label="Loading this template…" />;
 
   if (templateError || !template) {
     return (
@@ -68,7 +77,7 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
               aria-hidden
               className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-success-subtle text-lg text-success-text"
             >
-              ✓
+              <Icon icon={Check} size="xs" />
             </span>
             <div>
               <h2 className="text-xl">{template.title}</h2>
@@ -96,7 +105,7 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
         href="/documents"
         className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-hover"
       >
-        <span aria-hidden>←</span> All templates
+        <Icon icon={ArrowLeft} /> All templates
       </Link>
 
       <DynamicTemplateForm

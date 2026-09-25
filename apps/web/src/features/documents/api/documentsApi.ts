@@ -8,6 +8,11 @@ import { apiClient } from "@/shared/lib/apiClient";
 
 // Thin wrappers around the endpoints in apps/api/src/modules/documents
 // (docs/srs.md Section 3.2).
+/** A generated document as the customer's own list returns it. */
+export type MyDocument = GeneratedDocument & {
+  template: Pick<Template, "title" | "priceInPaise" | "reviewPriceInPaise">;
+};
+
 export const documentsApi = {
   listTemplates: () => apiClient.get<Template[]>("/documents/templates"),
 
@@ -21,7 +26,11 @@ export const documentsApi = {
   generate: (payload: GenerateDocumentPayload) =>
     apiClient.post<GeneratedDocument>("/documents/generate", payload),
 
-  listMine: () => apiClient.get<GeneratedDocument[]>("/documents/mine"),
+  // The endpoint includes the template (DocumentsService.listMine selects
+  // title, priceInPaise and reviewPriceInPaise), so the type says so. It
+  // used to claim GeneratedDocument[] and every caller cast the difference
+  // away, which is a type that lies rather than a type that helps.
+  listMine: () => apiClient.get<MyDocument[]>("/documents/mine"),
 
   /**
    * Consumes the one-time download and returns a short-lived signed URL

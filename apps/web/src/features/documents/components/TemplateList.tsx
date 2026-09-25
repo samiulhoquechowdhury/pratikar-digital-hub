@@ -6,7 +6,7 @@ import {
   ButtonLink,
   EmptyState,
   Input,
-  Loading,
+  SkeletonCards,
 } from "@pratikar/ui";
 import { formatPaise, grossPaise } from "@pratikar/utils";
 import Link from "next/link";
@@ -57,7 +57,8 @@ export function TemplateList() {
     );
   }
 
-  if (isLoading) return <Loading label="Loading templates…" />;
+  if (isLoading)
+    return <SkeletonCards media={false} label="Loading templates…" />;
 
   if (error) {
     return (

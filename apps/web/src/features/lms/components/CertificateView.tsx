@@ -1,9 +1,11 @@
 "use client";
 
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import { Alert, Button, ButtonLink, SkeletonText } from "@pratikar/ui";
+import { ArrowLeft } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
+import { Icon } from "@/shared/components/Icon";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useCourseOutline } from "../hooks/useCourseOutline";
@@ -57,7 +59,8 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
     };
   }, [code]);
 
-  if (isLoading) return <Loading label="Loading your certificate…" />;
+  if (isLoading)
+    return <SkeletonText lines={5} label="Loading your certificate…" />;
   if (error || !outline) {
     return (
       <Alert tone="danger" role="alert">
@@ -94,7 +97,7 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
           certificate and nothing else. */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <ButtonLink href={`/learn/${enrollmentId}`} variant="secondary">
-          <span aria-hidden>←</span> Back to the course
+          <Icon icon={ArrowLeft} /> Back to the course
         </ButtonLink>
         <Button type="button" onClick={() => window.print()}>
           Print or save as PDF

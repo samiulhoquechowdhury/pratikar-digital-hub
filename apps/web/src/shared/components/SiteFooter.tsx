@@ -6,7 +6,7 @@ import Link from "next/link";
  */
 export function SiteFooter() {
   return (
-    <footer className="mt-16 bg-surface-inverse-deep">
+    <footer data-surface="inverse" className="mt-16 bg-surface-inverse-deep">
       <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
           <div className="max-w-sm">

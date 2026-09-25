@@ -10,8 +10,15 @@ export default function Page() {
     <RequireStaff>
       <PageHeader
         title="Content library"
-        description="E-books and checklists sold individually."
-        actions={<ButtonLink href="/content-library/new">New item</ButtonLink>}
+        description="E-books, checklists and fill-in-the-blank forms, sold individually."
+        actions={
+          <div className="flex flex-wrap gap-3">
+            <ButtonLink href="/content-library/import" variant="secondary">
+              Import from storage
+            </ButtonLink>
+            <ButtonLink href="/content-library/new">New item</ButtonLink>
+          </div>
+        }
       />
       <PageBody>
         <ContentItemList />

@@ -13,6 +13,8 @@ import {
 } from "../audit/audit.service";
 import { StorageService } from "../storage/storage.service";
 
+import { folderOf, isSellable, suggestionFor, titleFromKey } from "./catalogue";
+import { ImportContentItemsDto } from "./dto/import-content-items.dto";
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 
 /**
@@ -166,5 +168,97 @@ export class ContentLibraryService {
 
       return created;
     });
+  }
+
+  /**
+   * What is sitting in storage, and whether it has been catalogued yet.
+   *
+   * The bucket was filled directly rather than through the app — hundreds of
+   * files that exist but are not for sale, because the storefront lists rows
+   * and every row needs a title, a category and a price. This is the screen
+   * that closes that gap.
+   *
+   * Already-catalogued keys are returned too, marked rather than filtered:
+   * an operator running this a second time needs to see that a file is
+   * handled, not have it silently vanish and wonder whether it uploaded.
+   */
+  async listStorageObjects(prefix?: string) {
+    const [objects, existing] = await Promise.all([
+      this.storage.list(prefix ?? ""),
+      this.prisma.contentLibraryItem.findMany({ select: { fileUrl: true } }),
+    ]);
+    const catalogued = new Set(existing.map((row) => row.fileUrl));
+
+    const sellable = objects.filter((object) => isSellable(object.key));
+    return {
+      // Counted before filtering, so the screen can say "12 files skipped"
+      // rather than quietly showing fewer than the bucket contains.
+      totalObjects: objects.length,
+      skippedUnsupported: objects.length - sellable.length,
+      objects: sellable
+        .map((object) => ({
+          ...object,
+          folder: folderOf(object.key),
+          suggestedTitle: titleFromKey(object.key),
+          ...suggestionFor(object.key),
+          catalogued: catalogued.has(object.key),
+        }))
+        .sort((a, b) => a.key.localeCompare(b.key)),
+    };
+  }
+
+  /**
+   * Publishes a batch of stored files as catalogue items.
+   *
+   * Skips keys that already have a row instead of failing the batch: the
+   * realistic use is selecting a whole folder, running it, adding more files
+   * to the bucket, and running it again. A second pass should add what is
+   * new and leave the rest alone, not error or duplicate.
+   */
+  async importFromStorage(dto: ImportContentItemsDto, actorUserId: string) {
+    const keys = dto.items.map((item) => item.fileUrl);
+    const existing = await this.prisma.contentLibraryItem.findMany({
+      where: { fileUrl: { in: keys } },
+      select: { fileUrl: true },
+    });
+    const taken = new Set(existing.map((row) => row.fileUrl));
+
+    const fresh = dto.items.filter((item) => !taken.has(item.fileUrl));
+    if (fresh.length === 0) {
+      return { created: 0, skipped: dto.items.length };
+    }
+
+    const created = await this.prisma.$transaction(async (tx) => {
+      await tx.contentLibraryItem.createMany({
+        data: fresh.map((item) => ({
+          title: item.title.trim(),
+          category: item.category,
+          type: item.type,
+          priceInPaise: item.priceInPaise,
+          fileUrl: item.fileUrl,
+          status: dto.publish ? "PUBLISHED" : "DRAFT",
+        })),
+      });
+
+      // One audit row for the batch, not one per file: the operator performed
+      // a single act, and 181 identical entries would bury everything else in
+      // the log rather than record anything more.
+      await this.audit.recordWith(tx, {
+        actorUserId,
+        action: AuditAction.CONTENT_ITEM_CREATED,
+        targetType: AuditTargetType.CONTENT_ITEM,
+        targetId: fresh[0]!.fileUrl,
+        metadata: {
+          importedFromStorage: true,
+          count: fresh.length,
+          published: dto.publish === true,
+          folders: [...new Set(fresh.map((i) => folderOf(i.fileUrl)))],
+        },
+      });
+
+      return fresh.length;
+    });
+
+    return { created, skipped: dto.items.length - created };
   }
 }
