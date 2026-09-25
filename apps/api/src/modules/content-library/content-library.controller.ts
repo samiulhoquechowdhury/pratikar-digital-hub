@@ -19,6 +19,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
 import { ContentLibraryService } from "./content-library.service";
+import { ImportContentItemsDto } from "./dto/import-content-items.dto";
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 
 @Controller("content-library")
@@ -37,6 +38,28 @@ export class ContentLibraryController {
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   listAll() {
     return this.contentLibraryService.listAll();
+  }
+
+  /**
+   * What is in object storage, with a catalogued flag per file.
+   *
+   * Declared above ":id" for the same reason "all" is — Nest matches routes
+   * in declaration order, and "storage" would otherwise be read as an id.
+   */
+  @Get("storage")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listStorage(@Query("prefix") prefix?: string) {
+    return this.contentLibraryService.listStorageObjects(prefix);
+  }
+
+  /** Publishes a batch of already-stored files as catalogue items. */
+  @Post("import")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  importFromStorage(
+    @Body() dto: ImportContentItemsDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.contentLibraryService.importFromStorage(dto, user.id);
   }
 
   // Customer-facing detail view. Separate from the admin ":id" route below,

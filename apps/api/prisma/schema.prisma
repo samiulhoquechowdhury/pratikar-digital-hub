@@ -171,6 +171,13 @@ enum ContentCategory {
 enum ContentType {
   EBOOK
   CHECKLIST
+  /// A fill-in-the-blank document — affidavits, agreements, notices, court
+  /// forms. Distinct from a Template: a Template is filled in by the
+  /// generator from a field schema, whereas these are sold as-is and the
+  /// customer completes the blanks themselves. The catalogue in R2 is
+  /// overwhelmingly this kind, and calling them e-books would be a lie the
+  /// customer discovers after paying.
+  FORM
 }
 
 model ContentLibraryItem {
