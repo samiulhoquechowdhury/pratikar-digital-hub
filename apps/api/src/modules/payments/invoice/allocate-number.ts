@@ -2,14 +2,17 @@ import { Prisma } from "@prisma/client";
 
 import { financialYearOf, formatInvoiceNumber } from "./gst";
 
+export type Series = "INV" | "CRN";
+
 export interface AllocatedNumber {
-  invoiceNumber: string;
+  /** The formatted serial, e.g. PDH/2627/000042 or CRN/2627/000007. */
+  number: string;
   financialYear: string;
   sequence: number;
 }
 
 /**
- * Takes the next serial for the financial year the invoice falls in.
+ * Takes the next serial in a series, for the financial year it falls in.
  *
  * ── WHY THIS IS RAW SQL ────────────────────────────────────────────────────
  * GST requires a *consecutive* series, which makes allocation a concurrency
@@ -26,22 +29,28 @@ export interface AllocatedNumber {
  * retries webhooks aggressively and delivers concurrently, so this is a live
  * concern, not a theoretical one.
  *
- * Must be called inside the same transaction that writes the Invoice: if that
+ * Must be called inside the same transaction that writes the document: if that
  * transaction rolls back, the counter rolls back with it and the series has no
  * gap. A gap is not merely untidy — it is the thing an auditor asks about.
+ *
+ * `series` keeps invoices and credit notes on separate counters. Rule 53 lets
+ * a credit note run its own sequence, and sharing one would interleave them —
+ * so an invoice and the note reversing it could not both be numbered
+ * consecutively within their own series.
  */
-export async function allocateInvoiceNumber(
+export async function allocateDocumentNumber(
   tx: Prisma.TransactionClient,
+  series: Series,
   prefix: string,
   issuedAt: Date,
 ): Promise<AllocatedNumber> {
   const financialYear = financialYearOf(issuedAt);
 
   const rows = await tx.$queryRaw<{ lastSequence: number }[]>`
-    INSERT INTO "InvoiceCounter" ("financialYear", "lastSequence", "updatedAt")
-    VALUES (${financialYear}, 1, NOW())
-    ON CONFLICT ("financialYear")
-    DO UPDATE SET "lastSequence" = "InvoiceCounter"."lastSequence" + 1,
+    INSERT INTO "DocumentCounter" ("series", "financialYear", "lastSequence", "updatedAt")
+    VALUES (${series}, ${financialYear}, 1, NOW())
+    ON CONFLICT ("series", "financialYear")
+    DO UPDATE SET "lastSequence" = "DocumentCounter"."lastSequence" + 1,
                   "updatedAt"    = NOW()
     RETURNING "lastSequence"
   `;
@@ -50,11 +59,11 @@ export async function allocateInvoiceNumber(
   if (sequence === undefined) {
     // Unreachable: the statement always returns the row it wrote. Checked
     // anyway because the alternative is a NaN in an invoice number.
-    throw new Error("Invoice counter returned no row");
+    throw new Error(`Counter for series ${series} returned no row`);
   }
 
   return {
-    invoiceNumber: formatInvoiceNumber(prefix, financialYear, sequence),
+    number: formatInvoiceNumber(prefix, financialYear, sequence),
     financialYear,
     sequence,
   };

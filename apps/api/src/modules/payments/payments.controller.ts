@@ -24,6 +24,7 @@ import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { CreditNoteService } from "./invoice/credit-note.service";
 import { InvoiceService } from "./invoice/invoice.service";
 import { PaymentsService } from "./payments.service";
 
@@ -32,6 +33,7 @@ export class PaymentsController {
   constructor(
     private readonly paymentsService: PaymentsService,
     private readonly invoices: InvoiceService,
+    private readonly creditNotes: CreditNoteService,
   ) {}
 
   @Post()
@@ -96,10 +98,29 @@ export class PaymentsController {
     return this.invoices.getForOrder(id, isStaff ? null : user.id);
   }
 
+  /**
+   * The credit note reversing an order's invoice, if one has been issued.
+   * Same ownership rule as the invoice: staff may read any, a customer only
+   * their own.
+   */
+  @Get(":id/credit-note")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  creditNote(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    const isStaff =
+      user.role === Role.SUPPORT ||
+      user.role === Role.ADMIN ||
+      user.role === Role.SUPER_ADMIN;
+    return this.creditNotes.getForOrder(id, isStaff ? null : user.id);
+  }
+
   @Post(":id/refund")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  refund(@Param("id") id: string, @CurrentUser() user: RequestUser) {
-    return this.paymentsService.refund(id, user.id);
+  refund(
+    @Param("id") id: string,
+    @CurrentUser() user: RequestUser,
+    @Body("reason") reason?: string,
+  ) {
+    return this.paymentsService.refund(id, user.id, reason);
   }
 }

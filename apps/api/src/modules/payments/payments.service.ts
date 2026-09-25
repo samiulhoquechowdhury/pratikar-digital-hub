@@ -15,6 +15,7 @@ import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
+import { CreditNoteService } from "./invoice/credit-note.service";
 import { InvoiceService } from "./invoice/invoice.service";
 import { RazorpayService } from "./razorpay.service";
 
@@ -45,6 +46,7 @@ export class PaymentsService {
     private readonly lmsService: LmsService,
     private readonly audit: AuditService,
     private readonly invoices: InvoiceService,
+    private readonly creditNotes: CreditNoteService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -221,7 +223,7 @@ export class PaymentsService {
    * Admin-direct refund (docs/srs.md Section 7, item 6 — confirmed, no
    * Support-approval step). Reverses the entitlement granted above.
    */
-  async refund(orderId: string, actorUserId: string) {
+  async refund(orderId: string, actorUserId: string, reason?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
     });
@@ -267,10 +269,66 @@ export class PaymentsService {
       });
     });
 
-    // TODO: revoke the entitlement — e.g. expire the Enrollment immediately
-    // for COURSE orders. Left as a TODO since exact revocation semantics per
-    // item type aren't fully pinned down yet (docs/srs.md Section 8, item 1
-    // touches this for documents specifically).
+    // Both of these run after the transaction, and neither is allowed to
+    // undo the refund by failing: the money has already moved at Razorpay and
+    // the order is already REFUNDED. A credit note that failed to render can
+    // be reissued; a refund that "failed" after the money left cannot.
+    await this.revokeEntitlement(order);
+    await this.creditNotes.issueForRefundedOrder(order.id, reason);
+  }
+
+  /**
+   * Takes back what the payment granted.
+   *
+   * Each item type granted something different, so each has to be undone
+   * differently — and one of them needs nothing at all, which is worth
+   * stating rather than leaving as an apparent omission.
+   */
+  private async revokeEntitlement(order: {
+    id: string;
+    itemType: string;
+    generatedDocumentId: string | null;
+  }) {
+    switch (order.itemType) {
+      case "COURSE":
+        // Expire rather than delete. The learner may hold a certificate, and
+        // the public verification page has to keep vouching for it — a
+        // refund reverses access to the videos, not the fact that someone
+        // sat the tests and passed.
+        await this.prisma.enrollment.updateMany({
+          where: { orderId: order.id },
+          data: { expiresAt: new Date() },
+        });
+        break;
+
+      case "DOCUMENT":
+        if (order.generatedDocumentId) {
+          // Only if it has not already been downloaded. Once the file is on
+          // someone's disk, flipping a status does not retrieve it, and
+          // overwriting DOWNLOADED would erase the evidence that it went out
+          // — which is exactly what a refund dispute turns on.
+          await this.prisma.generatedDocument.updateMany({
+            where: { id: order.generatedDocumentId, status: "PAID" },
+            data: { status: "REFUNDED" },
+          });
+        }
+        break;
+
+      case "DOCUMENT_REVIEW":
+        // Cancel rather than delete, so a reviewer who already spent time on
+        // it keeps the record.
+        await this.prisma.documentReview.updateMany({
+          where: { orderId: order.id, status: { in: ["QUEUED", "IN_REVIEW"] } },
+          data: { status: "CANCELLED" },
+        });
+        break;
+
+      case "CONTENT_ITEM":
+        // Nothing to revoke: a PAID order for this user and item *is* the
+        // entitlement — ContentLibraryService.download looks for exactly
+        // that — so moving the order to REFUNDED has already closed access.
+        break;
+    }
   }
 
   private async resolveAmount(
