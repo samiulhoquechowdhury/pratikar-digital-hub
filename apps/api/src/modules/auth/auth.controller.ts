@@ -35,11 +35,18 @@ export class AuthController {
   // Rate limited hard: this is the endpoint most vulnerable to abuse (SMS/email
   // bombing). Per-identifier + per-IP limiting happens inside AuthService;
   // this decorator is the coarse route-level backstop.
+  // The decorator is the coarse per-IP backstop; the real limits — a
+  // cooldown, a per-identifier cap and a per-IP cap — are enforced inside
+  // AuthService against the OtpRequest table, which is shared across
+  // instances where this in-memory counter is not.
   @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post("otp/request")
   @HttpCode(200)
-  async requestOtp(@Body() dto: OtpRequestDto): Promise<void> {
-    await this.authService.requestOtp(dto);
+  async requestOtp(
+    @Body() dto: OtpRequestDto,
+    @Req() req: Request,
+  ): Promise<void> {
+    await this.authService.requestOtp(dto, req.ip);
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })

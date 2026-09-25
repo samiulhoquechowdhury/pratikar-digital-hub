@@ -44,16 +44,25 @@ model User {
 }
 
 model OtpRequest {
-  id          String    @id @default(uuid())
-  identifier  String
-  channel     String // "email" | "sms"
-  codeHash    String
-  attempts    Int       @default(0)
-  consumedAt  DateTime?
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  identifier String
+  channel    String // "email" | "sms"
+  codeHash   String
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  /// Who asked. Nullable because rows written before this existed have none,
+  /// and because a request can arrive without a usable address. Used to stop
+  /// one host bombing many identifiers — the per-identifier limit alone
+  /// cannot see that pattern.
+  ip         String?
 
   @@index([identifier, channel, consumedAt])
+  /// Serves the rate-limit windows: "requests for this identifier since X"
+  /// and "requests from this IP since X".
+  @@index([identifier, createdAt])
+  @@index([ip, createdAt])
 }
 
 model Session {
