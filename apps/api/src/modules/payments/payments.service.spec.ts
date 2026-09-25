@@ -12,6 +12,7 @@ import {
 } from "../audit/audit.service";
 import type { DocumentsService } from "../documents/documents.service";
 import type { LmsService } from "../lms/lms.service";
+import type { NotificationSender } from "../notifications/notification-sender.service";
 
 import type { CreditNoteService } from "./invoice/credit-note.service";
 import type { InvoiceService } from "./invoice/invoice.service";
@@ -44,9 +45,11 @@ describe("PaymentsService.refund", () => {
   };
 
   const creditNotes = { issueForRefundedOrder: jest.fn() };
+  const notifications = { send: jest.fn() };
 
   const build = (order: unknown, refundImpl = jest.fn()) => {
     creditNotes.issueForRefundedOrder.mockClear();
+    notifications.send.mockClear();
     const tx = {
       order: { update: jest.fn() },
       auditLog: { create: jest.fn() },
@@ -67,8 +70,9 @@ describe("PaymentsService.refund", () => {
       new AuditService(prisma as unknown as PrismaService),
       {} as InvoiceService,
       creditNotes as unknown as CreditNoteService,
+      notifications as unknown as NotificationSender,
     );
-    return { service, prisma, tx, razorpay, creditNotes };
+    return { service, prisma, tx, razorpay, creditNotes, notifications };
   };
 
   it("records who authorised the refund, the amount, and the payment reference", async () => {
@@ -218,6 +222,23 @@ describe("PaymentsService.refund", () => {
     );
   });
 
+  it("tells the customer their refund is on its way", async () => {
+    const { service, prisma } = build(paidOrder);
+    prisma.order.findUnique
+      .mockResolvedValueOnce(paidOrder)
+      .mockResolvedValueOnce({
+        ...paidOrder,
+        user: { name: "Asha", email: "asha@example.com" },
+        generatedDocument: { template: { title: "Rent Agreement" } },
+      });
+
+    await service.refund("ord-1", "admin-1");
+
+    expect(notifications.send).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "refund", to: "asha@example.com" }),
+    );
+  });
+
   it("does not issue a credit note when the refund was refused", async () => {
     const { service, creditNotes } = build({
       ...paidOrder,
@@ -258,6 +279,8 @@ describe("PaymentsService.handleWebhook", () => {
       },
     });
 
+  const notifications = { send: jest.fn() };
+
   const build = (
     opts: {
       order?: unknown;
@@ -285,6 +308,7 @@ describe("PaymentsService.handleWebhook", () => {
     } as unknown as RazorpayService;
     const lms = { enroll: jest.fn() };
     const invoices = { issueForOrder: jest.fn() };
+    notifications.send.mockClear();
     const service = new PaymentsService(
       prisma as unknown as PrismaService,
       razorpay,
@@ -293,8 +317,9 @@ describe("PaymentsService.handleWebhook", () => {
       {} as AuditService,
       invoices as unknown as InvoiceService,
       {} as CreditNoteService,
+      notifications as unknown as NotificationSender,
     );
-    return { service, prisma, lms, invoices };
+    return { service, prisma, lms, invoices, notifications };
   };
 
   it("marks the order paid and grants the entitlement", async () => {
@@ -416,6 +441,36 @@ describe("PaymentsService.handleWebhook", () => {
     await service.handleWebhook(capturedEvent(), "sig");
 
     expect(invoices.issueForOrder).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Razorpay redelivers until it sees a 2xx. Confirmation mail is scoped to
+   * the delivery that actually claimed the order, or one payment would send
+   * a receipt every time the webhook was retried.
+   */
+  it("sends one confirmation for a payment, not one per delivery", async () => {
+    const { service, prisma } = build();
+    prisma.order.findUnique.mockResolvedValue({
+      ...pendingOrder,
+      amount: 100_000,
+      gstAmount: 18_000,
+      user: { name: "Asha", email: "asha@example.com" },
+      course: { title: "GST for Freelancers" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+    expect(notifications.send).toHaveBeenCalledTimes(1);
+
+    // The same payment arriving again: the conditional update matches
+    // nothing, so nothing inside that guard runs a second time. build()
+    // resets the shared mock, so this counts the redelivery on its own.
+    const again = build({
+      updateCount: 0,
+      order: { ...pendingOrder, status: "PAID" },
+    });
+    await again.service.handleWebhook(capturedEvent(), "sig");
+
+    expect(notifications.send).not.toHaveBeenCalled();
   });
 
   it("does not invoice a failed payment", async () => {

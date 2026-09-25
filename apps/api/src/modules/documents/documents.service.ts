@@ -14,6 +14,7 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { NotificationSender } from "../notifications/notification-sender.service";
 import { StorageService } from "../storage/storage.service";
 
 import type { DocumentGenerationJobData } from "./document-generation.processor";
@@ -25,6 +26,7 @@ export class DocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationSender,
     private readonly storage: StorageService,
     @InjectQueue("document-generation")
     private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
@@ -258,9 +260,7 @@ export class DocumentsService {
     actorUserId: string,
     notes?: string,
   ) {
-    // TODO: trigger the `notification-dispatch` job here (docs/trd.md Section
-    // 6) to send the Android push notification confirmed in docs/srs.md 3.8.
-    return this.prisma.$transaction(async (tx) => {
+    const returned = await this.prisma.$transaction(async (tx) => {
       const returned = await tx.documentReview.update({
         where: { id: reviewId },
         data: { status: "RETURNED", reviewedFileUrl, notes },
@@ -275,6 +275,37 @@ export class DocumentsService {
       });
 
       return returned;
+    });
+
+    // Outside the transaction, and deliberately after it commits: the review
+    // is returned whether or not the customer can be reached, and a mail
+    // provider having a bad minute must not roll back a reviewer's work.
+    //
+    // Email only for now. The Android push confirmed in docs/srs.md 3.8
+    // arrives with the app (Milestone 5) and routes through the same queue.
+    await this.notifyReviewReady(reviewId);
+    return returned;
+  }
+
+  private async notifyReviewReady(reviewId: string) {
+    const review = await this.prisma.documentReview.findUnique({
+      where: { id: reviewId },
+      include: {
+        requestedBy: { select: { name: true, email: true } },
+        generatedDocument: {
+          include: { template: { select: { title: true } } },
+        },
+      },
+    });
+    if (!review?.requestedBy.email) return;
+
+    await this.notifications.send({
+      type: "review-ready",
+      to: review.requestedBy.email,
+      payload: {
+        customerName: review.requestedBy.name,
+        documentTitle: review.generatedDocument.template.title,
+      },
     });
   }
 

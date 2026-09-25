@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 
@@ -13,6 +14,7 @@ import {
 } from "../audit/audit.service";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
+import { NotificationSender } from "../notifications/notification-sender.service";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CreditNoteService } from "./invoice/credit-note.service";
@@ -39,6 +41,8 @@ interface RazorpayWebhookBody {
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(PaymentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly razorpay: RazorpayService,
@@ -47,6 +51,7 @@ export class PaymentsService {
     private readonly audit: AuditService,
     private readonly invoices: InvoiceService,
     private readonly creditNotes: CreditNoteService,
+    private readonly notifications: NotificationSender,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -135,6 +140,69 @@ export class PaymentsService {
     if (claimed.count > 0 || order.status === "PAID") {
       await this.invoices.issueForOrder(order.id);
     }
+
+    // Only on the delivery that actually claimed the order, so a Razorpay
+    // redelivery does not send a second confirmation for one payment.
+    if (claimed.count > 0) {
+      await this.notifyPurchase(order.id);
+    }
+  }
+
+  /**
+   * Tells the customer their payment went through.
+   *
+   * Queued rather than sent here: Razorpay retries anything that is not a
+   * fast 2xx, so waiting on a mail provider would make a slow afternoon at
+   * Resend look like a failed payment.
+   */
+  private async notifyPurchase(orderId: string) {
+    try {
+      await this.sendPurchaseEmail(orderId);
+    } catch (error) {
+      // The payment is captured and the entitlement granted. A throw here
+      // would return a non-2xx, and Razorpay would redeliver a payment that
+      // has already been processed.
+      this.logger.error(
+        `Payment for ${orderId} succeeded but its confirmation did not: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  private async sendPurchaseEmail(orderId: string) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        user: { select: { name: true, email: true } },
+        generatedDocument: {
+          include: { template: { select: { title: true } } },
+        },
+        contentLibraryItem: { select: { title: true } },
+        course: { select: { title: true } },
+      },
+    });
+    if (!order?.user?.email) return;
+
+    const destination =
+      order.itemType === "COURSE"
+        ? { path: "/dashboard#courses", label: "Start the course" }
+        : order.itemType === "CONTENT_ITEM"
+          ? { path: "/dashboard#purchases", label: "Download it" }
+          : { path: "/dashboard#documents", label: "Open your document" };
+
+    await this.notifications.send({
+      type: "purchase",
+      to: order.user.email,
+      payload: {
+        customerName: order.user.name,
+        itemTitle: describePurchase(order),
+        amountInPaise: order.amount,
+        gstInPaise: order.gstAmount,
+        destinationPath: destination.path,
+        destinationLabel: destination.label,
+      },
+    });
   }
 
   /**
@@ -275,6 +343,50 @@ export class PaymentsService {
     // be reissued; a refund that "failed" after the money left cannot.
     await this.revokeEntitlement(order);
     await this.creditNotes.issueForRefundedOrder(order.id, reason);
+
+    await this.notifyRefund(order.id, order.amount + order.gstAmount);
+  }
+
+  /**
+   * Tells the customer their refund is on its way.
+   *
+   * Swallows its own failures deliberately. By the time this runs the money
+   * has moved at Razorpay, the order is REFUNDED and the entitlement is
+   * revoked — all of it committed. Letting a lookup or a queue hiccup throw
+   * from here would surface to the operator as "the refund failed", and they
+   * would quite reasonably try again.
+   */
+  private async notifyRefund(orderId: string, totalInPaise: number) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { id: orderId },
+        include: {
+          user: { select: { name: true, email: true } },
+          generatedDocument: {
+            include: { template: { select: { title: true } } },
+          },
+          contentLibraryItem: { select: { title: true } },
+          course: { select: { title: true } },
+        },
+      });
+      if (!order?.user?.email) return;
+
+      await this.notifications.send({
+        type: "refund",
+        to: order.user.email,
+        payload: {
+          customerName: order.user.name,
+          itemTitle: describePurchase(order),
+          totalInPaise,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Refund for ${orderId} succeeded but its notification did not: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /**
@@ -379,5 +491,26 @@ export class PaymentsService {
       case "COURSE":
         return { courseId: itemId };
     }
+  }
+}
+
+/** What the customer would call the thing they bought. */
+function describePurchase(order: {
+  itemType: string;
+  generatedDocument?: { template: { title: string } } | null;
+  contentLibraryItem?: { title: string } | null;
+  course?: { title: string } | null;
+}): string {
+  switch (order.itemType) {
+    case "DOCUMENT":
+      return order.generatedDocument?.template.title ?? "your document";
+    case "DOCUMENT_REVIEW":
+      return `${order.generatedDocument?.template.title ?? "your document"} — professional review`;
+    case "CONTENT_ITEM":
+      return order.contentLibraryItem?.title ?? "your download";
+    case "COURSE":
+      return order.course?.title ?? "your course";
+    default:
+      return "your purchase";
   }
 }
