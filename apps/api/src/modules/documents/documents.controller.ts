@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Put,
   UseGuards,
 } from "@nestjs/common";
@@ -20,6 +21,7 @@ import { RolesGuard } from "../../common/guards/roles.guard";
 import { DocumentsService } from "./documents.service";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { ReturnReviewDto } from "./dto/return-review.dto";
+import { CreateTemplateFromStorageDto } from "./dto/tag-template.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 
 @Controller("documents")
@@ -41,6 +43,26 @@ export class DocumentsController {
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   listAllTemplates() {
     return this.documentsService.listAllTemplates();
+  }
+
+  /**
+   * The blanks in a stored form, with a suggested name and type for each.
+   * Declared before "templates/:id" so the literal path is not read as an id.
+   */
+  @Get("templates/blanks")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  readBlanks(@Query("key") key: string) {
+    return this.documentsService.readBlanks(key);
+  }
+
+  /** Tags a stored form and registers the result as a DRAFT template. */
+  @Post("templates/from-storage")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  createFromStorage(
+    @Body() dto: CreateTemplateFromStorageDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.createTemplateFromStorage(dto, user.id);
   }
 
   @Get("templates/:id")
