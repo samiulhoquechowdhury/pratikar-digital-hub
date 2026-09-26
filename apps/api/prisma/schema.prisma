@@ -2,12 +2,15 @@
 // Mirrors docs/trd.md Section 2. Keep the two in sync when either changes.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pgvector, for KnowledgeBaseDocument.embedding (docs/trd.md 2.5).
+  extensions = [vector]
 }
 
 // ---------------------------------------------------------------------------
@@ -543,16 +546,25 @@ model ChatbotConversation {
 }
 
 model KnowledgeBaseDocument {
-  id         String   @id @default(uuid())
-  sourceType String // "faq" | "template" | "course" | "policy"
-  sourceId   String
-  content    String
-  // embedding stored via pgvector — Prisma has no native vector type yet;
-  // managed through a raw migration adding a `vector` column, referenced
-  // via $queryRaw for similarity search rather than the Prisma Client API.
-  updatedAt  DateTime @updatedAt
+  id             String                      @id @default(uuid())
+  // "template" | "course" | "content", and later "faq" | "policy". The row a
+  // hit came from is looked up again at answer time — prices and status are
+  // read live from there, never from this copy.
+  sourceType     String
+  sourceId       String
+  // The text that was embedded, kept so a retrieval can be read back and
+  // argued about without re-deriving it.
+  content        String
+  // sha256 of model + content. The worker compares it before calling the
+  // embedding API, so re-saving an unchanged template costs nothing.
+  contentHash    String
+  embeddingModel String
+  // Unsupported because Prisma has no vector type: written and searched with
+  // raw SQL only. The dimension is pinned in KNOWLEDGE_BASE_DIMENSIONS.
+  embedding      Unsupported("vector(1024)")
+  updatedAt      DateTime                    @updatedAt
 
-  @@index([sourceType, sourceId])
+  @@unique([sourceType, sourceId])
 }
 
 // ---------------------------------------------------------------------------

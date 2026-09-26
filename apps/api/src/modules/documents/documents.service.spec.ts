@@ -51,14 +51,48 @@ describe("DocumentsService template mutations", () => {
     return { prisma, tx };
   };
 
-  const buildService = (prisma: unknown) =>
+  const buildService = (
+    prisma: unknown,
+    knowledgeBase = { reindex: jest.fn() },
+  ) =>
     new DocumentsService(
       prisma as PrismaService,
       new AuditService(prisma as PrismaService),
       { send: jest.fn() } as unknown as NotificationSender,
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
+      knowledgeBase as never,
     );
+
+  /**
+   * The chatbot must not keep recommending what was just unpublished, so
+   * every save asks for a reindex — but only once the save has committed.
+   */
+  it("queues a reindex of the saved template", async () => {
+    const { prisma } = buildPrisma({
+      create: jest.fn().mockResolvedValue({ id: "tpl-1", title: "T" }),
+    });
+    const knowledgeBase = { reindex: jest.fn() };
+
+    await buildService(prisma, knowledgeBase).upsertTemplate(dto, "user-9");
+
+    expect(knowledgeBase.reindex).toHaveBeenCalledWith({
+      sourceType: "template",
+      sourceId: "tpl-1",
+    });
+  });
+
+  it("does not queue a reindex when the save fails", async () => {
+    const { prisma } = buildPrisma({
+      findUnique: jest.fn().mockResolvedValue(null),
+    });
+    const knowledgeBase = { reindex: jest.fn() };
+
+    await expect(
+      buildService(prisma, knowledgeBase).upsertTemplate(dto, "user-9", "nope"),
+    ).rejects.toThrow("TEMPLATE_NOT_FOUND");
+    expect(knowledgeBase.reindex).not.toHaveBeenCalled();
+  });
 
   it("writes a TEMPLATE_CREATED entry naming the actor and the new template", async () => {
     const created = { id: "tpl-1", title: dto.title, status: "DRAFT" };

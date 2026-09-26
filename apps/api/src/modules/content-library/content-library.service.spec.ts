@@ -31,6 +31,7 @@ describe("ContentLibraryService — the app's own files", () => {
       prisma as unknown as PrismaService,
       new AuditService(prisma as unknown as PrismaService),
       storage as never,
+      { reindex: jest.fn() } as never,
     );
     return { service, prisma };
   };
@@ -81,5 +82,71 @@ describe("ContentLibraryService — the app's own files", () => {
       service.upsert(item("documents/3f2a.docx") as never, "user-1"),
     ).rejects.toThrow("Not a library file: documents/3f2a.docx");
     expect(prisma.$transaction).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * createMany returns no ids, so a publish-on-import batch has to look its
+ * rows up again before it can ask for them to be indexed.
+ */
+describe("ContentLibraryService.importFromStorage — knowledge base", () => {
+  const item = (fileUrl: string) => ({
+    title: "T",
+    category: "LEGAL_PRACTICE" as const,
+    type: "FORM" as const,
+    priceInPaise: 100,
+    fileUrl,
+  });
+
+  const build = () => {
+    const tx = {
+      contentLibraryItem: { createMany: jest.fn() },
+      auditLog: { create: jest.fn() },
+    };
+    const prisma = {
+      contentLibraryItem: {
+        findMany: jest
+          .fn()
+          // First call: which keys already exist. Second: the new rows' ids.
+          .mockResolvedValueOnce([])
+          .mockResolvedValueOnce([{ id: "i1" }, { id: "i2" }]),
+      },
+      $transaction: jest.fn((cb: (client: typeof tx) => unknown) => cb(tx)),
+    };
+    const knowledgeBase = { reindex: jest.fn() };
+    const service = new ContentLibraryService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      { list: jest.fn() } as never,
+      knowledgeBase as never,
+    );
+    return { service, prisma, knowledgeBase };
+  };
+
+  it("queues every row of a published batch", async () => {
+    const { service, knowledgeBase } = build();
+
+    await service.importFromStorage(
+      { items: [item("a/1.pdf"), item("a/2.pdf")], publish: true },
+      "user-1",
+    );
+
+    expect(knowledgeBase.reindex).toHaveBeenCalledWith(
+      { sourceType: "content", sourceId: "i1" },
+      { sourceType: "content", sourceId: "i2" },
+    );
+  });
+
+  // Drafts are not indexed, so the id lookup would be wasted.
+  it("skips the lookup for a draft import", async () => {
+    const { service, prisma, knowledgeBase } = build();
+
+    await service.importFromStorage(
+      { items: [item("a/1.pdf")], publish: false },
+      "user-1",
+    );
+
+    expect(prisma.contentLibraryItem.findMany).toHaveBeenCalledTimes(1);
+    expect(knowledgeBase.reindex).not.toHaveBeenCalled();
   });
 });

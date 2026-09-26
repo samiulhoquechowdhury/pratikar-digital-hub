@@ -39,11 +39,49 @@ describe("LmsService course management", () => {
     return { prisma, tx };
   };
 
-  const buildService = (prisma: unknown) =>
+  const buildService = (
+    prisma: unknown,
+    knowledgeBase = { reindex: jest.fn() },
+  ) =>
     new LmsService(
       prisma as PrismaService,
       new AuditService(prisma as PrismaService),
+      knowledgeBase as never,
     );
+
+  it("queues a reindex of a saved course, after the commit", async () => {
+    const { prisma, tx } = buildPrisma();
+    tx.course.create.mockResolvedValue({ id: "course-1", title: "C" });
+    const knowledgeBase = { reindex: jest.fn() };
+
+    await buildService(prisma, knowledgeBase).upsertCourse(
+      { title: "C", priceInPaise: 100 } as never,
+      "user-1",
+    );
+
+    expect(knowledgeBase.reindex).toHaveBeenCalledWith({
+      sourceType: "course",
+      sourceId: "course-1",
+    });
+  });
+
+  // Lesson titles are part of what a course is indexed as.
+  it("queues a reindex when the modules are replaced", async () => {
+    const { prisma, tx } = buildPrisma();
+    tx.course.findUnique.mockResolvedValue({ id: "course-1" });
+    const knowledgeBase = { reindex: jest.fn() };
+
+    await buildService(prisma, knowledgeBase).replaceModules(
+      "course-1",
+      [],
+      "user-1",
+    );
+
+    expect(knowledgeBase.reindex).toHaveBeenCalledWith({
+      sourceType: "course",
+      sourceId: "course-1",
+    });
+  });
 
   it("audits course creation", async () => {
     const { prisma, tx } = buildPrisma();
@@ -235,6 +273,7 @@ describe("LmsService.completeModule", () => {
     const service = new LmsService(
       prisma as unknown as PrismaService,
       new AuditService(prisma as unknown as PrismaService),
+      { reindex: jest.fn() } as never,
     );
     return { service, prisma, tx };
   };
@@ -398,6 +437,7 @@ describe("LmsService.evaluateCompletion with quizzes", () => {
     const service = new LmsService(
       prisma as unknown as PrismaService,
       new AuditService(prisma as unknown as PrismaService),
+      { reindex: jest.fn() } as never,
     );
     return { service, tx };
   };

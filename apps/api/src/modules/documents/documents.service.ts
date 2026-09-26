@@ -10,6 +10,7 @@ import type { Prisma } from "@prisma/client";
 import type { Queue } from "bullmq";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
   AuditAction,
   AuditService,
@@ -33,6 +34,7 @@ export class DocumentsService {
     private readonly storage: StorageService,
     @InjectQueue("document-generation")
     private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
+    private readonly knowledgeBase: KnowledgeBaseIndexer,
   ) {}
 
   listPublishedTemplates() {
@@ -75,7 +77,7 @@ export class DocumentsService {
 
     // Template write and its audit row share one transaction — see
     // AuditService.recordWith for why this is atomic rather than best-effort.
-    return this.prisma.$transaction(async (tx) => {
+    const template = await this.prisma.$transaction(async (tx) => {
       if (templateId) {
         // Fail before writing the audit row if the id doesn't exist, so an
         // update of a missing template can't leave a TEMPLATE_UPDATED entry.
@@ -121,6 +123,13 @@ export class DocumentsService {
 
       return created;
     });
+
+    // After the commit, so the worker reads the row as saved.
+    await this.knowledgeBase.reindex({
+      sourceType: "template",
+      sourceId: template.id,
+    });
+    return template;
   }
 
   async generate(userId: string, dto: GenerateDocumentDto) {

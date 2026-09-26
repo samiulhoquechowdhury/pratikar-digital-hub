@@ -4,6 +4,7 @@ import { ConfigModule } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 
+import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -43,6 +44,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     PaymentsModule,
     NotificationsModule,
     StorageModule,
+    KnowledgeBaseModule,
   ],
 })
 export class AppModule {}
