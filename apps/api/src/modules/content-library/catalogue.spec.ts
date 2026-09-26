@@ -1,6 +1,12 @@
 import { ContentCategory, ContentType } from "@prisma/client";
 
-import { folderOf, isSellable, suggestionFor, titleFromKey } from "./catalogue";
+import {
+  folderOf,
+  isAppWritten,
+  isSellable,
+  suggestionFor,
+  titleFromKey,
+} from "./catalogue";
 
 /**
  * These titles go on product pages, so they are worth pinning against the
@@ -95,5 +101,27 @@ describe("folderOf / isSellable", () => {
     // Zero-byte folder markers and stray files must never become products.
     expect(isSellable("a/b.txt")).toBe(false);
     expect(isSellable("agreements/")).toBe(false);
+  });
+});
+
+describe("isAppWritten", () => {
+  it.each([
+    "documents/3f2a.docx",
+    "templates/1790000000000-A.docx",
+    "invoices/9c1b.pdf",
+    "credit-notes/77aa.pdf",
+  ])("recognises %p as the app's own output", (key) => {
+    expect(isAppWritten(key)).toBe(true);
+  });
+
+  it.each([
+    "affidavits/GENERAL AFFIDAVIT.docx",
+    "loose.pdf",
+    // A prefix, not a substring: an uploaded folder that merely contains
+    // the word is still stock.
+    "legal-documents/notice.docx",
+    "e-books/invoices-explained.pdf",
+  ])("leaves %p alone", (key) => {
+    expect(isAppWritten(key)).toBe(false);
   });
 });
