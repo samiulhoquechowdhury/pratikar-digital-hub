@@ -140,3 +140,14 @@ const SELLABLE = new Set([".docx", ".doc", ".pdf", ".xlsx", ".pptx"]);
 
 export const isSellable = (key: string): boolean =>
   SELLABLE.has(key.slice(key.lastIndexOf(".")).toLowerCase());
+
+/**
+ * Prefixes the app writes to itself: generated documents, tagged templates,
+ * invoices and credit notes. They share the bucket with the uploaded forms,
+ * but they are output, not stock — a generated document carries a customer's
+ * name and address, and an invoice is a customer's tax record.
+ */
+const APP_WRITTEN = ["documents/", "templates/", "invoices/", "credit-notes/"];
+
+export const isAppWritten = (key: string): boolean =>
+  APP_WRITTEN.some((prefix) => key.startsWith(prefix));

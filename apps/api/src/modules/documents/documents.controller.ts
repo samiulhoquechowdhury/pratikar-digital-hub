@@ -46,6 +46,16 @@ export class DocumentsController {
   }
 
   /**
+   * The .docx forms in storage that a template could be built from.
+   * Declared before "templates/:id" so the literal path is not read as an id.
+   */
+  @Get("templates/storage")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listTaggableStorage(@Query("prefix") prefix?: string) {
+    return this.documentsService.listTaggableStorage(prefix);
+  }
+
+  /**
    * The blanks in a stored form, with a suggested name and type for each.
    * Declared before "templates/:id" so the literal path is not read as an id.
    */
