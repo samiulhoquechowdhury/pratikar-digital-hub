@@ -138,3 +138,126 @@ describe("DocumentsService template mutations", () => {
     expect(tx.auditLog.create).not.toHaveBeenCalled();
   });
 });
+
+/**
+ * The picker that feeds the tagging screen. Its job is to answer two
+ * questions about the bucket — what can be tagged, and what already has been.
+ */
+describe("DocumentsService.listTaggableStorage", () => {
+  const object = (key: string) => ({
+    key,
+    sizeInBytes: 1024,
+    lastModified: null,
+  });
+
+  const build = (keys: string[], templates: unknown[] = []) => {
+    const storage = { list: jest.fn().mockResolvedValue(keys.map(object)) };
+    const prisma = {
+      template: { findMany: jest.fn().mockResolvedValue(templates) },
+    };
+    const service = new DocumentsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      { send: jest.fn() } as unknown as NotificationSender,
+      storage as never,
+      { add: jest.fn() } as never,
+    );
+    return { service, storage };
+  };
+
+  it("keeps .docx and counts the rest as skipped", async () => {
+    const { service } = build([
+      "affidavits/GENERAL AFFIDAVIT.docx",
+      "e-books/guide.pdf",
+      "sheets/rates.xlsx",
+    ]);
+
+    const result = await service.listTaggableStorage();
+
+    expect(result.objects.map((o) => o.key)).toEqual([
+      "affidavits/GENERAL AFFIDAVIT.docx",
+    ]);
+    // Reported rather than dropped silently, so the screen can explain why
+    // the bucket looks smaller here than it does in the content library.
+    expect(result.totalObjects).toBe(3);
+    expect(result.skippedUnsupported).toBe(2);
+  });
+
+  it("leaves out what the app wrote itself, without counting it as skipped", async () => {
+    const { service } = build([
+      "affidavits/A.docx",
+      // A customer's generated document — their name and address, filled in.
+      "documents/3f2a.docx",
+      // A tagged copy, which has no blanks left to name.
+      "templates/1790000000000-A.docx",
+      "invoices/9c1b.pdf",
+      "credit-notes/77aa.pdf",
+    ]);
+
+    const result = await service.listTaggableStorage();
+
+    expect(result.objects.map((o) => o.key)).toEqual(["affidavits/A.docx"]);
+    expect(result.totalObjects).toBe(1);
+    expect(result.skippedUnsupported).toBe(0);
+  });
+
+  it("matches case-insensitively, because the bucket has both", async () => {
+    const { service } = build(["agreements/NDA AGREEMENT.DOCX"]);
+
+    expect((await service.listTaggableStorage()).objects).toHaveLength(1);
+  });
+
+  it("attaches the template already built from a form, and null elsewhere", async () => {
+    const { service } = build(
+      ["affidavits/A.docx", "affidavits/B.docx"],
+      [
+        {
+          id: "tpl-1",
+          title: "Affidavit A",
+          sourceKey: "affidavits/A.docx",
+          status: "DRAFT",
+        },
+      ],
+    );
+
+    const [a, b] = (await service.listTaggableStorage()).objects;
+
+    expect(a?.template).toEqual({
+      id: "tpl-1",
+      title: "Affidavit A",
+      status: "DRAFT",
+    });
+    expect(b?.template).toBeNull();
+  });
+
+  it("suggests a title and folder from the key", async () => {
+    const { service } = build(["affidavits/ADDRESS PROOF AFFIDAVIT.docx"]);
+
+    const [only] = (await service.listTaggableStorage()).objects;
+
+    expect(only?.suggestedTitle).toBe("Address Proof Affidavit");
+    expect(only?.folder).toBe("affidavits");
+  });
+
+  it("sorts by key, so a folder's files stay together", async () => {
+    const { service } = build([
+      "notices/Z.docx",
+      "affidavits/B.docx",
+      "affidavits/A.docx",
+    ]);
+
+    expect(
+      (await service.listTaggableStorage()).objects.map((o) => o.key),
+    ).toEqual(["affidavits/A.docx", "affidavits/B.docx", "notices/Z.docx"]);
+  });
+
+  it("passes a prefix through to storage, and defaults to the whole bucket", async () => {
+    const { service, storage } = build([]);
+
+    await service.listTaggableStorage("affidavits/");
+    expect(storage.list).toHaveBeenCalledWith("affidavits/");
+
+    await service.listTaggableStorage();
+    expect(storage.list).toHaveBeenLastCalledWith("");
+  });
+});

@@ -15,6 +15,11 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import {
+  folderOf,
+  isAppWritten,
+  titleFromKey,
+} from "../content-library/catalogue";
 import { NotificationSender } from "../notifications/notification-sender.service";
 import { StorageService } from "../storage/storage.service";
 
@@ -22,7 +27,7 @@ import type { DocumentGenerationJobData } from "./document-generation.processor"
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
-import { guessFieldType } from "./tagging/field-type";
+import { guessFieldType, labelFor } from "./tagging/field-type";
 
 @Injectable()
 export class DocumentsService {
@@ -313,6 +318,60 @@ export class DocumentsService {
   }
 
   /**
+   * The forms in storage that could become templates, with the one already
+   * built from each, when there is one.
+   *
+   * Only .docx: a blank is found by reading the document's XML, so a PDF or a
+   * scan has nothing this can act on. They are counted rather than dropped
+   * silently, so the screen can say why the bucket looks smaller than it is.
+   *
+   * Files the app wrote itself are left out entirely, not counted as skipped:
+   * a customer's generated document is a .docx with their details in it, and
+   * a tagged copy has no blanks left to name.
+   *
+   * `template` is not a warning — building a second template from the same
+   * form is legitimate (a short version and a long one). It is there so the
+   * operator sees they are about to repeat work, which is the far more likely
+   * reading of the same file being picked twice.
+   */
+  async listTaggableStorage(prefix?: string) {
+    const [stored, tagged] = await Promise.all([
+      this.storage.list(prefix ?? ""),
+      this.prisma.template.findMany({
+        where: { sourceKey: { not: null } },
+        select: { id: true, title: true, sourceKey: true, status: true },
+      }),
+    ]);
+
+    const bySource = new Map(
+      tagged.map((row) => [
+        row.sourceKey as string,
+        { id: row.id, title: row.title, status: row.status },
+      ]),
+    );
+
+    const objects = stored.filter((object) => !isAppWritten(object.key));
+    const docx = objects.filter((object) =>
+      object.key.toLowerCase().endsWith(".docx"),
+    );
+
+    return {
+      totalObjects: objects.length,
+      skippedUnsupported: objects.length - docx.length,
+      objects: docx
+        .map((object) => ({
+          key: object.key,
+          sizeInBytes: object.sizeInBytes,
+          lastModified: object.lastModified,
+          folder: folderOf(object.key),
+          suggestedTitle: titleFromKey(object.key),
+          template: bySource.get(object.key) ?? null,
+        }))
+        .sort((a, b) => a.key.localeCompare(b.key)),
+    };
+  }
+
+  /**
    * The blanks in a stored .docx, ready to be named.
    *
    * Reads the file that is already in the bucket rather than asking for an
@@ -324,11 +383,17 @@ export class DocumentsService {
     const blanks = extractBlanks(file);
     return {
       storageKey,
-      blanks: blanks.map((blank) => ({
-        ...blank,
-        suggestedField: suggestFieldName(blank),
-        suggestedType: guessFieldType(blank),
-      })),
+      blanks: blanks.map((blank) => {
+        const suggestedField = suggestFieldName(blank);
+        return {
+          ...blank,
+          suggestedField,
+          // The label is derived here rather than in the browser so the two
+          // stay one rule: labelFor is already the tested one.
+          suggestedLabel: labelFor(suggestedField),
+          suggestedType: guessFieldType(blank),
+        };
+      }),
     };
   }
 
@@ -401,6 +466,7 @@ export class DocumentsService {
             required: f.required,
           })),
           templateFileKey: taggedKey,
+          sourceKey: input.storageKey,
           status: "DRAFT",
           createdBy: actorUserId,
         },

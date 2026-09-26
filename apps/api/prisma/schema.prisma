@@ -102,6 +102,12 @@ model Template {
   // Template CRUD is what lets a Content Manager upload this; a template can
   // exist in DRAFT with a field schema before a file is attached.
   templateFileKey    String?
+  // Storage key of the *untagged* form this template was built from, when it
+  // was built by tagging one. Distinct from templateFileKey, which points at
+  // the tagged copy: the original is still sold as a plain download, so both
+  // files exist and neither replaces the other. Null for templates uploaded
+  // directly, which is every template created before tagging existed.
+  sourceKey          String?
   status             TemplateStatus @default(DRAFT)
   createdBy          String
   createdAt          DateTime       @default(now())
@@ -110,6 +116,9 @@ model Template {
   generatedDocuments GeneratedDocument[]
 
   @@index([status, category])
+  // Answers "has this form already been tagged?" for the storage picker,
+  // which asks it once per file in the bucket.
+  @@index([sourceKey])
 }
 
 enum GeneratedDocumentStatus {
