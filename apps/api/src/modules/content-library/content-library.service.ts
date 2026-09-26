@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -13,7 +14,13 @@ import {
 } from "../audit/audit.service";
 import { StorageService } from "../storage/storage.service";
 
-import { folderOf, isSellable, suggestionFor, titleFromKey } from "./catalogue";
+import {
+  folderOf,
+  isAppWritten,
+  isSellable,
+  suggestionFor,
+  titleFromKey,
+} from "./catalogue";
 import { ImportContentItemsDto } from "./dto/import-content-items.dto";
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 
@@ -31,6 +38,17 @@ const CATALOGUE_FIELDS = {
   status: true,
   createdAt: true,
 } as const;
+
+/**
+ * Refuses keys under the prefixes the app writes to — a customer's generated
+ * document or invoice must never become something another customer can buy.
+ */
+function assertNotAppWritten(keys: string[]): void {
+  const refused = keys.filter(isAppWritten);
+  if (refused.length > 0) {
+    throw new BadRequestException(`Not a library file: ${refused.join(", ")}`);
+  }
+}
 
 @Injectable()
 export class ContentLibraryService {
@@ -127,6 +145,8 @@ export class ContentLibraryService {
     actorUserId: string,
     itemId?: string,
   ) {
+    assertNotAppWritten([dto.fileUrl]);
+
     return this.prisma.$transaction(async (tx) => {
       if (itemId) {
         // Check before writing so a 404 can't leave an UPDATED audit entry
@@ -181,13 +201,19 @@ export class ContentLibraryService {
    * Already-catalogued keys are returned too, marked rather than filtered:
    * an operator running this a second time needs to see that a file is
    * handled, not have it silently vanish and wonder whether it uploaded.
+   *
+   * Files the app wrote itself are left out entirely, not counted as skipped:
+   * they are customers' generated documents, invoices and credit notes, and
+   * one bulk import of their folder would put them on sale.
    */
   async listStorageObjects(prefix?: string) {
-    const [objects, existing] = await Promise.all([
+    const [stored, existing] = await Promise.all([
       this.storage.list(prefix ?? ""),
       this.prisma.contentLibraryItem.findMany({ select: { fileUrl: true } }),
     ]);
     const catalogued = new Set(existing.map((row) => row.fileUrl));
+
+    const objects = stored.filter((object) => !isAppWritten(object.key));
 
     const sellable = objects.filter((object) => isSellable(object.key));
     return {
@@ -216,6 +242,10 @@ export class ContentLibraryService {
    * new and leave the rest alone, not error or duplicate.
    */
   async importFromStorage(dto: ImportContentItemsDto, actorUserId: string) {
+    // The picker no longer offers these, but the keys arrive in the request
+    // body, so a stale screen or a hand-made request could still send one.
+    assertNotAppWritten(dto.items.map((item) => item.fileUrl));
+
     const keys = dto.items.map((item) => item.fileUrl);
     const existing = await this.prisma.contentLibraryItem.findMany({
       where: { fileUrl: { in: keys } },
