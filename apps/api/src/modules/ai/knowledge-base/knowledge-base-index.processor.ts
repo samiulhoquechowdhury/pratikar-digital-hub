@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
-import type { Job } from "bullmq";
+import { Worker, type Job, type Queue } from "bullmq";
 
 import { PrismaService } from "../../../prisma/prisma.service";
 
@@ -13,7 +13,11 @@ import {
   describeTemplate,
   type KnowledgeSourceRef,
 } from "./sources";
-import { VoyageEmbedder } from "./voyage-embedder.service";
+import {
+  VOYAGE_RATE_LIMIT_WINDOW_MS,
+  VoyageEmbedder,
+  VoyageRateLimitedError,
+} from "./voyage-embedder.service";
 
 export const KNOWLEDGE_BASE_QUEUE = "knowledge-base-index";
 
@@ -30,13 +34,20 @@ export type IndexOutcome = "indexed" | "unchanged" | "removed" | "skipped";
  * course cannot be bought — recommending either is the stale-content problem
  * docs/trd.md 4.6 names as the reason this pipeline exists.
  */
-@Processor(KNOWLEDGE_BASE_QUEUE)
+// BullMQ ignores a manual rateLimit() unless the worker has a limiter, so one
+// is set — high enough never to bind on a paid Voyage account (2,000 RPM), and
+// only there so the pause on a 429 below takes effect.
+@Processor(KNOWLEDGE_BASE_QUEUE, {
+  limiter: { max: 1000, duration: 60_000 },
+})
 export class KnowledgeBaseIndexProcessor extends WorkerHost {
   private readonly logger = new Logger(KnowledgeBaseIndexProcessor.name);
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly embedder: VoyageEmbedder,
+    @InjectQueue(KNOWLEDGE_BASE_QUEUE)
+    private readonly queue: Queue<KnowledgeSourceRef>,
   ) {
     super();
   }
@@ -70,7 +81,18 @@ export class KnowledgeBaseIndexProcessor extends WorkerHost {
     });
     if (existing?.contentHash === hash) return "unchanged";
 
-    const [embedding] = await this.embedder.embedDocuments([content]);
+    let embedding: number[] | undefined;
+    try {
+      [embedding] = await this.embedder.embedDocuments([content]);
+    } catch (error) {
+      if (!(error instanceof VoyageRateLimitedError)) throw error;
+      // Pause the whole queue for the window and put this job back without
+      // spending an attempt. Retrying with backoff instead would burn all
+      // five attempts of most jobs in a full reindex on a 3 RPM account, and
+      // they would land in the failed set having done nothing wrong.
+      await this.queue.rateLimit(VOYAGE_RATE_LIMIT_WINDOW_MS);
+      throw Worker.RateLimitError();
+    }
     // pgvector reads '[0.1,0.2,…]'; sent as a parameter and cast in SQL,
     // because Prisma cannot write an Unsupported column itself.
     const vector = `[${embedding!.join(",")}]`;

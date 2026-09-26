@@ -18,6 +18,18 @@ interface VoyageResponse {
   data: { embedding: number[]; index?: number }[];
 }
 
+/**
+ * Voyage's rate limits are per minute, and a 429 carries no Retry-After, so a
+ * full window is the only wait known to be long enough.
+ */
+export const VOYAGE_RATE_LIMIT_WINDOW_MS = 60_000;
+
+export class VoyageRateLimitedError extends Error {
+  constructor() {
+    super("VOYAGE_RATE_LIMITED");
+  }
+}
+
 @Injectable()
 export class VoyageEmbedder {
   private readonly logger = new Logger(VoyageEmbedder.name);
@@ -67,9 +79,16 @@ export class VoyageEmbedder {
     }
 
     const text = await response.text();
+    if (response.status === 429) {
+      // Not an error in our terms — the account's limit, which is 3 requests
+      // a minute until a payment method is added. The worker pauses the queue
+      // rather than spending the job's retries on it.
+      this.logger.warn("Voyage rate limit reached");
+      throw new VoyageRateLimitedError();
+    }
     if (!response.ok) {
       // Thrown, not swallowed: the queue's retry with backoff is exactly the
-      // right response to a 429 or a Voyage outage.
+      // right response to a Voyage outage.
       this.logger.error(`Voyage returned ${response.status}: ${text}`);
       throw new Error(`VOYAGE_ERROR_${response.status}`);
     }

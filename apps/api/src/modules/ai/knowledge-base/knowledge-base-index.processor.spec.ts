@@ -1,4 +1,4 @@
-import type { Job } from "bullmq";
+import { RateLimitError, type Job } from "bullmq";
 
 import type { PrismaService } from "../../../prisma/prisma.service";
 
@@ -9,7 +9,10 @@ import {
   KNOWLEDGE_BASE_DIMENSIONS,
   type KnowledgeSourceRef,
 } from "./sources";
-import type { VoyageEmbedder } from "./voyage-embedder.service";
+import {
+  VoyageRateLimitedError,
+  type VoyageEmbedder,
+} from "./voyage-embedder.service";
 
 describe("KnowledgeBaseIndexProcessor", () => {
   const MODEL = "voyage-4";
@@ -49,11 +52,13 @@ describe("KnowledgeBaseIndexProcessor", () => {
         .fn()
         .mockResolvedValue([Array(KNOWLEDGE_BASE_DIMENSIONS).fill(0.5)]),
     };
+    const queue = { rateLimit: jest.fn() };
     const processor = new KnowledgeBaseIndexProcessor(
       prisma as unknown as PrismaService,
       embedder as unknown as VoyageEmbedder,
+      queue as never,
     );
-    return { processor, prisma, embedder };
+    return { processor, prisma, embedder, queue };
   };
 
   const job = (
@@ -137,10 +142,26 @@ describe("KnowledgeBaseIndexProcessor", () => {
 
   // A failed embedding has to reach BullMQ, whose retry is the whole recovery.
   it("lets an embedding failure throw, so the queue retries", async () => {
-    const { processor, embedder, prisma } = build();
-    embedder.embedDocuments.mockRejectedValue(new Error("VOYAGE_ERROR_429"));
+    const { processor, embedder, prisma, queue } = build();
+    embedder.embedDocuments.mockRejectedValue(new Error("VOYAGE_ERROR_503"));
 
-    await expect(processor.process(job())).rejects.toThrow("VOYAGE_ERROR_429");
+    await expect(processor.process(job())).rejects.toThrow("VOYAGE_ERROR_503");
+    expect(prisma.$executeRaw).not.toHaveBeenCalled();
+    expect(queue.rateLimit).not.toHaveBeenCalled();
+  });
+
+  /**
+   * On a 3 RPM account a full reindex is mostly 429s. Retrying them would
+   * exhaust the jobs' attempts; pausing the queue costs none.
+   */
+  it("pauses the queue for a minute on a rate limit, without spending an attempt", async () => {
+    const { processor, embedder, prisma, queue } = build();
+    embedder.embedDocuments.mockRejectedValue(new VoyageRateLimitedError());
+
+    await expect(processor.process(job())).rejects.toBeInstanceOf(
+      RateLimitError,
+    );
+    expect(queue.rateLimit).toHaveBeenCalledWith(60_000);
     expect(prisma.$executeRaw).not.toHaveBeenCalled();
   });
 });

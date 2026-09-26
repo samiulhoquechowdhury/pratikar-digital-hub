@@ -1,5 +1,8 @@
 import { KNOWLEDGE_BASE_DIMENSIONS } from "./sources";
-import { VoyageEmbedder } from "./voyage-embedder.service";
+import {
+  VoyageEmbedder,
+  VoyageRateLimitedError,
+} from "./voyage-embedder.service";
 
 describe("VoyageEmbedder", () => {
   const originalEnv = process.env;
@@ -69,12 +72,21 @@ describe("VoyageEmbedder", () => {
     expect(second![0]).toBe(0.2);
   });
 
-  // Thrown so the queue retries — a 429 during a full reindex is expected.
-  it("throws on an error status", async () => {
+  // Its own type, because the worker answers it differently: pause, not retry.
+  it("throws a rate-limit error on 429", async () => {
     respond(429, { detail: "rate limited" });
 
+    await expect(build().embedDocuments(["x"])).rejects.toBeInstanceOf(
+      VoyageRateLimitedError,
+    );
+  });
+
+  // Thrown so the queue retries with backoff.
+  it("throws on any other error status", async () => {
+    respond(503, { detail: "unavailable" });
+
     await expect(build().embedDocuments(["x"])).rejects.toThrow(
-      "VOYAGE_ERROR_429",
+      "VOYAGE_ERROR_503",
     );
   });
 
