@@ -2,6 +2,8 @@
 
 import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
 
+import { CatalogueGrid } from "@/shared/components/CatalogueCard";
+
 import { useCourses } from "../hooks/useCourses";
 
 import { CourseCard } from "./CourseCard";
@@ -26,12 +28,12 @@ export function CourseList() {
   }
 
   return (
-    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <CatalogueGrid>
       {courses.map((course) => (
         <li key={course.id}>
           <CourseCard course={course} />
         </li>
       ))}
-    </ul>
+    </CatalogueGrid>
   );
 }

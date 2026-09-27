@@ -1,8 +1,12 @@
 "use client";
 
 import type { OrderItemType } from "@pratikar/types";
-import { Alert, Button } from "@pratikar/ui";
-import { formatPaise, grossPaise, GST_RATE } from "@pratikar/utils";
+import { Alert, Button, ButtonLink } from "@pratikar/ui";
+import { grossPaise, GST_RATE } from "@pratikar/utils";
+import { usePathname } from "next/navigation";
+
+import { formatPrice } from "@/shared/lib/format";
+import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useCheckout } from "../hooks/useCheckout";
 
@@ -28,7 +32,41 @@ export function BuyButton({
   onPaid?: () => void;
 }) {
   const { buy, status, error } = useCheckout(onPaid);
+  const { user, isRestoring } = useAuth();
+  const pathname = usePathname();
   const gross = grossPaise(priceInPaise);
+
+  const price = (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span className="text-3xl font-semibold tabular-nums text-ink">
+        {formatPrice(gross)}
+      </span>
+      <span className="text-sm text-ink-subtle">
+        {formatPrice(priceInPaise)} + {Math.round(GST_RATE * 100)}% GST
+      </span>
+    </div>
+  );
+
+  // Every product page is public now, so the button is often seen signed out.
+  // Asking to sign in here — and coming straight back — beats a Buy button
+  // that fails with an auth error after the checkout widget has opened.
+  if (!user) {
+    return (
+      <div className="space-y-4">
+        {price}
+        <ButtonLink
+          href={`/login?next=${encodeURIComponent(pathname)}`}
+          className={`w-full ${isRestoring ? "pointer-events-none opacity-60" : ""}`}
+        >
+          Sign in to buy
+        </ButtonLink>
+        <p className="text-sm text-ink-muted">
+          New here? Signing in creates your account — it takes one code sent to
+          your email.
+        </p>
+      </div>
+    );
+  }
 
   if (status === "paid") {
     return (
@@ -41,17 +79,12 @@ export function BuyButton({
   const busy = status === "creating" || status === "open";
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <span className="text-2xl font-semibold text-ink">
-          {formatPaise(gross)}
-        </span>
-        <span className="text-sm text-ink-subtle">
-          {formatPaise(priceInPaise)} + {Math.round(GST_RATE * 100)}% GST
-        </span>
-      </div>
+    <div className="space-y-4">
+      {price}
 
       <Button
+        className="w-full"
+        loading={busy}
         disabled={busy || status === "confirming"}
         onClick={() => void buy(itemType, itemId, label)}
       >

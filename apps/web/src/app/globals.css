@@ -14,8 +14,11 @@
     -webkit-text-size-adjust: 100%;
   }
 
+  /* White, not the grey canvas: the storefront is meant to feel open, and
+     cards separate themselves with a hairline rather than by sitting on a
+     tinted page. */
   body {
-    @apply bg-canvas text-ink antialiased;
+    @apply bg-surface text-ink antialiased;
   }
 
   /**
@@ -33,20 +36,20 @@
   }
 
   /**
-   * Page and section titles take the display serif; h3 and below stay Inter.
+   * Page titles take the display serif; everything below stays Inter.
    *
-   * The split is the point. Titles are where a reader decides what kind of
-   * place this is, and serif is what legal documents are set in. Card titles,
-   * labels and table headings are where they scan and act, and a serif there
-   * would slow the scanning down for no gain.
+   * One serif moment per page is the point. The title is where a reader
+   * decides what kind of place this is, and serif is what legal documents are
+   * set in. Section headings, card titles and labels are where they scan and
+   * act — a modern sans keeps those quick, and keeps the page from reading as
+   * old-fashioned.
    *
    * Tracking is reset rather than inherited: `tracking-tight` flatters a
    * geometric sans but crowds a serif's own spacing at display sizes.
    */
-  h1,
-  h2 {
+  h1 {
     @apply font-display font-semibold;
-    letter-spacing: -0.012em;
+    letter-spacing: -0.015em;
   }
 
   /**

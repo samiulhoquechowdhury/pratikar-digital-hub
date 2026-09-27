@@ -1,6 +1,5 @@
-import { PageBody, PageHeader } from "@pratikar/ui";
-
 import { TemplateList } from "@/features/documents";
+import { PageIntro, PageSection } from "@/shared/components/PageIntro";
 
 export const metadata = { title: "Document templates" };
 
@@ -10,13 +9,14 @@ export const metadata = { title: "Document templates" };
 export default function DocumentsPage() {
   return (
     <>
-      <PageHeader
-        title="Document templates"
-        description="Answer a few plain-language questions and get a ready-to-sign document as a Word file and a PDF."
+      <PageIntro
+        eyebrow="Documents"
+        title="Legal documents, ready to sign"
+        description="Answer a few plain-language questions and get a finished document as a Word file and a PDF. Add a lawyer's review if you'd like a second pair of eyes."
       />
-      <PageBody>
+      <PageSection className="pb-8">
         <TemplateList />
-      </PageBody>
+      </PageSection>
     </>
   );
 }

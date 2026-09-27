@@ -1,7 +1,9 @@
+import type { ContentType } from "@pratikar/types";
+
 /**
  * One description of the site's shape, shared by the header, the mobile
- * drawer, the Explore menu and the home page. Adding a section in one place
- * and forgetting the other three is how navigation quietly goes stale.
+ * drawer, the footer and the home page. Adding a section in one place and
+ * forgetting the others is how navigation quietly goes stale.
  */
 
 export interface NavLink {
@@ -11,106 +13,67 @@ export interface NavLink {
   hint: string;
 }
 
-export interface NavGroup {
-  label: string;
-  href: string;
-  links: NavLink[];
-}
-
 /**
- * The Explore panel. Grouped by what someone is trying to do rather than by
- * how the product is built — nobody arrives wanting "the content library",
- * they arrive wanting to know what a rent agreement needs.
+ * The whole top-level navigation. Four entries on purpose: the catalogue is
+ * three kinds of thing plus the one public tool, and a header with more than
+ * that stops being scannable at a glance.
  */
-export const EXPLORE: NavGroup[] = [
-  {
-    label: "Documents",
-    href: "/documents",
-    links: [
-      {
-        href: "/documents?category=rental",
-        label: "Rent & property",
-        hint: "Rent agreements, notices, sale deeds",
-      },
-      {
-        href: "/documents?category=employment",
-        label: "Employment",
-        hint: "Offer letters, contracts, NDAs",
-      },
-      {
-        href: "/documents?category=business",
-        label: "Business",
-        hint: "Partnership deeds, vendor agreements",
-      },
-      {
-        href: "/documents",
-        label: "All templates",
-        hint: "Everything we can generate",
-      },
-    ],
-  },
-  {
-    label: "Learn",
-    href: "/courses",
-    links: [
-      {
-        href: "/courses",
-        label: "Certificate courses",
-        hint: "Video courses with a verifiable certificate",
-      },
-      {
-        href: "/content-library?category=BUSINESS_COMPLIANCE",
-        label: "Business compliance",
-        hint: "GST, registrations, filings",
-      },
-      {
-        href: "/content-library?category=PROPERTY_DOCUMENTATION",
-        label: "Property documentation",
-        hint: "What to check before you sign",
-      },
-      {
-        href: "/content-library?category=DIGITAL_CAREER",
-        label: "Digital career",
-        hint: "Working online, legally",
-      },
-    ],
-  },
-  {
-    label: "Resources",
-    href: "/content-library",
-    links: [
-      {
-        href: "/content-library?category=CHECKLISTS_REFERENCE",
-        label: "Checklists",
-        hint: "Step-by-step reference sheets",
-      },
-      {
-        href: "/content-library",
-        label: "E-book library",
-        hint: "Long-form guides to buy and keep",
-      },
-      {
-        href: "/verify",
-        label: "Verify a certificate",
-        hint: "Check a certificate code — no account needed",
-      },
-      {
-        href: "/assistant",
-        label: "AI legal assistant",
-        hint: "Ask a question in plain language",
-      },
-    ],
-  },
-];
-
-/** The flat list the mobile drawer and the footer use. */
 export const PRIMARY_NAV: NavLink[] = [
-  { href: "/documents", label: "Documents", hint: "Generate from a template" },
-  { href: "/courses", label: "Courses", hint: "Learn and get certified" },
+  {
+    href: "/documents",
+    label: "Documents",
+    hint: "Answer a few questions, get a ready-to-sign document",
+  },
+  {
+    href: "/courses",
+    label: "Courses",
+    hint: "Video courses with a verifiable certificate",
+  },
   {
     href: "/content-library",
     label: "Library",
-    hint: "E-books and checklists",
+    hint: "E-books, checklists and forms to download",
   },
-  { href: "/verify", label: "Verify", hint: "Check a certificate code" },
+  {
+    href: "/verify",
+    label: "Verify",
+    hint: "Check a certificate code — no account needed",
+  },
 ];
+
+/**
+ * The library's three shelves, in the order the tabs show them. `type` is
+ * the ContentType the API filters on; `slug` is what goes in the URL, so a
+ * shelf is a link someone can share.
+ */
+export const LIBRARY_SHELVES: {
+  type: ContentType;
+  slug: string;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    type: "EBOOK",
+    slug: "ebooks",
+    label: "E-books",
+    hint: "Long-form guides, written for people who aren't lawyers",
+  },
+  {
+    type: "CHECKLIST",
+    slug: "checklists",
+    label: "Checklists",
+    hint: "What to check before you sign, file or register",
+  },
+  {
+    type: "FORM",
+    slug: "forms",
+    label: "Forms",
+    hint: "Affidavits, notices and applications to fill in yourself",
+  },
+];
+
+/** Where a library item of this type lives, for links from anywhere else. */
+export const shelfHref = (type: ContentType) => {
+  const shelf = LIBRARY_SHELVES.find((s) => s.type === type);
+  return shelf ? `/content-library?shelf=${shelf.slug}` : "/content-library";
+};

@@ -51,7 +51,7 @@ describe("useContentItem", () => {
   it("treats a PAID order for this item as ownership", async () => {
     withOrders([order("PAID", "item-1")]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(true);
@@ -61,7 +61,7 @@ describe("useContentItem", () => {
   it("does not treat an unpaid order as ownership", async () => {
     withOrders([order("PENDING", "item-1")]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(false);
@@ -75,7 +75,7 @@ describe("useContentItem", () => {
   it("treats a refunded purchase as no longer owned", async () => {
     withOrders([order("REFUNDED", "item-1")]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(false);
@@ -85,7 +85,7 @@ describe("useContentItem", () => {
   it("does not treat a purchase of a different item as ownership", async () => {
     withOrders([order("PAID", "some-other-item")]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(false);
@@ -95,7 +95,7 @@ describe("useContentItem", () => {
   it("ignores orders that aren't for content items at all", async () => {
     withOrders([order("PAID", null)]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(false);
@@ -104,23 +104,45 @@ describe("useContentItem", () => {
   it("never calls the download endpoint to work out ownership", async () => {
     withOrders([order("PAID", "item-1")]);
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(mockedApi.download).not.toHaveBeenCalled();
   });
 
-  it("does nothing at all when disabled, so signed-out visitors make no calls", async () => {
-    renderHook(() => useContentItem("item-1", false));
+  // The item is public now; only the ownership check needs an account.
+  it("loads the item for a visitor but never asks for their orders", async () => {
+    const { result } = renderHook(() => useContentItem("item-1", false));
 
-    await waitFor(() => expect(mockedApi.get).not.toHaveBeenCalled());
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.item).toEqual(ITEM);
+    expect(result.current.isOwned).toBe(false);
     expect(mockedClient.get).not.toHaveBeenCalled();
+  });
+
+  // Otherwise an owner sees "Buy" flash up before "Download".
+  it("stays loading until ownership is known, not just the item", async () => {
+    let resolveOrders: (orders: unknown[]) => void = () => undefined;
+    mockedClient.get.mockReturnValue(
+      new Promise((resolve) => {
+        resolveOrders = resolve;
+      }),
+    );
+
+    const { result } = renderHook(() => useContentItem("item-1", true));
+
+    await waitFor(() => expect(mockedApi.get).toHaveBeenCalled());
+    expect(result.current.isLoading).toBe(true);
+
+    resolveOrders([order("PAID", "item-1")]);
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.isOwned).toBe(true);
   });
 
   it("reports an error rather than rendering a half-loaded item", async () => {
     mockedApi.get.mockRejectedValue(new Error("API error 404"));
 
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
 
     await waitFor(() => expect(result.current.error).toBeTruthy());
     expect(result.current.item).toBeNull();
@@ -128,7 +150,7 @@ describe("useContentItem", () => {
 
   /** Called after a purchase confirms, to swap Buy for Download in place. */
   it("re-reads ownership on demand once a purchase lands", async () => {
-    const { result } = renderHook(() => useContentItem("item-1"));
+    const { result } = renderHook(() => useContentItem("item-1", true));
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isOwned).toBe(false);
 
