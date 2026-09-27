@@ -5,8 +5,6 @@ import {
   Button,
   ButtonLink,
   EmptyState,
-  PageBody,
-  PageHeader,
   Skeleton,
   SkeletonList,
 } from "@pratikar/ui";
@@ -14,6 +12,7 @@ import {
 import { MyDocuments } from "@/features/documents";
 import { MyCourses } from "@/features/lms";
 import { MyPurchases } from "@/features/payments";
+import { PageIntro, PageSection } from "@/shared/components/PageIntro";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useDashboardData } from "../hooks/useDashboardData";
@@ -37,11 +36,16 @@ export function DashboardView() {
 
   return (
     <>
-      <PageHeader
-        title="Your account"
+      <PageIntro
+        eyebrow="Your account"
+        title={
+          user?.name
+            ? `Welcome back, ${user.name.split(" ")[0]}`
+            : "Your account"
+        }
         description="Everything you've created, enrolled in, and paid for."
       />
-      <PageBody className="space-y-8">
+      <PageSection className="space-y-8 pb-8">
         {isLoading ? (
           <DashboardSkeleton />
         ) : !user ? (
@@ -92,7 +96,7 @@ export function DashboardView() {
             />
           </>
         ) : null}
-      </PageBody>
+      </PageSection>
     </>
   );
 }

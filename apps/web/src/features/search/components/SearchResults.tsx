@@ -1,56 +1,61 @@
 "use client";
 
-import { Alert, Badge, EmptyState, SkeletonCards } from "@pratikar/ui";
-import { formatPaise } from "@pratikar/utils";
-import Link from "next/link";
+import { Alert, ButtonLink, EmptyState, SkeletonCards } from "@pratikar/ui";
 import { useSearchParams } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { CourseCard } from "@/features/lms";
-import { useAuth } from "@/shared/providers/AuthProvider";
+import {
+  CatalogueCard,
+  CatalogueGrid,
+} from "@/shared/components/CatalogueCard";
+import {
+  CONTENT_CATEGORY_LABELS,
+  CONTENT_KIND,
+  templateCategoryLabel,
+} from "@/shared/lib/labels";
 
 import { useSiteSearch } from "../hooks/useSiteSearch";
 
-/** Shared row for the two catalogues that have no card of their own yet. */
-function ResultRow({
-  href,
+function ResultGroup({
   title,
-  meta,
-  price,
+  count,
+  children,
 }: {
-  href: string;
   title: string;
-  meta: string;
-  price: number;
+  count: number;
+  children: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center justify-between gap-4 rounded-card border border-line bg-surface p-4 transition-shadow hover:shadow-raised"
-    >
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-semibold text-ink">
-          {title}
+    <section>
+      <h2 className="flex items-center gap-2 text-lg font-semibold">
+        {title}
+        <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium tabular-nums text-ink-subtle">
+          {count}
         </span>
-        <span className="mt-0.5 block text-xs text-ink-muted">{meta}</span>
-      </span>
-      <span className="shrink-0 text-sm font-semibold text-ink">
-        {formatPaise(price)}
-      </span>
-    </Link>
+      </h2>
+      <div className="mt-5">
+        <CatalogueGrid>{children}</CatalogueGrid>
+      </div>
+    </section>
   );
 }
 
+/**
+ * Results across the whole catalogue, grouped by kind and drawn with the
+ * same cards as the catalogue pages — a result should look like the thing
+ * you'll get when you click it.
+ */
 export function SearchResults() {
   const searchParams = useSearchParams();
   const query = searchParams.get("q") ?? "";
-  const { user } = useAuth();
-  const { results, total, isLoading, restricted } = useSiteSearch(query);
+  const { results, total, isLoading, incomplete } = useSiteSearch(query);
 
   if (!query.trim()) {
     return (
       <EmptyState
         title="Search the catalogue"
-        description="Look for a document template, a course, or a guide by name."
+        description="Look for a document template, a course, or a guide by name — or try a word like “checklist”."
       />
     );
   }
@@ -59,77 +64,64 @@ export function SearchResults() {
     return <SkeletonCards media={false} label={`Searching for “${query}”…`} />;
 
   return (
-    <div className="space-y-10">
-      <p className="text-sm text-ink-muted">
+    <div className="space-y-12">
+      <p className="text-base text-ink-muted">
         {total === 0
           ? "No matches"
           : `${total} ${total === 1 ? "result" : "results"}`}{" "}
         for <span className="font-medium text-ink">“{query}”</span>
       </p>
 
-      {/* Templates and the library are behind sign-in, so a signed-out search
-          is genuinely incomplete. Saying so is better than looking empty. */}
-      {restricted && !user && (
-        <Alert tone="info">
-          You&apos;re seeing courses only. Document templates and the library
-          need an account —{" "}
-          <Link
-            href={`/login?next=${encodeURIComponent(`/search?q=${query}`)}`}
-            className="font-semibold underline"
-          >
-            sign in
-          </Link>{" "}
-          to search those too.
+      {incomplete && (
+        <Alert tone="warning" role="status">
+          Part of the catalogue couldn&apos;t be searched just now, so these
+          results may be incomplete. Try again in a moment.
         </Alert>
       )}
 
-      {results.courses.length > 0 && (
-        <section>
-          <h2 className="text-lg">Courses</h2>
-          <ul className="mt-4 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {results.courses.map((course) => (
-              <li key={course.id}>
-                <CourseCard course={course} />
-              </li>
-            ))}
-          </ul>
-        </section>
+      {results.templates.length > 0 && (
+        <ResultGroup title="Documents" count={results.templates.length}>
+          {results.templates.map((template) => (
+            <li key={template.id}>
+              <CatalogueCard
+                href={`/documents/${template.id}`}
+                kind="document"
+                title={template.title}
+                meta={[
+                  templateCategoryLabel(template.category),
+                  `${template.fieldSchema.length} questions`,
+                ]}
+                priceInPaise={template.priceInPaise}
+              />
+            </li>
+          ))}
+        </ResultGroup>
       )}
 
-      {results.templates.length > 0 && (
-        <section>
-          <h2 className="text-lg">Document templates</h2>
-          <ul className="mt-4 space-y-3">
-            {results.templates.map((template) => (
-              <li key={template.id}>
-                <ResultRow
-                  href={`/documents/${template.id}`}
-                  title={template.title}
-                  meta={template.category}
-                  price={template.priceInPaise}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
+      {results.courses.length > 0 && (
+        <ResultGroup title="Courses" count={results.courses.length}>
+          {results.courses.map((course) => (
+            <li key={course.id}>
+              <CourseCard course={course} />
+            </li>
+          ))}
+        </ResultGroup>
       )}
 
       {results.library.length > 0 && (
-        <section>
-          <h2 className="text-lg">Library</h2>
-          <ul className="mt-4 space-y-3">
-            {results.library.map((item) => (
-              <li key={item.id}>
-                <ResultRow
-                  href={`/content-library/${item.id}`}
-                  title={item.title}
-                  meta={`${item.type === "EBOOK" ? "E-book" : "Checklist"} · ${item.category.replaceAll("_", " ").toLowerCase()}`}
-                  price={item.priceInPaise}
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ResultGroup title="Library" count={results.library.length}>
+          {results.library.map((item) => (
+            <li key={item.id}>
+              <CatalogueCard
+                href={`/content-library/${item.id}`}
+                kind={CONTENT_KIND[item.type]}
+                title={item.title}
+                meta={[CONTENT_CATEGORY_LABELS[item.category]]}
+                priceInPaise={item.priceInPaise}
+              />
+            </li>
+          ))}
+        </ResultGroup>
       )}
 
       {total === 0 && (
@@ -138,30 +130,24 @@ export function SearchResults() {
           description="Try a shorter phrase, or browse the catalogue instead."
           action={
             <div className="flex flex-wrap justify-center gap-2">
-              <Link
-                href="/documents"
-                className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-sunken"
-              >
-                All templates
-              </Link>
-              <Link
-                href="/courses"
-                className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink hover:bg-surface-sunken"
-              >
-                All courses
-              </Link>
+              <ButtonLink href="/documents" variant="secondary">
+                Documents
+              </ButtonLink>
+              <ButtonLink href="/courses" variant="secondary">
+                Courses
+              </ButtonLink>
+              <ButtonLink href="/content-library" variant="secondary">
+                Library
+              </ButtonLink>
             </div>
           }
         />
       )}
 
       {total > 0 && (
-        <p className="text-xs text-ink-subtle">
-          <Badge>Beta</Badge>{" "}
-          <span className="ml-1">
-            Search matches on titles and categories. Full-text search across
-            document contents is not available yet.
-          </span>
+        <p className="text-sm text-ink-subtle">
+          Search matches titles, categories and types. Searching inside
+          documents isn&apos;t available yet.
         </p>
       )}
     </div>
