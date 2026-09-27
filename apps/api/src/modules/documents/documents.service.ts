@@ -29,6 +29,22 @@ import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
 import { guessFieldType, labelFor } from "./tagging/field-type";
 
+/**
+ * What a visitor may see about a template. A whitelist, as in the content
+ * library: a column added later stays private until someone decides it
+ * belongs on the storefront. Matches the Template type in @pratikar/types.
+ */
+const CATALOGUE_TEMPLATE_FIELDS = {
+  id: true,
+  title: true,
+  category: true,
+  priceInPaise: true,
+  reviewPriceInPaise: true,
+  fieldSchema: true,
+  status: true,
+  createdAt: true,
+} as const;
+
 @Injectable()
 export class DocumentsService {
   constructor(
@@ -40,11 +56,27 @@ export class DocumentsService {
     private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
   ) {}
 
+  /**
+   * The customer-facing catalogue. Selects columns rather than returning the
+   * row, because this is public: templateFileKey is where the paid-for source
+   * document lives, and createdBy is a staff member's id.
+   */
   listPublishedTemplates() {
     return this.prisma.template.findMany({
       where: { status: "PUBLISHED" },
+      select: CATALOGUE_TEMPLATE_FIELDS,
       orderBy: { createdAt: "desc" },
     });
+  }
+
+  /** One template for its public page, with the same exclusions. */
+  async getPublishedTemplate(templateId: string) {
+    const template = await this.prisma.template.findFirst({
+      where: { id: templateId, status: "PUBLISHED" },
+      select: CATALOGUE_TEMPLATE_FIELDS,
+    });
+    if (!template) throw new NotFoundException("TEMPLATE_NOT_FOUND");
+    return template;
   }
 
   /**

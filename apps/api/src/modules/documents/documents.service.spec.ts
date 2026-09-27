@@ -261,3 +261,71 @@ describe("DocumentsService.listTaggableStorage", () => {
     expect(storage.list).toHaveBeenLastCalledWith("");
   });
 });
+
+/**
+ * These two are public. Everything they return is visible to anyone, so the
+ * test is on what they ask the database for, not only on what comes back.
+ */
+describe("DocumentsService public catalogue", () => {
+  const build = (rows: unknown) => {
+    const prisma = {
+      template: {
+        findMany: jest.fn().mockResolvedValue(rows),
+        findFirst: jest.fn().mockResolvedValue(rows),
+      },
+    };
+    const service = new DocumentsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      { send: jest.fn() } as unknown as NotificationSender,
+      { signUrl: jest.fn() } as never,
+      { add: jest.fn() } as never,
+    );
+    return { service, prisma };
+  };
+
+  const selectedColumns = (mock: jest.Mock) =>
+    Object.keys((mock.mock.calls[0] as [{ select: object }])[0].select).sort();
+
+  const SAFE = [
+    "category",
+    "createdAt",
+    "fieldSchema",
+    "id",
+    "priceInPaise",
+    "reviewPriceInPaise",
+    "status",
+    "title",
+  ];
+
+  it("lists published templates without the file key or the author", async () => {
+    const { service, prisma } = build([]);
+
+    await service.listPublishedTemplates();
+
+    expect(selectedColumns(prisma.template.findMany)).toEqual(SAFE);
+    expect(prisma.template.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { status: "PUBLISHED" } }),
+    );
+  });
+
+  it("returns one published template with the same columns", async () => {
+    const { service, prisma } = build({ id: "tpl-1" });
+
+    await service.getPublishedTemplate("tpl-1");
+
+    expect(selectedColumns(prisma.template.findFirst)).toEqual(SAFE);
+    expect(prisma.template.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "tpl-1", status: "PUBLISHED" } }),
+    );
+  });
+
+  // A draft must not be previewable by guessing its id.
+  it("404s for a template that is not published", async () => {
+    const { service } = build(null);
+
+    await expect(service.getPublishedTemplate("draft-1")).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+});

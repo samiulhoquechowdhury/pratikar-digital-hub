@@ -14,6 +14,7 @@ import {
   CurrentUser,
   type RequestUser,
 } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -29,12 +30,21 @@ import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 export class DocumentsController {
   constructor(private readonly documentsService: DocumentsService) {}
 
+  // Public: the catalogue is what persuades a visitor to sign up (SRS 2,
+  // Visitor role). Customer-safe columns only — see listPublishedTemplates.
   @Get("templates")
+  @Public()
   listTemplates() {
-    // Public catalog browsing — still behind JwtAuthGuard for now since there's
-    // no separate "optional auth" guard yet; revisit once Visitor browsing
-    // (SRS 2, Visitor role) needs to work without login.
     return this.documentsService.listPublishedTemplates();
+  }
+
+  // Public detail view, PUBLISHED only. Separate from the staff
+  // "templates/:id" route below, which returns every status and every column.
+  // Declared before it so "catalogue" is not read as an id.
+  @Get("templates/catalogue/:id")
+  @Public()
+  getPublishedTemplate(@Param("id") id: string) {
+    return this.documentsService.getPublishedTemplate(id);
   }
 
   // Declared before "templates/:id" — Nest matches routes in declaration
