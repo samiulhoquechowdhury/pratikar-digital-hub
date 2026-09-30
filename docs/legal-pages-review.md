@@ -62,7 +62,8 @@ where noted.
 **Privacy (`/privacy`)**
 
 - [ ] Processors named: Razorpay, Resend, Cloudflare, the hosting provider,
-      Google (sign-in), Anthropic and Voyage AI (assistant), reviewing
+      Google (sign-in), Anthropic and Voyage AI (assistant), Sentry (error reports),
+      reviewing
       lawyers. Add the SMS provider (MSG91) when SMS sign-in goes live, and the
       hosting provider by name once chosen.
 - [ ] Retention: account data while the account is open; invoices for as

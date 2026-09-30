@@ -1,4 +1,6 @@
 import "reflect-metadata";
+// Before everything else, so error monitoring sees the modules as they load.
+import "./instrument";
 import { ValidationPipe } from "@nestjs/common";
 import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";

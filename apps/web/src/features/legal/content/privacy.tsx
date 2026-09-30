@@ -108,6 +108,11 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
             ask the assistant, to produce an answer.
           </li>
           <li>
+            <strong>Sentry</strong> — receives reports of errors on the site, so
+            we can fix them. Reports carry the error and the page it happened
+            on, not what you typed or your account details.
+          </li>
+          <li>
             <strong>Reviewing lawyers</strong> — see a document and your answers
             only when you buy a lawyer review of it.
           </li>
