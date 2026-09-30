@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   type LucideIcon,
 } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 
 import {
@@ -103,6 +104,10 @@ const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
     icon: IndianRupee,
   },
 ];
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Template } from "@pratikar/types";
 import { Alert, ButtonLink, EmptyState, SkeletonForm } from "@pratikar/ui";
 import { grossPaise } from "@pratikar/utils";
 import { CheckCircle2 } from "lucide-react";
@@ -45,6 +46,8 @@ const STEPS = [
 
 interface TemplateGeneratorProps {
   templateId: string;
+  /** The template as the page fetched it on the server, when it could. */
+  initialTemplate?: Template;
 }
 
 /**
@@ -55,10 +58,17 @@ interface TemplateGeneratorProps {
  * make an account. The form stays behind sign-in because the answers are
  * saved to the account the document belongs to.
  */
-export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
+export function TemplateGenerator({
+  templateId,
+  initialTemplate,
+}: TemplateGeneratorProps) {
   const { user, isRestoring } = useAuth();
   const pathname = usePathname();
-  const { template, isLoading, error: templateError } = useTemplate(templateId);
+  const {
+    template,
+    isLoading,
+    error: templateError,
+  } = useTemplate(templateId, initialTemplate);
   const {
     generate,
     isSubmitting,

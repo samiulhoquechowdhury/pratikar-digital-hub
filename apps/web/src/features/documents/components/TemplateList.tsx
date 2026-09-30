@@ -1,5 +1,6 @@
 "use client";
 
+import type { Template } from "@pratikar/types";
 import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
 import { useMemo, useState } from "react";
 
@@ -24,8 +25,8 @@ import { useTemplates } from "../hooks/useTemplates";
  * because the column is free text and a list here would silently hide any
  * template in a category nobody remembered to add.
  */
-export function TemplateList() {
-  const { templates, isLoading, error } = useTemplates();
+export function TemplateList({ initial }: { initial?: Template[] } = {}) {
+  const { templates, isLoading, error } = useTemplates(initial);
   const [category, setCategory] = useState(ALL);
   const [query, setQuery] = useState("");
 

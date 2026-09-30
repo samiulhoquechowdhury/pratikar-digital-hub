@@ -1,12 +1,23 @@
+import type { ContentLibraryItem } from "@pratikar/types";
 import { SkeletonCards } from "@pratikar/ui";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ContentLibraryList } from "@/features/content-library";
 import { PageIntro, PageSection } from "@/shared/components/PageIntro";
+import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
-export const metadata = { title: "Library" };
+export const metadata: Metadata = {
+  title: "Legal e-books, checklists and forms",
+  description:
+    "Guides, checklists and fill-in forms for property, business compliance and more. Buy once and download whenever you need them.",
+  alternates: { canonical: "/content-library" },
+};
 
-export default function ContentLibraryPage() {
+export default async function ContentLibraryPage() {
+  const items = dataOf(
+    await serverGet<ContentLibraryItem[]>("/content-library"),
+  );
   return (
     <>
       <PageIntro
@@ -22,7 +33,7 @@ export default function ContentLibraryPage() {
             <SkeletonCards media={false} label="Loading the library…" />
           }
         >
-          <ContentLibraryList />
+          <ContentLibraryList initial={items} />
         </Suspense>
       </PageSection>
     </>

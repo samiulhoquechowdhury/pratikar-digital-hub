@@ -1,6 +1,6 @@
 "use client";
 
-import type { ContentType } from "@pratikar/types";
+import type { ContentLibraryItem, ContentType } from "@pratikar/types";
 import {
   Alert,
   Button,
@@ -67,11 +67,19 @@ const ABOUT: Record<ContentType, { description: string; includes: string[] }> =
     },
   };
 
-export function ContentItemDetail({ itemId }: { itemId: string }) {
+export function ContentItemDetail({
+  itemId,
+  initialItem,
+}: {
+  itemId: string;
+  /** The item as the page fetched it on the server, when it could. */
+  initialItem?: ContentLibraryItem;
+}) {
   const { user } = useAuth();
   const { item, isOwned, isLoading, error, refreshOwnership } = useContentItem(
     itemId,
     !!user,
+    initialItem,
   );
   const [downloadError, setDownloadError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);

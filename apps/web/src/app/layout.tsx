@@ -4,6 +4,7 @@ import { Inter, Source_Serif_4 } from "next/font/google";
 import { AssistantLauncher } from "@/features/assistant";
 import { SiteFooter } from "@/shared/components/SiteFooter";
 import { SiteHeader } from "@/shared/components/SiteHeader";
+import { SITE_NAME, siteOrigin } from "@/shared/lib/site";
 import { AuthProvider } from "@/shared/providers/AuthProvider";
 
 import "./globals.css";
@@ -36,12 +37,29 @@ const displaySerif = Source_Serif_4({
   variable: "--font-display",
 });
 
+/**
+ * Site-wide defaults every page's own metadata builds on. metadataBase is
+ * what turns the relative canonical and share-image paths pages declare into
+ * absolute URLs — search engines and link previews need the full address.
+ */
 export const metadata: Metadata = {
+  metadataBase: new URL(siteOrigin()),
   title: {
-    default: "Pratikar Digital Hub",
+    default: "Pratikar Digital Hub — legal documents, courses and guides",
     template: "%s — Pratikar Digital Hub",
   },
-  description: "Legal documents, courses, and resources.",
+  description:
+    "Generate ready-to-sign legal documents, take courses with a verifiable certificate, and download guides and checklists — written for people who aren't lawyers.",
+  applicationName: SITE_NAME,
+  // No canonical here: a layout's canonical is inherited by every page that
+  // doesn't set its own, and "/" would mark them all as copies of the home
+  // page. Each page declares its own.
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_IN",
+  },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({
