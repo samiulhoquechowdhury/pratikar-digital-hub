@@ -12,6 +12,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
+import { SkipThrottle } from "@nestjs/throttler";
 import { Role } from "@pratikar/types";
 import type { Request } from "express";
 
@@ -51,7 +52,13 @@ export class PaymentsController {
   //
   // Responds 200 rather than Nest's default 201 for POST: Razorpay retries
   // anything outside 2xx, and 200 is what its dashboard tests expect.
+  //
+  // Not rate limited. Razorpay sends from a small set of addresses, bursts
+  // at busy times, and retries anything that isn't a 2xx — a 429 here would
+  // look to it like a failed delivery and to the customer like a payment
+  // that never unlocked. The signature check is what stops abuse.
   @Post("webhook")
+  @SkipThrottle()
   @HttpCode(HttpStatus.OK)
   webhook(
     @Req() req: RawBodyRequest<Request>,
