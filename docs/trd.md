@@ -4,24 +4,24 @@
 **Status:** Living document — schemas/endpoints get filled in as each module is actually built
 **Companion docs:** `docs/prd.md` (product), `docs/srs.md` (functional spec), `docs/architecture.md` (system-level decisions)
 
-This document is the implementation-level detail that `architecture.md` deliberately left out: exact schemas, API conventions, integration specifics, security implementation, and technical targets. If `architecture.md` says *what* talks to *what*, this says *how*.
+This document is the implementation-level detail that `architecture.md` deliberately left out: exact schemas, API conventions, integration specifics, security implementation, and technical targets. If `architecture.md` says _what_ talks to _what_, this says _how_.
 
 ---
 
 ## 1. Technology Stack (pinned)
 
-| Layer | Choice | Version baseline |
-|---|---|---|
-| Frontend framework | Next.js (App Router) | 15.x |
-| UI | React | 18.3.x |
-| Backend framework | NestJS | 10.4.x |
-| ORM | Prisma | 5.20.x |
-| Database | PostgreSQL | 16.x |
-| Cache / queue backend | Redis | 7.x |
-| Job queue | BullMQ | 5.13.x |
-| Mobile | React Native | latest stable at Phase 4 start |
-| Package manager / monorepo | pnpm + Turborepo | pnpm 9.x |
-| Language | TypeScript everywhere | 5.6.x, `strict: true` |
+| Layer                      | Choice                | Version baseline               |
+| -------------------------- | --------------------- | ------------------------------ |
+| Frontend framework         | Next.js (App Router)  | 15.x                           |
+| UI                         | React                 | 18.3.x                         |
+| Backend framework          | NestJS                | 10.4.x                         |
+| ORM                        | Prisma                | 5.20.x                         |
+| Database                   | PostgreSQL            | 16.x                           |
+| Cache / queue backend      | Redis                 | 7.x                            |
+| Job queue                  | BullMQ                | 5.13.x                         |
+| Mobile                     | React Native          | latest stable at Phase 4 start |
+| Package manager / monorepo | pnpm + Turborepo      | pnpm 9.x                       |
+| Language                   | TypeScript everywhere | 5.6.x, `strict: true`          |
 
 Rationale for each already covered in `architecture.md` — this table exists so version drift is visible at a glance.
 
@@ -38,7 +38,7 @@ Field-level detail for the entities listed at a high level in `architecture.md` 
 — exactly one of `email`/`phone` required at minimum; both can exist once profile is completed.
 
 **Role** — enum, not a table (per `@pratikar/types`): `customer | support | content_manager | admin | super_admin`.
-*(Open question — SRS Section 8, item 6 — whether "can review documents" becomes a sub-permission rather than folded into `content_manager`.)*
+_(Open question — SRS Section 8, item 6 — whether "can review documents" becomes a sub-permission rather than folded into `content_manager`.)_
 
 **OtpRequest**
 `id, identifier, channel (email|sms), codeHash, attempts, consumedAt (nullable), expiresAt, createdAt`
@@ -90,7 +90,8 @@ Field-level detail for the entities listed at a high level in `architecture.md` 
 
 **ChatbotConversation** — `id, userId (nullable — supports pre-login), messages (JSON array), createdAt`
 
-**KnowledgeBaseDocument** — `id, sourceType (faq|template|course|policy), sourceId, content, embedding (vector), updatedAt`
+**KnowledgeBaseDocument** — `id, sourceType (template|course|content, later faq|policy), sourceId, content, contentHash, embeddingModel, embedding (vector(1024)), updatedAt`, unique on `(sourceType, sourceId)`
+— Embeddings come from Voyage AI (`voyage-4`, 1024 dimensions, `input_type: "document"`). `contentHash` covers model + text, so an unchanged save or a price edit costs no API call, and switching models re-embeds everything on the next reindex. Prices and status are deliberately not embedded: a hit is looked up again at answer time.
 — `embedding` implies a vector-capable Postgres extension (`pgvector`) rather than a separate vector DB, to avoid adding infra for this at MVP scale. Revisit if RAG retrieval quality/latency demands a dedicated vector store later.
 
 ### 2.6 Newly in-scope, not yet schemed
@@ -105,7 +106,12 @@ Field-level detail for the entities listed at a high level in `architecture.md` 
 - **Auth:** access token as `Authorization: Bearer <jwt>` for API calls from the app after initial load; refresh token flows via httpOnly cookie (web) or request body (Android), per the Auth flow already designed.
 - **Error format (uniform across all endpoints):**
   ```json
-  { "error": { "code": "INVALID_OTP", "message": "The code you entered is incorrect." } }
+  {
+    "error": {
+      "code": "INVALID_OTP",
+      "message": "The code you entered is incorrect."
+    }
+  }
   ```
   `code` is a stable machine-readable string (already using this convention in the Auth module: `OTP_EXPIRED_OR_NOT_FOUND`, `INVALID_OTP`, `TOO_MANY_ATTEMPTS`) — frontend should switch on `code`, never parse `message`.
 - **Pagination:** cursor-based (`?cursor=<id>&limit=20`) for list endpoints expected to grow large (documents, orders, content library, chatbot logs) — offset pagination is fine for small, bounded admin lists (staff accounts).
@@ -116,27 +122,35 @@ Field-level detail for the entities listed at a high level in `architecture.md` 
 
 ## 4. Module-by-Module Technical Notes
 
-*(Full endpoint list gets written when each module is actually built — this section captures the technical decisions that aren't obvious from the SRS alone.)*
+_(Full endpoint list gets written when each module is actually built — this section captures the technical decisions that aren't obvious from the SRS alone.)_
 
 ### 4.1 Auth — technical detail already locked (see `apps/api/src/modules/auth` in the repo scaffold)
+
 OTP: HMAC-SHA256 hash (not bcrypt — low-entropy 6-digit code, short TTL, speed > slow-hash resistance). Refresh tokens: opaque random, SHA-256 hashed at rest. Access tokens: JWT, 15 min, `{ sub, role }` payload only — no PII in the token.
 
 ### 4.2 Documents — generation pipeline
+
 `docxtemplater` fills the template → LibreOffice headless (`soffice --convert-to pdf`) converts to PDF for preview → both DOCX and PDF stored in R2. This conversion step runs in a **BullMQ worker**, not inline in the request — LibreOffice headless conversion is slow (seconds, not ms) and would otherwise block the request thread and tie up a connection.
 
 ### 4.3 Document Review — queue claim semantics
+
 To prevent two Content Managers reviewing the same submission simultaneously: claiming a queue item is a conditional update (`UPDATE document_review SET assignedToUserId = $1 WHERE id = $2 AND assignedToUserId IS NULL`), same atomic-update pattern used for OTP consumption in Auth — zero rows affected means someone else already claimed it, client should refresh the queue.
 
 ### 4.4 Payments — Razorpay integration specifics
+
 - Webhook endpoint verifies the `X-Razorpay-Signature` header against the raw request body using the webhook secret — **never** trust a client-reported payment status.
 - Reconciliation job (BullMQ, scheduled every few minutes) queries Razorpay's Orders API for any `Order` row stuck in `pending` for more than ~10 minutes, in case the webhook itself was dropped.
 - Refund: `POST /orders/:id/refund` (Admin/Super Admin only, enforced by `RolesGuard`) → Razorpay Refund API → on webhook confirmation, `Order.status = refunded` and dependent entitlement (enrollment, review) is revoked in the same transaction.
 
 ### 4.5 Notifications — provider routing
+
 `NotificationsModule` exposes a single internal `send(type, user, payload)` call; internally routes to Resend (email), MSG91 (SMS, gated on DLT per the open item in `architecture.md`), or FCM (Android push — added for the document-review-ready notification). Keeping this behind one internal interface means a provider swap later doesn't ripple through every module that sends notifications.
 
 ### 4.6 AI Modules — RAG pipeline
+
 Knowledge base (`KnowledgeBaseDocument`) needs re-embedding whenever a template, course, or content item is created/edited — this is a BullMQ job triggered from those modules' create/update handlers, not a manual/batch process, since stale RAG content (recommending an archived course) is a real trust problem for the chatbot.
+
+Built as `KnowledgeBaseModule` (`apps/api/src/modules/ai/knowledge-base`), queue `knowledge-base-index`. Each job names only the source row; the worker reads it and indexes it if PUBLISHED, removes it otherwise, so a job is safe to retry or repeat. Jobs are queued after the saving transaction commits, never inside it. `POST /ai/knowledge-base/reindex` (Admin/Super Admin) queues every source plus every existing index row — the first fill after deploy, and a repair after a Redis outage.
 
 ---
 
@@ -153,14 +167,14 @@ Knowledge base (`KnowledgeBaseDocument`) needs re-embedding whenever a template,
 
 ## 6. Background Jobs (BullMQ queues)
 
-| Queue | Job | Trigger |
-|---|---|---|
-| `document-generation` | Fill template, convert to PDF/DOCX, upload to R2 | Customer submits filled form |
-| `payment-reconciliation` | Re-check `pending` orders against Razorpay | Scheduled, every few minutes |
-| `knowledge-base-sync` | Re-embed a changed template/course/content item | Template/course/content create or update |
-| `notification-dispatch` | Send email/SMS/push | Any `NotificationsModule.send()` call |
-| `certificate-generation` | Generate certificate PDF + verification code | Course marked complete |
-| `course-expiry-reminder` | Notify customer their 6-month window is closing | Scheduled, checks `Enrollment.expiresAt` |
+| Queue                    | Job                                              | Trigger                                  |
+| ------------------------ | ------------------------------------------------ | ---------------------------------------- |
+| `document-generation`    | Fill template, convert to PDF/DOCX, upload to R2 | Customer submits filled form             |
+| `payment-reconciliation` | Re-check `pending` orders against Razorpay       | Scheduled, every few minutes             |
+| `knowledge-base-sync`    | Re-embed a changed template/course/content item  | Template/course/content create or update |
+| `notification-dispatch`  | Send email/SMS/push                              | Any `NotificationsModule.send()` call    |
+| `certificate-generation` | Generate certificate PDF + verification code     | Course marked complete                   |
+| `course-expiry-reminder` | Notify customer their 6-month window is closing  | Scheduled, checks `Enrollment.expiresAt` |
 
 All queues get a retry policy (exponential backoff, capped attempts) and a dead-letter path (failed jobs land somewhere visible in the admin dashboard, not silently dropped) — worth building this convention once in a shared BullMQ wrapper rather than per-queue.
 

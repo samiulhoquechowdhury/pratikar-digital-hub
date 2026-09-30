@@ -6,6 +6,8 @@ import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 
+import { ChatModule } from "./modules/ai/chat/chat.module";
+import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -48,6 +50,8 @@ import { PrismaModule } from "./prisma/prisma.module";
     PaymentsModule,
     NotificationsModule,
     StorageModule,
+    KnowledgeBaseModule,
+    ChatModule,
   ],
   providers: [
     // Reports unexpected errors only — anything that isn't an HttpException —
