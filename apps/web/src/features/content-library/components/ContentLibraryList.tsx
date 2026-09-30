@@ -1,6 +1,6 @@
 "use client";
 
-import { CONTENT_CATEGORIES } from "@pratikar/types";
+import { CONTENT_CATEGORIES, type ContentLibraryItem } from "@pratikar/types";
 import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -30,12 +30,16 @@ import { useContentLibrary } from "../hooks/useContentLibrary";
  * The whole catalogue is fetched once and filtered here — it is a few hundred
  * rows, and filtering locally is what lets the tab counts be exact.
  */
-export function ContentLibraryList() {
+export function ContentLibraryList({
+  initial,
+}: {
+  initial?: ContentLibraryItem[];
+} = {}) {
   const searchParams = useSearchParams();
   const shelf =
     LIBRARY_SHELVES.find((s) => s.slug === searchParams.get("shelf")) ?? null;
 
-  const { items, isLoading, error } = useContentLibrary();
+  const { items, isLoading, error } = useContentLibrary(initial);
   const [category, setCategory] = useState(ALL);
   const [query, setQuery] = useState("");
 

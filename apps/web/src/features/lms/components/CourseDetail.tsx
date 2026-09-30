@@ -1,5 +1,6 @@
 "use client";
 
+import type { Course } from "@pratikar/types";
 import {
   Alert,
   Badge,
@@ -40,7 +41,14 @@ const formatDate = (iso: string) =>
  * Once enrolled, the right-hand column stops selling and starts reporting —
  * same position, different job, so the thing you look for doesn't move.
  */
-export function CourseDetail({ courseId }: { courseId: string }) {
+export function CourseDetail({
+  courseId,
+  initialCourse,
+}: {
+  courseId: string;
+  /** The course as the page fetched it on the server, when it could. */
+  initialCourse?: Course;
+}) {
   const { user } = useAuth();
   const {
     course,
@@ -49,7 +57,7 @@ export function CourseDetail({ courseId }: { courseId: string }) {
     isLoading,
     error,
     refreshEnrollment,
-  } = useCourse(courseId, !!user);
+  } = useCourse(courseId, !!user, initialCourse);
 
   if (isLoading || error || !course) {
     return (

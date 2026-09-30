@@ -1,5 +1,6 @@
 "use client";
 
+import type { Course } from "@pratikar/types";
 import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
 
 import { CatalogueGrid } from "@/shared/components/CatalogueCard";
@@ -8,8 +9,8 @@ import { useCourses } from "../hooks/useCourses";
 
 import { CourseCard } from "./CourseCard";
 
-export function CourseList() {
-  const { courses, isLoading, error } = useCourses();
+export function CourseList({ initial }: { initial?: Course[] } = {}) {
+  const { courses, isLoading, error } = useCourses(initial);
 
   if (isLoading) return <SkeletonCards label="Loading courses…" />;
   if (error)

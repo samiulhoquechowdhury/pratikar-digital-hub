@@ -1,13 +1,50 @@
+import type { Course } from "@pratikar/types";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+
 import { CourseDetail } from "@/features/lms";
+import { JsonLd } from "@/shared/components/JsonLd";
+import {
+  courseDescription,
+  productMetadata,
+  courseJsonLd,
+} from "@/shared/lib/seo";
+import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
 interface CoursePageProps {
   params: Promise<{ id: string }>;
 }
 
-// CourseDetail lays out its own page (it needs the course before it knows
-// its title). No <main> either — the root layout already provides one.
+const load = (id: string) =>
+  serverGet<Course>(`/courses/catalogue/${encodeURIComponent(id)}`);
+
+export async function generateMetadata({
+  params,
+}: CoursePageProps): Promise<Metadata> {
+  const { id } = await params;
+  const course = dataOf(await load(id));
+  if (!course) return { title: "Course" };
+
+  return productMetadata({
+    title: course.title,
+    description: courseDescription(course),
+    path: `/courses/${id}`,
+  });
+}
+
+// Rendered on the server so the syllabus and price are in the HTML; the
+// visitor's own enrolment is still fetched in the browser. No <main>: the
+// root layout already provides one.
 export default async function CoursePage({ params }: CoursePageProps) {
   const { id } = await params;
+  const result = await load(id);
+  if (result.status === "missing") notFound();
+  const course = dataOf(result);
 
-  return <CourseDetail courseId={id} />;
+  return (
+    <>
+      {course && <JsonLd data={courseJsonLd(course)} />}
+      <CourseDetail courseId={id} initialCourse={course} />
+    </>
+  );
 }

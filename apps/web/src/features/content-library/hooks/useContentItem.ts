@@ -16,10 +16,17 @@ import { contentLibraryApi } from "../api/contentLibraryApi";
  * habit to establish. It stays a display concern either way — the server
  * re-checks entitlement when the download is actually requested.
  */
-export function useContentItem(itemId: string, signedIn: boolean) {
-  const [item, setItem] = useState<ContentLibraryItem | null>(null);
+export function useContentItem(
+  itemId: string,
+  signedIn: boolean,
+  /** The item as the page fetched it on the server, when it could. */
+  initialItem?: ContentLibraryItem,
+) {
+  const [item, setItem] = useState<ContentLibraryItem | null>(
+    initialItem ?? null,
+  );
   const [isOwned, setIsOwned] = useState(false);
-  const [isItemLoading, setIsItemLoading] = useState(true);
+  const [isItemLoading, setIsItemLoading] = useState(!initialItem);
   // Starts true when signed in so an owner never sees "Buy" flash up before
   // "Download": the page counts as loading until both answers are in.
   const [isOwnershipLoading, setIsOwnershipLoading] = useState(signedIn);
@@ -38,6 +45,7 @@ export function useContentItem(itemId: string, signedIn: boolean) {
 
   // The item is public; anyone can read what it is and what it costs.
   useEffect(() => {
+    if (initialItem) return;
     let cancelled = false;
     setIsItemLoading(true);
     contentLibraryApi
@@ -54,6 +62,8 @@ export function useContentItem(itemId: string, signedIn: boolean) {
     return () => {
       cancelled = true;
     };
+    // initialItem is fixed for the page's life; itemId stands for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   // Ownership needs an account. Its own effect, so signing in on another tab
