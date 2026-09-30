@@ -4,6 +4,10 @@ import { ConfigModule } from "@nestjs/config";
 import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 
+import {
+  THROTTLER_OPTIONS,
+  throttlerGuardProvider,
+} from "./common/http/throttling";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
@@ -26,12 +30,7 @@ import { PrismaModule } from "./prisma/prisma.module";
       secret: process.env.JWT_ACCESS_SECRET ?? "dev-only-secret-change-me",
       signOptions: { expiresIn: "15m" },
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 20, // global default; auth endpoints override with a stricter limit
-      },
-    ]),
+    ThrottlerModule.forRoot(THROTTLER_OPTIONS),
     BullModule.forRoot({
       connection: { url: process.env.REDIS_URL ?? "redis://localhost:6379" },
     }),
@@ -44,5 +43,6 @@ import { PrismaModule } from "./prisma/prisma.module";
     NotificationsModule,
     StorageModule,
   ],
+  providers: [throttlerGuardProvider],
 })
 export class AppModule {}
