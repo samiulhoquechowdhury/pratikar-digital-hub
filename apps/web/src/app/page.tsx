@@ -75,8 +75,8 @@ const STEPS = [
     body: "Plain language, no legal drafting. Your answers stay private to your account.",
   },
   {
-    title: "Preview, pay, download",
-    body: "Read it before you pay. Then get a Word file and a PDF, ready to print and sign.",
+    title: "Pay and download",
+    body: "One price, GST included. Get a Word file and a PDF, ready to print and sign.",
   },
 ];
 
