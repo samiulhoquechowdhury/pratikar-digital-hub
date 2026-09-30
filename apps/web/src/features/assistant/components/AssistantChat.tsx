@@ -1,12 +1,21 @@
 "use client";
 
 import { Button } from "@pratikar/ui";
+import { formatPaise, grossPaise } from "@pratikar/utils";
 import { ArrowUp, RotateCcw, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/shared/components/Icon";
 
+import {
+  assistantApi,
+  ChatError,
+  CHAT_LIMITS,
+  type ChatFailure,
+  type ChatReply,
+  type ChatTurn,
+} from "../api/assistantApi";
 import {
   answerById,
   answerFor,
@@ -23,6 +32,60 @@ interface Message {
 
 /** Long enough to read as thinking, short enough not to feel broken. */
 const THINKING_MS = 550;
+
+/**
+ * "live" asks the API; "preview" answers from the script. The chat starts
+ * live and drops to preview for the rest of the visit the first time the
+ * server says it has no model configured — so the site behaves the same
+ * today as before, and upgrades itself the day the key is set.
+ */
+type Mode = "live" | "preview";
+
+/** What to say when a live answer didn't come back. */
+const FAILURE_REPLIES: Record<
+  Exclude<ChatFailure, "not-configured">,
+  string
+> = {
+  busy: "I'm getting a lot of questions right now. Please try again in a moment.",
+  "too-fast":
+    "You're asking faster than I can keep up. Wait a minute, then try again.",
+  failed:
+    "Something went wrong on our side. Please try again, or browse Documents, Courses and the Library directly.",
+};
+
+/**
+ * A live reply in the shape the conversation renders. The [n] citation
+ * markers are for matching sources, not for reading, so they come out of the
+ * text; the cited products appear as links underneath instead, priced the
+ * way every other page on the site prices them — GST included.
+ */
+function fromReply(reply: ChatReply): DemoAnswer {
+  const paragraphs = reply.answer
+    .replace(/\s?\[\d{1,2}\]/g, "")
+    .split(/\n+/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  return {
+    paragraphs,
+    links: reply.sources.map((source) => ({
+      href: source.href,
+      label: `${source.title} · ${formatPaise(grossPaise(source.priceInPaise))}`,
+    })),
+  };
+}
+
+/** The conversation as the API wants it: plain text, oldest first. */
+const toTurns = (messages: Message[], question: string): ChatTurn[] => [
+  ...messages.map((m) =>
+    m.role === "you"
+      ? { role: "user" as const, content: m.text! }
+      : {
+          role: "assistant" as const,
+          content: m.answer!.paragraphs.join("\n\n"),
+        },
+  ),
+  { role: "user", content: question },
+];
 
 /**
  * The assistant, as a preview.
@@ -51,6 +114,7 @@ export function AssistantChat({
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [thinking, setThinking] = useState(false);
+  const [mode, setMode] = useState<Mode>("live");
   const nextId = useRef(0);
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -71,10 +135,29 @@ export function AssistantChat({
     }
   }, [messages, thinking]);
 
+  const reply = (answer: DemoAnswer) => {
+    setMessages((m) => [
+      ...m,
+      { id: nextId.current++, role: "assistant", answer },
+    ]);
+    setThinking(false);
+    inputRef.current?.focus();
+  };
+
+  const scripted = (question: string, id?: string) =>
+    // The pause is honest staging, not a fake network call: a reply that
+    // lands the same frame as the question reads as a lookup, which is what
+    // this is, and makes the turn-taking hard to follow.
+    window.setTimeout(
+      () => reply(id ? answerById(id) : answerFor(question)),
+      THINKING_MS,
+    );
+
   const send = (text: string, id?: string) => {
-    const question = text.trim();
+    const question = text.trim().slice(0, CHAT_LIMITS.maxTurnLength);
     if (!question || thinking) return;
 
+    const turns = toTurns(messages, question);
     setMessages((m) => [
       ...m,
       { id: nextId.current++, role: "you", text: question },
@@ -82,21 +165,23 @@ export function AssistantChat({
     setDraft("");
     setThinking(true);
 
-    // The pause is honest staging, not a fake network call: a reply that
-    // lands the same frame as the question reads as a lookup, which is what
-    // this is, and makes the turn-taking hard to follow.
-    window.setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          id: nextId.current++,
-          role: "assistant",
-          answer: id ? answerById(id) : answerFor(question),
-        },
-      ]);
-      setThinking(false);
-      inputRef.current?.focus();
-    }, THINKING_MS);
+    if (mode === "preview") {
+      scripted(question, id);
+      return;
+    }
+
+    assistantApi
+      .ask(turns)
+      .then((result) => reply(fromReply(result)))
+      .catch((error: unknown) => {
+        const reason = error instanceof ChatError ? error.reason : "failed";
+        if (reason === "not-configured") {
+          setMode("preview");
+          scripted(question, id);
+          return;
+        }
+        reply({ paragraphs: [FAILURE_REPLIES[reason]] });
+      });
   };
 
   const started = messages.length > 0;
@@ -106,11 +191,13 @@ export function AssistantChat({
       {/* Preview banner — persistent on purpose. */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-brand-border bg-brand-subtle px-4 py-2.5">
         <span className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-gold-ink">
-          <Icon icon={Sparkles} size="xs" /> Preview
+          <Icon icon={Sparkles} size="xs" />{" "}
+          {mode === "preview" ? "Preview" : "AI assistant"}
         </span>
         <p className="text-xs text-ink-muted">
-          Scripted answers, not a live assistant. It points at our material and
-          doesn&apos;t give legal advice.
+          {mode === "preview"
+            ? "Scripted answers, not a live assistant. It points at our material and doesn't give legal advice."
+            : "Answers come from our catalogue and can be wrong. It doesn't give legal advice."}
         </p>
         {started && (
           <button
@@ -175,6 +262,7 @@ export function AssistantChat({
               }
             }}
             placeholder="Ask about a document, a course, or how something works…"
+            maxLength={CHAT_LIMITS.maxTurnLength}
             className="max-h-32 min-h-[2.25rem] flex-1 resize-none bg-transparent px-2 py-1.5 text-base text-ink placeholder:text-ink-subtle focus:outline-none"
           />
           <Button

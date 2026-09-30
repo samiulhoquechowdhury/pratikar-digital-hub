@@ -6,6 +6,7 @@ import {
   KnowledgeBaseIndexProcessor,
 } from "./knowledge-base-index.processor";
 import { KnowledgeBaseIndexer } from "./knowledge-base-indexer.service";
+import { KnowledgeBaseSearch } from "./knowledge-base-search.service";
 import { KnowledgeBaseController } from "./knowledge-base.controller";
 import { VoyageEmbedder } from "./voyage-embedder.service";
 
@@ -35,8 +36,9 @@ import { VoyageEmbedder } from "./voyage-embedder.service";
   providers: [
     KnowledgeBaseIndexer,
     KnowledgeBaseIndexProcessor,
+    KnowledgeBaseSearch,
     VoyageEmbedder,
   ],
-  exports: [KnowledgeBaseIndexer],
+  exports: [KnowledgeBaseIndexer, KnowledgeBaseSearch],
 })
 export class KnowledgeBaseModule {}
