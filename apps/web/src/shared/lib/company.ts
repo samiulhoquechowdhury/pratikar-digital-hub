@@ -43,9 +43,15 @@ export const PLACEHOLDERS: Record<Field, string> = {
   policiesUpdatedOn: "date these policies take effect",
 };
 
-// Spelled out in full: Next inlines NEXT_PUBLIC_* only where the whole name
-// appears literally, so a lookup built from a variable would read undefined.
-const read = (): CompanyDetails => ({
+/**
+ * The details as currently configured. A function rather than a constant so
+ * each render reads them — Next still inlines the values at build time, and
+ * a test can set them without re-importing the module.
+ *
+ * Spelled out in full: Next inlines NEXT_PUBLIC_* only where the whole name
+ * appears literally, so a lookup built from a variable would read undefined.
+ */
+export const companyDetails = (): CompanyDetails => ({
   legalName: process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME ?? "",
   address: process.env.NEXT_PUBLIC_COMPANY_ADDRESS ?? "",
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL ?? "",
@@ -57,11 +63,9 @@ const read = (): CompanyDetails => ({
   policiesUpdatedOn: process.env.NEXT_PUBLIC_POLICIES_UPDATED_ON ?? "",
 });
 
-export const COMPANY: CompanyDetails = read();
-
 /** The fields still to be filled in, in the order the pages use them. */
 export const missingCompanyDetails = (
-  details: CompanyDetails = COMPANY,
+  details: CompanyDetails = companyDetails(),
 ): Field[] =>
   (Object.keys(PLACEHOLDERS) as Field[]).filter(
     (field) => !details[field].trim(),

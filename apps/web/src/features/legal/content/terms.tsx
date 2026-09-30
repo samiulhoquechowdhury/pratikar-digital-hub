@@ -72,8 +72,8 @@ export const TERMS_SECTIONS: LegalSection[] = [
       <ul>
         <li>
           <strong>Document templates.</strong> You answer a set of questions and
-          we generate the document as a Word file and a PDF. You see a preview
-          before you pay.
+          we generate the document as a Word file and a PDF, which you can
+          download once you&apos;ve paid.
         </li>
         <li>
           <strong>Lawyer review.</strong> An optional add-on to a generated

@@ -5,11 +5,12 @@ import type { ReactNode } from "react";
 import { Icon } from "@/shared/components/Icon";
 import { PageIntro, PageSection } from "@/shared/components/PageIntro";
 import {
-  COMPANY,
+  companyDetails,
   missingCompanyDetails,
   PLACEHOLDERS,
   type CompanyDetails,
 } from "@/shared/lib/company";
+import { LEGAL_PAGES } from "@/shared/lib/navigation";
 
 export interface LegalSection {
   /** Anchor, so a section can be linked to directly ("/refunds#courses"). */
@@ -18,27 +19,40 @@ export interface LegalSection {
   body: ReactNode;
 }
 
-/** The legal pages, in the order the footer and each page's links list them. */
-export const LEGAL_PAGES = [
-  { href: "/terms", label: "Terms of Use" },
-  { href: "/privacy", label: "Privacy Policy" },
-  { href: "/refunds", label: "Cancellation & Refunds" },
-  { href: "/delivery", label: "Delivery Policy" },
-  { href: "/contact", label: "Contact" },
-] as const;
-
 /**
  * One of the business's details, or a highlighted placeholder where it has
  * not been filled in yet — so a missing address reads as missing, not as a
  * sentence that happens to have a gap in it.
  */
 export function Detail({ field }: { field: keyof CompanyDetails }) {
-  const value = COMPANY[field].trim();
+  const value = companyDetails()[field].trim();
   if (value) return <>{value}</>;
   return (
     <mark className="rounded bg-warning-subtle px-1 font-medium text-warning-text">
       [{PLACEHOLDERS[field]}]
     </mark>
+  );
+}
+
+/**
+ * Shown while any of the business's details are still blank. The pages
+ * describe how the site works today, but until the details are in and a
+ * lawyer has read them they are a draft, and they say so.
+ */
+export function DraftNotice() {
+  if (missingCompanyDetails().length === 0) return null;
+  return (
+    <div
+      role="note"
+      className="mb-10 flex gap-3 rounded-card border border-warning-border bg-warning-subtle p-4 text-sm text-warning-text"
+    >
+      <Icon icon={FileWarning} size="md" className="shrink-0" />
+      <p>
+        <strong>Draft — pending legal review.</strong> The highlighted details
+        are still to be filled in, and the wording has not yet been confirmed by
+        a lawyer. It describes how the site works today and is not final.
+      </p>
+    </div>
   );
 }
 
@@ -59,8 +73,6 @@ export function LegalPage({
   intro: ReactNode;
   sections: LegalSection[];
 }) {
-  const missing = missingCompanyDetails();
-
   return (
     <>
       <PageIntro
@@ -74,25 +86,14 @@ export function LegalPage({
       />
 
       <PageSection className="pb-8">
-        {missing.length > 0 && (
-          <div
-            role="note"
-            className="mb-10 flex gap-3 rounded-card border border-warning-border bg-warning-subtle p-4 text-sm text-warning-text"
-          >
-            <Icon icon={FileWarning} size="md" className="shrink-0" />
-            <p>
-              <strong>Draft — pending legal review.</strong> The highlighted
-              details are still to be filled in, and the wording has not yet
-              been confirmed by a lawyer. It describes how the site works today
-              and is not final.
-            </p>
-          </div>
-        )}
+        <DraftNotice />
 
         <div className="grid gap-12 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          {/* Desktop only: on a phone it pushed the policy itself a full
+              screen down, and every policy is also linked in the footer. */}
           <nav
             aria-label="On this page"
-            className="lg:sticky lg:top-24 lg:self-start"
+            className="hidden lg:sticky lg:top-24 lg:block lg:self-start"
           >
             <p className="text-sm font-semibold text-ink">On this page</p>
             <ol className="mt-3 space-y-2 border-l border-line text-sm">

@@ -142,7 +142,15 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           </p>
 
           <p className="mt-6 text-center text-xs leading-relaxed text-ink-subtle">
-            Pratikar Digital Hub provides document templates and educational
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-ink">
+              Terms of Use
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-ink">
+              Privacy Policy
+            </Link>
+            . Pratikar Digital Hub provides document templates and educational
             material. It is not a law firm and does not provide legal advice.
           </p>
         </div>

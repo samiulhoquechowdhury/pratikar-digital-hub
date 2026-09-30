@@ -17,8 +17,8 @@ export const DELIVERY_SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          The document is generated from your answers within a minute or two,
-          and you can preview it before paying.
+          The document is generated from your answers within a minute or two.
+          Generating is free.
         </li>
         <li>
           Once paid, it is ready to download as a Word file and a PDF from the
@@ -37,8 +37,8 @@ export const DELIVERY_SECTIONS: LegalSection[] = [
     title: "Lawyer review",
     body: (
       <p>
-        The reviewed document is returned to your account, with the
-        lawyer&apos;s notes, and we email you when it&apos;s ready.
+        The reviewed document is returned to your account, with any notes from
+        the lawyer, and we email you when it&apos;s ready.
       </p>
     ),
   },

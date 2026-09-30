@@ -17,8 +17,9 @@ export const REFUND_SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          Generating a document and seeing its preview is free. You only pay
-          once you&apos;ve seen it, so check the preview before paying.
+          Generating a document is free; you pay to download it. Check your
+          answers before paying — the document is built from exactly what you
+          enter.
         </li>
         <li>
           If you&apos;ve paid but not yet downloaded the document, you can ask
@@ -38,7 +39,7 @@ export const REFUND_SECTIONS: LegalSection[] = [
     body: (
       <ul>
         <li>
-          You can cancel a lawyer review for a full refund until a lawyer has
+          You can ask for a full refund of a lawyer review until a lawyer has
           started on it.
         </li>
         <li>

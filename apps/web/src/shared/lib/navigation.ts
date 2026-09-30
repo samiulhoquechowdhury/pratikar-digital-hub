@@ -77,3 +77,16 @@ export const shelfHref = (type: ContentType) => {
   const shelf = LIBRARY_SHELVES.find((s) => s.type === type);
   return shelf ? `/content-library?shelf=${shelf.slug}` : "/content-library";
 };
+
+/**
+ * The legal and contact pages, in the order the footer and each page's own
+ * "other policies" list show them. Razorpay's activation review looks for
+ * all five, linked from every page.
+ */
+export const LEGAL_PAGES = [
+  { href: "/terms", label: "Terms of Use" },
+  { href: "/privacy", label: "Privacy Policy" },
+  { href: "/refunds", label: "Cancellation & Refunds" },
+  { href: "/delivery", label: "Delivery Policy" },
+  { href: "/contact", label: "Contact" },
+] as const;

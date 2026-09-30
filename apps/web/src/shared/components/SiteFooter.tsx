@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LIBRARY_SHELVES } from "../lib/navigation";
+import { LEGAL_PAGES, LIBRARY_SHELVES } from "../lib/navigation";
 
 import { SiteLogo } from "./SiteLogo";
 
@@ -87,9 +87,23 @@ export function SiteFooter() {
             material. It is not a law firm and does not provide legal advice.
             Using this service does not create a solicitor–client relationship.
           </p>
-          <p className="shrink-0">
-            © {new Date().getFullYear()} Pratikar Digital Hub
-          </p>
+          <div className="shrink-0 space-y-3 sm:text-right">
+            <nav aria-label="Legal">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-end">
+                {LEGAL_PAGES.map((page) => (
+                  <li key={page.href}>
+                    <Link
+                      href={page.href}
+                      className="text-ink-muted transition-colors hover:text-ink"
+                    >
+                      {page.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <p>© {new Date().getFullYear()} Pratikar Digital Hub</p>
+          </div>
         </div>
       </div>
     </footer>
