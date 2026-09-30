@@ -3,11 +3,11 @@ import {
   BadRequestException,
   Inject,
   Injectable,
-  InternalServerErrorException,
   Logger,
   ServiceUnavailableException,
 } from "@nestjs/common";
 
+import { toServiceError } from "../anthropic-errors";
 import {
   KnowledgeBaseSearch,
   type KnowledgeHit,
@@ -118,7 +118,7 @@ export class ChatService {
         messages,
       });
     } catch (error) {
-      throw this.translate(error);
+      throw toServiceError(error, this.logger);
     }
 
     this.logger.log(
@@ -146,26 +146,6 @@ export class ChatService {
         priceInPaise: hit.priceInPaise,
       })),
     };
-  }
-
-  /**
-   * Overload, rate limit and network trouble are temporary and say so; the
-   * browser offers a retry. Anything else is our bug, logged in full and
-   * returned without detail.
-   */
-  private translate(error: unknown): Error {
-    if (
-      error instanceof Anthropic.RateLimitError ||
-      error instanceof Anthropic.InternalServerError ||
-      error instanceof Anthropic.APIConnectionError
-    ) {
-      this.logger.warn(`Model unavailable: ${(error as Error).message}`);
-      return new ServiceUnavailableException("AI_BUSY");
-    }
-    this.logger.error(
-      `Chat request failed: ${error instanceof Error ? error.message : String(error)}`,
-    );
-    return new InternalServerErrorException("AI_ERROR");
   }
 }
 
