@@ -49,6 +49,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     StorageModule,
   ],
   providers: [
+    throttlerGuardProvider,
     // Reports unexpected errors only — anything that isn't an HttpException —
     // so a 404, a validation failure or a rate limit is never sent as a bug.
     { provide: APP_FILTER, useClass: SentryGlobalFilter },
