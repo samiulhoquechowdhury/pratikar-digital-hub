@@ -23,18 +23,23 @@ import { useTemplate } from "../hooks/useTemplate";
 import { DynamicTemplateForm } from "./DynamicTemplateForm";
 import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
 
+/**
+ * The flow as it actually runs: generating is free, payment unlocks the
+ * download. There is no preview step — a preview PDF is produced but never
+ * shown to the customer — so none is promised here.
+ */
 const STEPS = [
   {
     title: "Answer the questions",
-    body: "Plain language, one field at a time. Nothing is charged yet.",
+    body: "Plain language, one field at a time. Generating is free.",
   },
   {
-    title: "Preview the document",
-    body: "Read the finished document before you pay for it.",
+    title: "Pay for the document",
+    body: "One price, GST included. Add a lawyer's review if you want one.",
   },
   {
-    title: "Pay and download",
-    body: "Word and PDF, ready to print and sign.",
+    title: "Download it",
+    body: "Word and PDF, ready to print and sign. One download, so keep the files safe.",
   },
 ];
 
@@ -92,7 +97,7 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
         <span className="text-sm text-ink-subtle">incl. GST</span>
       </div>
       <p className="mt-2 text-sm text-ink-muted">
-        Paid after you&apos;ve seen the preview.
+        Generating is free — you pay before downloading.
         {template.reviewPriceInPaise > 0 &&
           ` Lawyer review ${formatPrice(
             grossPaise(template.reviewPriceInPaise),
@@ -154,7 +159,7 @@ export function TemplateGenerator({ templateId }: TemplateGeneratorProps) {
               <span className="flex items-start gap-2">
                 <Icon icon={CheckCircle2} className="mt-0.5" />
                 Your document is being prepared. Filling and PDF conversion take
-                a moment, so give it a few seconds if the preview isn&apos;t
+                a moment, so give it a few seconds if the download isn&apos;t
                 ready straight away.
               </span>
             </Alert>

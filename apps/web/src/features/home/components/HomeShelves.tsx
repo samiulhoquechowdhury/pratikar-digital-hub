@@ -86,7 +86,7 @@ export function TemplateShelf() {
   return (
     <Shelf
       title="Popular documents"
-      description="Answer a few questions, preview it, then pay and download."
+      description="Answer a few questions, then pay and download."
       href="/documents"
       linkLabel="All documents"
       isLoading={isLoading}
