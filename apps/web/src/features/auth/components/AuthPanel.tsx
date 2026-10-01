@@ -52,31 +52,36 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
 
   const copy = COPY[mode];
 
+  // Switching between sign-in and sign-up keeps the destination: someone sent
+  // here by "Sign in to buy" who turns out to be new should still land back
+  // on the thing they were buying, not on the home page.
+  const withNext = (path: string) =>
+    searchParams.get("next")
+      ? `${path}?next=${encodeURIComponent(next)}`
+      : path;
+
   return (
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
-      <section
-        data-surface="inverse"
-        className="hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
-      >
+      <section className="hidden border-r border-line bg-primary-subtle/60 lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
         <div className="max-w-md">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-            Pratikar Digital Hub
+          <p className="text-sm font-medium text-primary">
+            Har Ghar Mein Kanooni Gyaan
           </p>
-          <h2 className="mt-4 text-3xl text-ink-inverse">
+          <p className="mt-4 font-display text-4xl font-semibold leading-tight text-ink">
             Legal knowledge in every home.
-          </h2>
+          </p>
           <ul className="mt-8 space-y-4">
             {PROMISES.map((promise) => (
               <li key={promise} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-brand text-xs font-bold text-on-brand"
+                  className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface text-primary shadow-card"
                 >
                   <Icon icon={Check} size="xs" />
                 </span>
-                <span className="text-sm leading-relaxed text-ink-inverse-muted">
+                <span className="text-base leading-relaxed text-ink-muted">
                   {promise}
                 </span>
               </li>
@@ -85,9 +90,9 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
         </div>
       </section>
 
-      <section className="flex items-center justify-center bg-canvas px-4 py-12 sm:px-6">
+      <section className="flex items-center justify-center px-4 py-12 sm:px-6">
         <div className="w-full max-w-sm">
-          <h1 className="text-2xl">{copy.heading}</h1>
+          <h1 className="text-3xl">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             {copy.sub}
           </p>
@@ -117,7 +122,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
               <>
                 New here?{" "}
                 <Link
-                  href="/signup"
+                  href={withNext("/signup")}
                   className="font-semibold text-primary hover:text-primary-hover"
                 >
                   Create an account
@@ -127,7 +132,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
               <>
                 Already have an account?{" "}
                 <Link
-                  href="/login"
+                  href={withNext("/login")}
                   className="font-semibold text-primary hover:text-primary-hover"
                 >
                   Sign in
@@ -137,7 +142,15 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           </p>
 
           <p className="mt-6 text-center text-xs leading-relaxed text-ink-subtle">
-            Pratikar Digital Hub provides document templates and educational
+            By continuing, you agree to our{" "}
+            <Link href="/terms" className="underline hover:text-ink">
+              Terms of Use
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="underline hover:text-ink">
+              Privacy Policy
+            </Link>
+            . Pratikar Digital Hub provides document templates and educational
             material. It is not a law firm and does not provide legal advice.
           </p>
         </div>

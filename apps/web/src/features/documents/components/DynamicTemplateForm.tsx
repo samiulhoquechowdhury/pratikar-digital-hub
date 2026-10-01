@@ -86,7 +86,7 @@ export function DynamicTemplateForm({
     <form onSubmit={handleSubmit} noValidate>
       <Card className="p-6 sm:p-8">
         <div className="border-b border-line pb-5">
-          <h2 className="text-xl">{template.title}</h2>
+          <h2 className="text-xl font-semibold">Your details</h2>
           <p className="mt-1 text-sm text-ink-muted">
             {required.length > 0
               ? `${answered.length} of ${required.length} required ${
@@ -140,8 +140,12 @@ export function DynamicTemplateForm({
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-line pt-6">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Generating…" : "Generate document"}
+          <Button
+            type="submit"
+            loading={isSubmitting}
+            loadingLabel="Generating your document…"
+          >
+            Generate document
           </Button>
           {/* Says it before the click, not after: generating is free and the
               charge comes later, which is not what people expect from a form

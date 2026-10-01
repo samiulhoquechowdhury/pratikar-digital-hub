@@ -14,6 +14,7 @@ import {
   CurrentUser,
   type RequestUser,
 } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
@@ -27,7 +28,10 @@ import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 export class ContentLibraryController {
   constructor(private readonly contentLibraryService: ContentLibraryService) {}
 
+  // Public, like the course catalogue: CATALOGUE_FIELDS already leaves out the
+  // storage key, which is the thing actually being sold.
   @Get()
+  @Public()
   list(@Query("category") category?: string) {
     return this.contentLibraryService.listPublished(category);
   }
@@ -65,6 +69,7 @@ export class ContentLibraryController {
   // Customer-facing detail view. Separate from the admin ":id" route below,
   // which returns every status and includes the storage key.
   @Get("catalogue/:id")
+  @Public()
   getPublished(@Param("id") id: string) {
     return this.contentLibraryService.getPublished(id);
   }

@@ -1,25 +1,26 @@
-import { PageBody, PageHeader } from "@pratikar/ui";
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { SearchResults } from "@/features/search";
+import { PageIntro, PageSection } from "@/shared/components/PageIntro";
 
 export const metadata: Metadata = { title: "Search" };
 
 export default function SearchPage() {
   return (
     <>
-      <PageHeader
-        title="Search"
-        description="Document templates, courses, and guides across the whole catalogue."
+      <PageIntro
+        eyebrow="Search"
+        title="Find what you need"
+        description="Document templates, courses, e-books, checklists and forms — the whole catalogue in one search."
       />
-      <PageBody>
+      <PageSection className="pb-8">
         {/* SearchResults reads ?q= through useSearchParams, which Next requires
             to sit inside a Suspense boundary. */}
         <Suspense fallback={null}>
           <SearchResults />
         </Suspense>
-      </PageBody>
+      </PageSection>
     </>
   );
 }

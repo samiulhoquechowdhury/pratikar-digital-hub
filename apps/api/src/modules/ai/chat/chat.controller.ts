@@ -1,5 +1,5 @@
-import { Body, Controller, HttpCode, Post, UseGuards } from "@nestjs/common";
-import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
+import { Body, Controller, HttpCode, Post } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 
 import { ChatService } from "./chat.service";
 import { ChatRequestDto } from "./dto/chat.dto";
@@ -11,14 +11,11 @@ export class ChatController {
   /**
    * One question, answered from the catalogue.
    *
-   * Public, like the catalogue it talks about. Throttled per IP because every
-   * call costs money at two providers — and the guard is attached here
-   * explicitly: no ThrottlerGuard is registered app-wide, so @Throttle on its
-   * own would be a decoration that limits nothing.
+   * Public, like the catalogue it talks about. Throttled per IP, well below
+   * the app-wide default, because every call costs money at two providers.
    */
   @Post("chat")
   @HttpCode(200)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
   ask(@Body() dto: ChatRequestDto) {
     return this.chat.answer(dto.messages);

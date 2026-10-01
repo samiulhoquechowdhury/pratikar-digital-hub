@@ -4,10 +4,12 @@ import {
   Injectable,
   UnauthorizedException,
 } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { Role } from "@pratikar/types";
 import type { Request } from "express";
 
+import { IS_PUBLIC_KEY } from "../decorators/public.decorator";
 import type { AuthenticatedRequest } from "../types/authenticated-request";
 
 const VALID_ROLES = new Set<string>(Object.values(Role));
@@ -17,9 +19,21 @@ const VALID_ROLES = new Set<string>(Object.values(Role));
 // Usage: @UseGuards(JwtAuthGuard, RolesGuard) @Roles(Role.ADMIN) ...
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // A @Public() handler is let through without looking at the token at all
+    // — not "verified if present": a stale token in a visitor's browser must
+    // not turn a catalogue page into a 401.
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    if (isPublic) return true;
+
     const request = context.switchToHttp().getRequest<AuthenticatedRequest>();
     const token = this.extractToken(request);
     if (!token) throw new UnauthorizedException("NO_ACCESS_TOKEN");

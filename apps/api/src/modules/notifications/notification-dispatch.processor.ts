@@ -1,6 +1,8 @@
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
+
+import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
 
 import { NotificationsService } from "./notifications.service";
 import {
@@ -57,5 +59,11 @@ export class NotificationDispatchProcessor extends WorkerHost {
 
     await this.notifications.sendEmail(to, rendered.subject, rendered.html);
     this.logger.log(`Sent "${type}" to ${to}`);
+  }
+
+  /** Reports the job to monitoring once its last retry has failed. */
+  @OnWorkerEvent("failed")
+  onFailed(job: Job | undefined, error: Error) {
+    reportFinalJobFailure(job, error);
   }
 }
