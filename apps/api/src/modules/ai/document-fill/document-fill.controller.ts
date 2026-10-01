@@ -6,7 +6,7 @@ import {
   Post,
   UseGuards,
 } from "@nestjs/common";
-import { Throttle, ThrottlerGuard } from "@nestjs/throttler";
+import { Throttle } from "@nestjs/throttler";
 
 import { JwtAuthGuard } from "../../../common/guards/jwt-auth.guard";
 
@@ -22,12 +22,11 @@ export class DocumentFillController {
    * One turn of filling a template by conversation.
    *
    * Signed-in only, like generating a document: the answers belong to an
-   * account. Throttled because each turn is a paid model call. The guard is
-   * attached here as well as on the chat route; see chat.controller.ts.
+   * account. Throttled per IP, below the app-wide default, because each turn
+   * is a paid model call.
    */
   @Post(":templateId/fill")
   @HttpCode(200)
-  @UseGuards(ThrottlerGuard)
   @Throttle({ default: { limit: 20, ttl: 60_000 } })
   turn(@Param("templateId") templateId: string, @Body() dto: FillRequestDto) {
     return this.fill.fill(templateId, dto.messages, dto.answers);

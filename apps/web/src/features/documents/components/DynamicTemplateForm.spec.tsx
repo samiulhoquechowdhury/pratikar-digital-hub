@@ -53,7 +53,9 @@ describe("DynamicTemplateForm", () => {
     );
 
     expect(screen.getByText("Check these answers")).toBeTruthy();
-    expect(screen.getByLabelText(/Tenant/).value).toBe("A. Sen");
+    expect(screen.getByLabelText<HTMLInputElement>(/Tenant/).value).toBe(
+      "A. Sen",
+    );
     fireEvent.click(screen.getByRole("button", { name: /Generate document/ }));
     expect(onSubmit).toHaveBeenCalledWith({ tenant: "A. Sen", rent: 18000 });
   });
