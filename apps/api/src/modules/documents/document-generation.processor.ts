@@ -4,12 +4,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { promisify } from "node:util";
 
-import { Processor, WorkerHost } from "@nestjs/bullmq";
+import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
 import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 
+import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 
@@ -116,5 +117,11 @@ export class DocumentGenerationProcessor extends WorkerHost {
     } finally {
       fs.rmSync(workDir, { recursive: true, force: true });
     }
+  }
+
+  /** Reports the job to monitoring once its last retry has failed. */
+  @OnWorkerEvent("failed")
+  onFailed(job: Job | undefined, error: Error) {
+    reportFinalJobFailure(job, error);
   }
 }

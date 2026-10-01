@@ -1,8 +1,12 @@
 "use client";
 
-import { Button, Card, Field, Input, PageBody, PageHeader } from "@pratikar/ui";
+import { Button, Field, Input } from "@pratikar/ui";
+import { BadgeCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
+import { PageIntro, PageSection } from "@/shared/components/PageIntro";
 
 /**
  * Entry point for someone holding a certificate code but not a link — the
@@ -14,12 +18,17 @@ export default function VerifyEntryPage() {
 
   return (
     <>
-      <PageHeader
+      <PageIntro
+        eyebrow="Verify"
         title="Verify a certificate"
-        description="Confirm that a certificate was genuinely issued by us. No account needed."
+        description="Confirm that a certificate was genuinely issued by Pratikar Digital Hub. No account needed."
       />
-      <PageBody>
-        <Card className="max-w-xl p-6">
+      <PageSection className="pb-8">
+        <div className="max-w-xl rounded-card border border-line p-6 shadow-raised sm:p-8">
+          <p className="mb-6 flex items-center gap-2 text-sm text-ink-muted">
+            <Icon icon={BadgeCheck} className="text-primary" />
+            Every certificate carries a unique verification code.
+          </p>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -45,12 +54,16 @@ export default function VerifyEntryPage() {
               />
             </Field>
 
-            <Button type="submit" disabled={!code.trim()}>
+            <Button
+              type="submit"
+              disabled={!code.trim()}
+              className="w-full sm:w-auto"
+            >
               Verify
             </Button>
           </form>
-        </Card>
-      </PageBody>
+        </div>
+      </PageSection>
     </>
   );
 }

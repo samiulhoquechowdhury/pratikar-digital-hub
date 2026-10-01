@@ -16,12 +16,10 @@ export type MyDocument = GeneratedDocument & {
 export const documentsApi = {
   listTemplates: () => apiClient.get<Template[]>("/documents/templates"),
 
+  // Its own public endpoint — this used to download the whole catalogue and
+  // search it, which grew with every template added.
   getTemplate: (id: string) =>
-    apiClient.get<Template[]>("/documents/templates").then((templates) => {
-      const template = templates.find((t) => t.id === id);
-      if (!template) throw new Error("TEMPLATE_NOT_FOUND");
-      return template;
-    }),
+    apiClient.get<Template>(`/documents/templates/catalogue/${id}`),
 
   generate: (payload: GenerateDocumentPayload) =>
     apiClient.post<GeneratedDocument>("/documents/generate", payload),

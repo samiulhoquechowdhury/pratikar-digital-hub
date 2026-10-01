@@ -1,83 +1,78 @@
 import Link from "next/link";
 
+import { LEGAL_PAGES, LIBRARY_SHELVES } from "../lib/navigation";
+
+import { SiteLogo } from "./SiteLogo";
+
+const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
+  [
+    {
+      heading: "Documents",
+      links: [
+        { href: "/documents", label: "All templates" },
+        { href: "/dashboard#documents", label: "My documents" },
+      ],
+    },
+    {
+      heading: "Learn",
+      links: [
+        { href: "/courses", label: "Courses" },
+        ...LIBRARY_SHELVES.map((shelf) => ({
+          href: `/content-library?shelf=${shelf.slug}`,
+          label: shelf.label,
+        })),
+      ],
+    },
+    {
+      heading: "Help",
+      links: [
+        { href: "/verify", label: "Verify a certificate" },
+        { href: "/assistant", label: "Ask AI" },
+        { href: "/dashboard", label: "My account" },
+      ],
+    },
+  ];
+
 /**
- * Server component — no interactivity, and the legal links here are exactly
+ * Server component — no interactivity, and the legal note here is exactly
  * the sort of thing that should be in the initial HTML.
+ *
+ * Light, like the header: a hairline and a sunken tone mark the end of the
+ * page without the heavy band of colour a dark footer puts under every
+ * screen.
  */
 export function SiteFooter() {
   return (
-    <footer data-surface="inverse" className="mt-16 bg-surface-inverse-deep">
-      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-8">
-        <div className="flex flex-col gap-8 sm:flex-row sm:justify-between">
-          <div className="max-w-sm">
-            <p className="text-base font-bold tracking-wide text-ink-inverse">
-              PRATIKAR DIGITAL HUB
-            </p>
-            <p className="mt-1 text-xs font-medium uppercase tracking-[0.18em] text-brand">
-              Legal knowledge in every home
-            </p>
-            <p className="mt-3 text-sm text-ink-inverse-muted">
-              Legal document templates, reference material, and courses for
-              individuals and small businesses in India.
+    <footer className="mt-24 border-t border-line bg-surface">
+      <div className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
+          <div className="max-w-xs">
+            <SiteLogo />
+            <p className="mt-4 text-sm leading-relaxed text-ink-muted">
+              Legal documents, courses and guides for individuals and small
+              businesses in India — written for people who aren&apos;t lawyers.
             </p>
           </div>
 
-          <nav aria-label="Footer" className="flex gap-12">
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-brand">
-                Products
+          {COLUMNS.map((column) => (
+            <nav key={column.heading} aria-label={column.heading}>
+              <h2 className="font-sans text-sm font-semibold tracking-normal text-ink">
+                {column.heading}
               </h2>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <Link
-                    href="/documents"
-                    className="text-ink-inverse-muted hover:text-ink-inverse"
-                  >
-                    Documents
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/content-library"
-                    className="text-ink-inverse-muted hover:text-ink-inverse"
-                  >
-                    Library
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/courses"
-                    className="text-ink-inverse-muted hover:text-ink-inverse"
-                  >
-                    Courses
-                  </Link>
-                </li>
+              <ul className="mt-4 space-y-3 text-sm">
+                {column.links.map((link) => (
+                  <li key={link.href}>
+                    <Link
+                      href={link.href}
+                      className="text-ink-muted transition-colors hover:text-ink"
+                    >
+                      {link.label}
+                    </Link>
+                  </li>
+                ))}
               </ul>
-            </div>
-            <div>
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-brand">
-                Support
-              </h2>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <Link
-                    href="/verify"
-                    className="text-ink-inverse-muted hover:text-ink-inverse"
-                  >
-                    Verify a certificate
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/dashboard"
-                    className="text-ink-inverse-muted hover:text-ink-inverse"
-                  >
-                    My account
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </nav>
+            </nav>
+          ))}
         </div>
 
         {/*
@@ -86,16 +81,29 @@ export function SiteFooter() {
           rather than buried on one. Final wording is the client's lawyer's
           call, not ours.
         */}
-        <div className="mt-10 border-t border-line-inverse pt-6">
-          <p className="max-w-prose text-xs leading-relaxed text-ink-inverse-muted">
+        <div className="mt-12 flex flex-col gap-3 border-t border-line pt-6 text-xs leading-relaxed text-ink-subtle sm:flex-row sm:justify-between sm:gap-8">
+          <p className="max-w-prose">
             Pratikar Digital Hub provides document templates and educational
             material. It is not a law firm and does not provide legal advice.
             Using this service does not create a solicitor–client relationship.
           </p>
-          <p className="mt-3 text-xs text-ink-inverse-muted">
-            © {new Date().getFullYear()} Pratikar Digital Hub. All rights
-            reserved.
-          </p>
+          <div className="shrink-0 space-y-3 sm:text-right">
+            <nav aria-label="Legal">
+              <ul className="flex flex-wrap gap-x-4 gap-y-1 sm:justify-end">
+                {LEGAL_PAGES.map((page) => (
+                  <li key={page.href}>
+                    <Link
+                      href={page.href}
+                      className="text-ink-muted transition-colors hover:text-ink"
+                    >
+                      {page.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <p>© {new Date().getFullYear()} Pratikar Digital Hub</p>
+          </div>
         </div>
       </div>
     </footer>

@@ -90,7 +90,7 @@ export function AssistantLauncher() {
           <div
             aria-hidden
             onClick={close}
-            className={`fixed inset-0 z-40 bg-surface-inverse-deep/40 transition-opacity duration-200 motion-reduce:transition-none sm:hidden ${
+            className={`fixed inset-0 z-40 bg-ink/30 transition-opacity duration-200 motion-reduce:transition-none sm:hidden ${
               open ? "opacity-100" : "opacity-0"
             }`}
           />
@@ -114,7 +114,7 @@ export function AssistantLauncher() {
                 : "pointer-events-none translate-y-3 scale-95 opacity-0"
             }`}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-line bg-canvas px-4 py-3">
+            <div className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-3">
               <p className="text-sm font-semibold text-ink">
                 Pratikar assistant
               </p>
@@ -141,9 +141,13 @@ export function AssistantLauncher() {
         onClick={() => (present ? close() : openPanel())}
         aria-expanded={present}
         aria-haspopup="dialog"
-        className="group fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-brand py-3.5 pl-4 pr-5 text-sm font-semibold text-on-brand shadow-overlay transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-brand-hover active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+        className="group fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-primary py-3 pl-4 pr-5 text-sm font-semibold text-ink-inverse shadow-overlay transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-primary-hover active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         {/*
+          Navy, not gold: gold is the site's one primary-action colour ("Sign
+          up", "Buy"), and a floating gold button would outshout both on every
+          page.
+
           A pill rather than a bare circle, because "Ask AI" is what the
           header calls it and an unlabelled icon makes people guess. The star
           is the same mark as the header's AI button — drawn, not an emoji, so

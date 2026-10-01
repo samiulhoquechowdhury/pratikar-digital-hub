@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { AssistantChat } from "@/features/assistant";
+import { PageIntro } from "@/shared/components/PageIntro";
 
 export const metadata: Metadata = {
   title: "AI legal assistant",
@@ -42,31 +43,24 @@ const LIMITS = [
 export default function AssistantPage() {
   return (
     <>
-      <section data-surface="inverse" className="bg-hero-navy">
-        <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-brand/50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-brand">
-            Preview
-          </span>
-          <h1 className="mt-5 max-w-2xl text-4xl text-ink-inverse">
-            An assistant that speaks plain language
-          </h1>
-          <p className="mt-4 max-w-prose text-base leading-relaxed text-ink-inverse-muted">
-            Try it below. The answers are scripted for now — the assistant that
-            reads our whole library is still being built.
-          </p>
+      <PageIntro
+        eyebrow="Ask AI · Preview"
+        title="An assistant that speaks plain language"
+        description="Try it below. The answers are scripted for now — the assistant that reads our whole library is still being built."
+      />
+
+      <section className="mx-auto max-w-shell px-4 pb-12 sm:px-6 lg:px-8">
+        <div className="max-w-4xl">
+          <AssistantChat />
         </div>
       </section>
 
-      <section className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
-        <AssistantChat />
-      </section>
-
-      <section className="border-t border-line bg-canvas">
-        <div className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
-          <ul className="grid gap-6 sm:grid-cols-3">
+      <section className="mx-auto max-w-shell px-4 sm:px-6 lg:px-8">
+        <div className="rounded-card bg-surface-sunken px-6 py-10 sm:px-10">
+          <ul className="grid gap-8 sm:grid-cols-3">
             {LIMITS.map((item) => (
               <li key={item.title}>
-                <h2 className="text-base">{item.title}</h2>
+                <h2 className="text-base font-semibold">{item.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {item.body}
                 </p>

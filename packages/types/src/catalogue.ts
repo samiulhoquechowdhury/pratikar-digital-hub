@@ -12,7 +12,8 @@ export const CONTENT_CATEGORIES = [
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 
-export type ContentType = "EBOOK" | "CHECKLIST";
+/** Mirrors the ContentType enum in apps/api/prisma/schema.prisma. */
+export type ContentType = "EBOOK" | "CHECKLIST" | "FORM";
 
 /**
  * An item as the catalogue exposes it. No fileUrl: that's the storage key the

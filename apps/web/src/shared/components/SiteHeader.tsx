@@ -1,5 +1,6 @@
 "use client";
 
+import { Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -9,13 +10,18 @@ import { useAuth } from "../providers/AuthProvider";
 
 import { AccountMenu } from "./AccountMenu";
 import { AiButton } from "./AiButton";
-import { ExploreMenu } from "./ExploreMenu";
+import { Icon } from "./Icon";
+import { SiteLogo } from "./SiteLogo";
 import { SiteSearch } from "./SiteSearch";
 
 /**
- * Primary navigation, laid out the way the big learning platforms do it:
- * brand, one catalogue-wide Explore menu, a search field that takes most of
- * the width, then the account controls on the right.
+ * Primary navigation: brand, four sections, search, account.
+ *
+ * Light, with a hairline border and a slight translucency so the page reads
+ * as continuous rather than boxed under a band of colour. Navy carries the
+ * brand here as text and the logo tile; gold is spent on one thing only —
+ * "Sign up" — so the one action that matters most is the one thing in the
+ * header with colour.
  *
  * A client component because it reflects sign-in state; the rest of the shell
  * stays server-rendered.
@@ -29,66 +35,58 @@ export function SiteHeader() {
   useEffect(() => setMenuOpen(false), [pathname]);
 
   // Marks the section, not just the exact page, so a detail route keeps its
-  // parent tab highlighted.
+  // parent highlighted.
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header
-      data-surface="inverse"
-      className="sticky top-0 z-40 border-b border-line-inverse bg-surface-inverse"
-    >
-      <div className="mx-auto flex h-16 max-w-shell items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-control text-ink-inverse"
-        >
-          {/* Placeholder mark until the brand assets arrive. */}
-          <span
-            aria-hidden
-            className="grid h-9 w-9 place-items-center rounded-control bg-brand text-base font-bold text-on-brand"
-          >
-            P
-          </span>
-          <span className="hidden flex-col leading-none sm:flex">
-            <span className="text-base font-bold tracking-wide">PRATIKAR</span>
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-brand">
-              Digital Hub
-            </span>
-          </span>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-surface/90 backdrop-blur-md supports-[backdrop-filter]:bg-surface/75">
+      <div className="mx-auto flex h-16 max-w-shell items-center gap-8 px-4 sm:px-6 lg:px-8">
+        <SiteLogo />
 
-        <div className="hidden lg:block">
-          <ExploreMenu />
-        </div>
-
-        {/* Search takes the slack in the row rather than a fixed width, which
-            is what keeps the bar from collapsing awkwardly between breakpoints. */}
-        <Suspense fallback={<div className="hidden flex-1 md:block" />}>
-          <SiteSearch className="hidden max-w-xl flex-1 md:block" />
-        </Suspense>
-
-        <nav aria-label="Main" className="hidden xl:block">
-          <ul className="flex items-center gap-0.5">
-            {PRIMARY_NAV.slice(0, 3).map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                  className={`rounded-control px-2.5 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? "bg-surface-inverse-raised text-brand"
-                      : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
+        <nav aria-label="Main" className="hidden h-full lg:block">
+          <ul className="flex h-full items-center gap-1">
+            {PRIMARY_NAV.map((item) => {
+              const active = isActive(item.href);
+              return (
+                <li key={item.href} className="h-full">
+                  <Link
+                    href={item.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`relative inline-flex h-full items-center whitespace-nowrap px-3 text-sm font-medium transition-colors ${
+                      active ? "text-ink" : "text-ink-muted hover:text-ink"
+                    }`}
+                  >
+                    {item.label}
+                    {/* An underline, not a filled pill: it marks where you
+                        are without competing with the page for attention. */}
+                    {active && (
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
+                      />
+                    )}
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
+          {/* The field only where there's room for it; below that, a link to
+              the search page, which has its own box. Squeezing a field in
+              between is what pushed "Sign up" onto two lines. */}
+          <Suspense fallback={<div className="hidden w-60 xl:block" />}>
+            <SiteSearch className="hidden w-60 xl:block" />
+          </Suspense>
+          <Link
+            href="/search"
+            className="hidden h-9 w-9 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink md:grid xl:hidden"
+          >
+            <Icon icon={Search} label="Search" />
+          </Link>
+
           <AiButton className="hidden sm:inline-flex" />
 
           {isRestoring ? (
@@ -98,7 +96,7 @@ export function SiteHeader() {
             // then swapping it out under their cursor.
             <div
               aria-hidden
-              className="h-9 w-24 rounded-control bg-surface-inverse-raised"
+              className="h-9 w-24 rounded-control bg-surface-sunken"
             />
           ) : user ? (
             <AccountMenu user={user} onLogout={logout} />
@@ -108,13 +106,13 @@ export function SiteHeader() {
                   site; the pair is what signals you can join. */}
               <Link
                 href="/login"
-                className="hidden rounded-control border border-line-inverse px-4 py-2 text-sm font-semibold text-ink-inverse transition-colors hover:bg-surface-inverse-raised sm:inline-block"
+                className="hidden whitespace-nowrap rounded-control px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:inline-block"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
+                className="whitespace-nowrap rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 Sign up
               </Link>
@@ -126,26 +124,13 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="rounded-control p-2 text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse lg:hidden"
+            className="-mr-2 grid h-11 w-11 place-items-center rounded-control text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink lg:hidden"
           >
-            <span className="sr-only">
-              {menuOpen ? "Close menu" : "Open menu"}
-            </span>
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="h-5 w-5"
-            >
-              {menuOpen ? (
-                <path d="M6 6l12 12M18 6L6 18" />
-              ) : (
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              )}
-            </svg>
+            <Icon
+              icon={menuOpen ? X : Menu}
+              size="md"
+              label={menuOpen ? "Close menu" : "Open menu"}
+            />
           </button>
         </div>
       </div>
@@ -153,7 +138,7 @@ export function SiteHeader() {
       {menuOpen && (
         <div
           id="mobile-nav"
-          className="border-t border-line-inverse bg-surface-inverse lg:hidden"
+          className="border-t border-line bg-surface shadow-raised lg:hidden"
         >
           <div className="mx-auto max-w-shell space-y-4 px-4 py-4 sm:px-6">
             <Suspense fallback={null}>
@@ -170,16 +155,16 @@ export function SiteHeader() {
                     <Link
                       href={item.href}
                       aria-current={isActive(item.href) ? "page" : undefined}
-                      className={`block rounded-control px-3 py-2 ${
+                      className={`block rounded-control px-3 py-2.5 transition-colors ${
                         isActive(item.href)
-                          ? "bg-surface-inverse-raised text-brand"
-                          : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
+                          ? "bg-primary-subtle"
+                          : "hover:bg-surface-sunken"
                       }`}
                     >
-                      <span className="block text-sm font-medium">
+                      <span className="block text-base font-medium text-ink">
                         {item.label}
                       </span>
-                      <span className="mt-0.5 block text-xs text-ink-inverse-muted/70">
+                      <span className="mt-0.5 block text-sm text-ink-muted">
                         {item.hint}
                       </span>
                     </Link>
@@ -188,12 +173,12 @@ export function SiteHeader() {
               </ul>
             </nav>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-line-inverse pt-4">
+            <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
               <AiButton className="sm:hidden" />
               {!user && !isRestoring && (
                 <Link
                   href="/login"
-                  className="rounded-control border border-line-inverse px-4 py-2 text-sm font-semibold text-ink-inverse sm:hidden"
+                  className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink sm:hidden"
                 >
                   Log in
                 </Link>
