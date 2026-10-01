@@ -11,6 +11,7 @@ import {
   throttlerGuardProvider,
 } from "./common/http/throttling";
 import { ChatModule } from "./modules/ai/chat/chat.module";
+import { DocumentFillModule } from "./modules/ai/document-fill/document-fill.module";
 import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
@@ -51,6 +52,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     StorageModule,
     KnowledgeBaseModule,
     ChatModule,
+    DocumentFillModule,
   ],
   providers: [
     throttlerGuardProvider,

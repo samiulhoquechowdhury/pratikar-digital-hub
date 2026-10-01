@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import type { PrismaService } from "../../prisma/prisma.service";
 import {
@@ -363,5 +363,80 @@ describe("DocumentsService public catalogue", () => {
     await expect(service.getPublishedTemplate("draft-1")).rejects.toThrow(
       NotFoundException,
     );
+  });
+});
+
+/**
+ * generate() is the one door every document goes through, however its answers
+ * were collected. Bad answers must stop here, before a document exists.
+ */
+describe("DocumentsService.generate", () => {
+  const TEMPLATE = {
+    id: "tpl-1",
+    status: "PUBLISHED",
+    fieldSchema: [
+      { key: "name", label: "Full name", type: "text", required: true },
+      { key: "rent", label: "Monthly rent", type: "number", required: true },
+    ],
+  };
+
+  const build = () => {
+    const prisma = {
+      template: { findUnique: jest.fn().mockResolvedValue(TEMPLATE) },
+      generatedDocument: {
+        create: jest
+          .fn()
+          .mockImplementation(({ data }: { data: object }) =>
+            Promise.resolve({ id: "doc-1", ...data }),
+          ),
+      },
+    };
+    const queue = { add: jest.fn() };
+    const service = new DocumentsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      { send: jest.fn() } as unknown as NotificationSender,
+      { signUrl: jest.fn() } as never,
+      queue as never,
+      { reindex: jest.fn() } as never,
+    );
+    return { service, prisma, queue };
+  };
+
+  it("stores only the cleaned answers", async () => {
+    const { service, prisma } = build();
+
+    await service.generate("u1", {
+      templateId: "tpl-1",
+      filledData: { name: "  A. Sen ", rent: "18,000", extra: "dropped" },
+    });
+
+    expect(prisma.generatedDocument.create).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        filledData: { name: "A. Sen", rent: 18000 },
+      }) as unknown,
+    });
+  });
+
+  it("refuses missing or malformed answers, and queues nothing", async () => {
+    const { service, prisma, queue } = build();
+
+    const attempt = service.generate("u1", {
+      templateId: "tpl-1",
+      filledData: { name: "", rent: "a lot" },
+    });
+
+    await expect(attempt).rejects.toThrow(BadRequestException);
+    await expect(attempt).rejects.toMatchObject({
+      response: {
+        message: "INVALID_ANSWERS",
+        problems: [
+          { key: "name", label: "Full name", problem: "missing" },
+          { key: "rent", label: "Monthly rent", problem: "not-a-number" },
+        ],
+      },
+    });
+    expect(prisma.generatedDocument.create).not.toHaveBeenCalled();
+    expect(queue.add).not.toHaveBeenCalled();
   });
 });

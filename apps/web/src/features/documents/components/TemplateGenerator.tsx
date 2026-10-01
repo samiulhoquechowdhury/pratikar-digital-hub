@@ -3,8 +3,9 @@
 import type { Template } from "@pratikar/types";
 import { Alert, ButtonLink, EmptyState, SkeletonForm } from "@pratikar/ui";
 import { grossPaise } from "@pratikar/utils";
-import { CheckCircle2 } from "lucide-react";
+import { CheckCircle2, Sparkles, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
+import { useState } from "react";
 
 import { Icon } from "@/shared/components/Icon";
 import {
@@ -21,7 +22,8 @@ import { useAuth } from "@/shared/providers/AuthProvider";
 import { useGenerateDocument } from "../hooks/useGenerateDocument";
 import { useTemplate } from "../hooks/useTemplate";
 
-import { DynamicTemplateForm } from "./DynamicTemplateForm";
+import { DocumentFillChat } from "./DocumentFillChat";
+import { DynamicTemplateForm, type FilledData } from "./DynamicTemplateForm";
 import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
 
 /**
@@ -181,14 +183,12 @@ export function TemplateGenerator({
           </div>
         </ProductSection>
       ) : user ? (
-        <div className="mt-12">
-          <DynamicTemplateForm
-            template={template}
-            onSubmit={generate}
-            isSubmitting={isSubmitting}
-            error={generateError}
-          />
-        </div>
+        <FillOptions
+          template={template}
+          onSubmit={generate}
+          isSubmitting={isSubmitting}
+          error={generateError}
+        />
       ) : (
         <ProductSection title="What you'll be asked">
           {questions > 0 ? (
@@ -216,5 +216,101 @@ export function TemplateGenerator({
         </ProductSection>
       )}
     </ProductLayout>
+  );
+}
+
+type FillMode = "form" | "chat";
+
+/**
+ * The two ways to answer a template's questions: the form, or a conversation
+ * with the AI that fills the same fields. Both end in the form — the chat
+ * hands its answers over for checking, and only the form generates.
+ */
+function FillOptions({
+  template,
+  onSubmit,
+  isSubmitting,
+  error,
+}: {
+  template: Template;
+  onSubmit: (answers: FilledData) => void | Promise<void>;
+  isSubmitting: boolean;
+  error: string | null;
+}) {
+  const [mode, setMode] = useState<FillMode>("form");
+  const [handedOver, setHandedOver] = useState<FilledData | null>(null);
+  const [aiUnavailable, setAiUnavailable] = useState(false);
+  // A fresh form each time answers arrive from the chat, so it starts from
+  // them rather than keeping whatever it held before.
+  const [formKey, setFormKey] = useState(0);
+
+  const tab = (value: FillMode, label: string, icon?: LucideIcon) => (
+    <button
+      type="button"
+      role="tab"
+      aria-selected={mode === value}
+      onClick={() => setMode(value)}
+      className={`flex items-center gap-2 border-b-2 pb-3 text-sm font-medium transition-colors ${
+        mode === value
+          ? "border-primary text-ink"
+          : "border-transparent text-ink-muted hover:text-ink"
+      }`}
+    >
+      {icon && <Icon icon={icon} className="text-primary" />}
+      {label}
+    </button>
+  );
+
+  return (
+    <div className="mt-12">
+      {!aiUnavailable && (
+        <div
+          role="tablist"
+          aria-label="How to answer"
+          className="mb-6 flex gap-6 border-b border-line"
+        >
+          {tab("form", "Fill in the form")}
+          {tab("chat", "Answer by chat", Sparkles)}
+        </div>
+      )}
+
+      {mode === "chat" && !aiUnavailable ? (
+        <DocumentFillChat
+          template={template}
+          onReview={(answers) => {
+            setHandedOver(answers);
+            setFormKey((k) => k + 1);
+            setMode("form");
+          }}
+          onUnavailable={() => {
+            setAiUnavailable(true);
+            setMode("form");
+          }}
+        />
+      ) : (
+        <DynamicTemplateForm
+          key={formKey}
+          template={template}
+          onSubmit={onSubmit}
+          isSubmitting={isSubmitting}
+          error={error}
+          initialValues={handedOver ?? undefined}
+          notice={
+            aiUnavailable ? (
+              <Alert tone="info">
+                Answering by chat isn&apos;t available right now — the form
+                below does the same job.
+              </Alert>
+            ) : handedOver ? (
+              <Alert tone="warning">
+                These answers came from your conversation. AI can mishear, so
+                check each one — especially names, amounts and dates — before
+                you generate.
+              </Alert>
+            ) : undefined
+          }
+        />
+      )}
+    </div>
   );
 }

@@ -27,6 +27,7 @@ import { StorageService } from "../storage/storage.service";
 import type { DocumentGenerationJobData } from "./document-generation.processor";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
+import { fieldsOf, validateAnswers } from "./filled-data";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
 import { guessFieldType, labelFor } from "./tagging/field-type";
 
@@ -177,11 +178,22 @@ export class DocumentsService {
       throw new NotFoundException("TEMPLATE_NOT_FOUND");
     }
 
+    // Checked here whichever way the answers were collected — the form or
+    // the AI generator — and only the cleaned answers are stored. A document
+    // with a missing or malformed field is refused before it exists.
+    const { clean, problems } = validateAnswers(
+      fieldsOf(template.fieldSchema),
+      dto.filledData,
+    );
+    if (problems.length > 0) {
+      throw new BadRequestException({ message: "INVALID_ANSWERS", problems });
+    }
+
     const generatedDocument = await this.prisma.generatedDocument.create({
       data: {
         userId,
         templateId: dto.templateId,
-        filledData: dto.filledData as Prisma.InputJsonValue,
+        filledData: clean,
         fileUrl: "", // set by the document-generation job once it completes
         status: "GENERATED",
       },
