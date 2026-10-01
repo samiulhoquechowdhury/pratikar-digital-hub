@@ -195,6 +195,7 @@ describe("DocumentsService.listTaggableStorage", () => {
       { send: jest.fn() } as unknown as NotificationSender,
       storage as never,
       { add: jest.fn() } as never,
+      { reindex: jest.fn() } as never,
     );
     return { service, storage };
   };
@@ -314,6 +315,7 @@ describe("DocumentsService public catalogue", () => {
       { send: jest.fn() } as unknown as NotificationSender,
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
+      { reindex: jest.fn() } as never,
     );
     return { service, prisma };
   };
