@@ -10,6 +10,7 @@ import {
   THROTTLER_OPTIONS,
   throttlerGuardProvider,
 } from "./common/http/throttling";
+import { ChatModule } from "./modules/ai/chat/chat.module";
 import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.module";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
@@ -49,6 +50,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     NotificationsModule,
     StorageModule,
     KnowledgeBaseModule,
+    ChatModule,
   ],
   providers: [
     throttlerGuardProvider,

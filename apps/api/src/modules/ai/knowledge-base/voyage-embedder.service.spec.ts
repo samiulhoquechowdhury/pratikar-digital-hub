@@ -45,6 +45,21 @@ describe("VoyageEmbedder", () => {
     );
   });
 
+  // Voyage embeds a question differently from a document it's searched in.
+  it("embeds a question as a query", async () => {
+    const fetchMock = respond(200, { data: [{ embedding: vector() }] });
+
+    const embedding = await build().embedQuery("rent agreement");
+
+    const body = JSON.parse(fetchMock.mock.calls[0]![1]!.body as string) as {
+      input: string[];
+      input_type: string;
+    };
+    expect(body.input).toEqual(["rent agreement"]);
+    expect(body.input_type).toBe("query");
+    expect(embedding).toHaveLength(KNOWLEDGE_BASE_DIMENSIONS);
+  });
+
   it("uses the model from the environment when set", async () => {
     const fetchMock = respond(200, { data: [{ embedding: vector() }] });
 

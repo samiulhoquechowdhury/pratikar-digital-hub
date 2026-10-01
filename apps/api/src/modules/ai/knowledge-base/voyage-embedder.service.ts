@@ -46,13 +46,25 @@ export class VoyageEmbedder {
     return this.apiKey.length > 0;
   }
 
+  /** Embeds texts that will be searched over — the indexing side. */
+  embedDocuments(texts: string[]): Promise<number[][]> {
+    return this.embed(texts, "document");
+  }
+
   /**
-   * Embeds texts that will be searched over. Voyage embeds a document and a
-   * query differently (`input_type`), so the chatbot's side of this will need
-   * its own call with "query" — using this one for a question would quietly
-   * degrade retrieval rather than fail.
+   * Embeds one question for searching the index. Voyage embeds a document
+   * and a query differently (`input_type`); a question embedded as a
+   * document would quietly degrade retrieval rather than fail.
    */
-  async embedDocuments(texts: string[]): Promise<number[][]> {
+  async embedQuery(text: string): Promise<number[]> {
+    const [vector] = await this.embed([text], "query");
+    return vector!;
+  }
+
+  private async embed(
+    texts: string[],
+    inputType: "document" | "query",
+  ): Promise<number[][]> {
     if (!this.isConfigured) throw new Error("VOYAGE_NOT_CONFIGURED");
 
     let response: Response;
@@ -66,7 +78,7 @@ export class VoyageEmbedder {
         body: JSON.stringify({
           input: texts,
           model: this.model,
-          input_type: "document",
+          input_type: inputType,
           // Pinned rather than left to the model's default, so a model whose
           // default differs fails loudly below instead of writing vectors
           // the column cannot hold.
