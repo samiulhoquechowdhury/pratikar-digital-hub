@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
+import { KnowledgeBaseModule } from "../ai/knowledge-base/knowledge-base.module";
 import { AuditModule } from "../audit/audit.module";
 import { NotificationsModule } from "../notifications/notifications.module";
 import { StorageModule } from "../storage/storage.module";
@@ -12,6 +13,7 @@ import { DocumentsService } from "./documents.service";
 @Module({
   imports: [
     AuditModule,
+    KnowledgeBaseModule,
     NotificationsModule,
     StorageModule,
     BullModule.registerQueue({

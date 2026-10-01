@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
   AuditAction,
   AuditService,
@@ -29,6 +30,7 @@ export class LmsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly knowledgeBase: KnowledgeBaseIndexer,
   ) {}
 
   listPublished() {
@@ -83,7 +85,7 @@ export class LmsService {
     actorUserId: string,
     courseId?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const course = await this.prisma.$transaction(async (tx) => {
       if (courseId) {
         const existing = await tx.course.findUnique({
           where: { id: courseId },
@@ -127,6 +129,13 @@ export class LmsService {
 
       return created;
     });
+
+    // After the commit, so the worker reads the row as saved.
+    await this.knowledgeBase.reindex({
+      sourceType: "course",
+      sourceId: course.id,
+    });
+    return course;
   }
 
   /**
@@ -144,7 +153,7 @@ export class LmsService {
       throw new BadRequestException("DUPLICATE_MODULE_ORDER");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const saved = await this.prisma.$transaction(async (tx) => {
       const course = await tx.course.findUnique({ where: { id: courseId } });
       if (!course) throw new NotFoundException("COURSE_NOT_FOUND");
 
@@ -168,6 +177,13 @@ export class LmsService {
         orderBy: { order: "asc" },
       });
     });
+
+    // Lesson titles are part of what the course is indexed as.
+    await this.knowledgeBase.reindex({
+      sourceType: "course",
+      sourceId: courseId,
+    });
+    return saved;
   }
 
   /** Called by PaymentsService once a course order is confirmed paid. */

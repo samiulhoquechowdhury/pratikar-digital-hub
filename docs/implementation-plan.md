@@ -66,7 +66,7 @@ Nothing has actually run yet. That's the first gap to close — not more design,
 
 **Goal:** the AI Document Generator and RAG chatbot, which is the riskiest engineering work in the product (per the PRD's risk section) — deliberately sequenced after the manual paths work, so there's a working fallback and a clear behavioral spec to build the AI against.
 
-1. Knowledge base ingestion pipeline (`KnowledgeBaseDocument` + `pgvector`) — index templates, courses, content items, FAQ.
+1. Knowledge base ingestion pipeline (`KnowledgeBaseDocument` + `pgvector`) — index templates, courses, content items, FAQ. — **built 2026-09-26** for templates, courses and content items (Voyage AI embeddings, `knowledge-base-index` queue, `POST /ai/knowledge-base/reindex`). FAQ waits on the client supplying FAQ content; nothing exists to index yet. Needs `VOYAGE_API_KEY` and a pgvector-capable Postgres on Railway before it does anything in production.
 2. RAG chatbot: retrieval + generation over that knowledge base, site-wide widget.
 3. AI Document Generator: conversational field collection feeding into the same `generate()` pipeline built in Milestone 1 — this is why Milestone 1's field-schema design matters, it has to serve both the manual form and this conversational flow without a rewrite.
 

@@ -7,6 +7,7 @@ import {
 import type { ContentCategory } from "@prisma/client";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
   AuditAction,
   AuditService,
@@ -56,6 +57,7 @@ export class ContentLibraryService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly storage: StorageService,
+    private readonly knowledgeBase: KnowledgeBaseIndexer,
   ) {}
 
   // Re-download policy for this module is still open (docs/srs.md Section 8)
@@ -147,7 +149,7 @@ export class ContentLibraryService {
   ) {
     assertNotAppWritten([dto.fileUrl]);
 
-    return this.prisma.$transaction(async (tx) => {
+    const item = await this.prisma.$transaction(async (tx) => {
       if (itemId) {
         // Check before writing so a 404 can't leave an UPDATED audit entry
         // for an item that was never touched.
@@ -188,6 +190,13 @@ export class ContentLibraryService {
 
       return created;
     });
+
+    // After the commit, so the worker reads the row as saved.
+    await this.knowledgeBase.reindex({
+      sourceType: "content",
+      sourceId: item.id,
+    });
+    return item;
   }
 
   /**
@@ -288,6 +297,21 @@ export class ContentLibraryService {
 
       return fresh.length;
     });
+
+    // createMany returns no ids. A draft import has nothing to index, so the
+    // lookup is only paid when the batch went straight on sale.
+    if (dto.publish) {
+      const rows = await this.prisma.contentLibraryItem.findMany({
+        where: { fileUrl: { in: fresh.map((item) => item.fileUrl) } },
+        select: { id: true },
+      });
+      await this.knowledgeBase.reindex(
+        ...rows.map(({ id }) => ({
+          sourceType: "content" as const,
+          sourceId: id,
+        })),
+      );
+    }
 
     return { created, skipped: dto.items.length - created };
   }
