@@ -6,6 +6,10 @@ import { JwtModule } from "@nestjs/jwt";
 import { ThrottlerModule } from "@nestjs/throttler";
 import { SentryGlobalFilter, SentryModule } from "@sentry/nestjs/setup";
 
+import {
+  THROTTLER_OPTIONS,
+  throttlerGuardProvider,
+} from "./common/http/throttling";
 import { ChatModule } from "./modules/ai/chat/chat.module";
 import { DocumentFillModule } from "./modules/ai/document-fill/document-fill.module";
 import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.module";
@@ -34,12 +38,7 @@ import { PrismaModule } from "./prisma/prisma.module";
       secret: process.env.JWT_ACCESS_SECRET ?? "dev-only-secret-change-me",
       signOptions: { expiresIn: "15m" },
     }),
-    ThrottlerModule.forRoot([
-      {
-        ttl: 60_000,
-        limit: 20, // global default; auth endpoints override with a stricter limit
-      },
-    ]),
+    ThrottlerModule.forRoot(THROTTLER_OPTIONS),
     BullModule.forRoot({
       connection: { url: process.env.REDIS_URL ?? "redis://localhost:6379" },
     }),
@@ -56,6 +55,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     DocumentFillModule,
   ],
   providers: [
+    throttlerGuardProvider,
     // Reports unexpected errors only — anything that isn't an HttpException —
     // so a 404, a validation failure or a rate limit is never sent as a bug.
     { provide: APP_FILTER, useClass: SentryGlobalFilter },

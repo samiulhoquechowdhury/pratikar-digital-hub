@@ -1,9 +1,15 @@
 import { randomUUID } from "node:crypto";
 
-import { InjectQueue, Processor, WorkerHost } from "@nestjs/bullmq";
+import {
+  InjectQueue,
+  OnWorkerEvent,
+  Processor,
+  WorkerHost,
+} from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import { Worker, type Job, type Queue } from "bullmq";
 
+import { reportFinalJobFailure } from "../../../common/monitoring/job-failures";
 import { PrismaService } from "../../../prisma/prisma.service";
 
 import {
@@ -113,6 +119,15 @@ export class KnowledgeBaseIndexProcessor extends WorkerHost {
 
     this.logger.log(`Indexed ${label}`);
     return "indexed";
+  }
+
+  /**
+   * Reports the job to monitoring once its last retry has failed. A pause on
+   * a Voyage 429 isn't a failure — the job goes back on the queue unspent.
+   */
+  @OnWorkerEvent("failed")
+  onFailed(job: Job | undefined, error: Error) {
+    reportFinalJobFailure(job, error);
   }
 
   /** The text to embed, or null when the source should not be in the index. */
