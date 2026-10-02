@@ -22,7 +22,13 @@ const SUGGESTIONS = [
  * repeat their search field in the hero instead of relying on the bar. Its
  * Search button is the page's one gold element above the fold.
  */
-export function HeroSearch() {
+export function HeroSearch({
+  tone = "light",
+}: {
+  /** "dark" on the navy hero banner: the field stays white, the chips invert. */
+  tone?: "light" | "dark";
+} = {}) {
+  const dark = tone === "dark";
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -33,7 +39,11 @@ export function HeroSearch() {
     <div>
       <form
         role="search"
-        className="flex w-full max-w-2xl items-center gap-2 rounded-full border border-line-strong bg-surface p-1.5 pl-5 shadow-raised transition-colors focus-within:border-primary"
+        className={`flex w-full max-w-2xl items-center gap-2 rounded-full border bg-surface p-1.5 pl-5 shadow-raised transition-colors ${
+          dark
+            ? "border-transparent focus-within:border-brand"
+            : "border-line-strong focus-within:border-primary"
+        }`}
         onSubmit={(event) => {
           event.preventDefault();
           const trimmed = query.trim();
@@ -63,13 +73,21 @@ export function HeroSearch() {
       </form>
 
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <span className="text-sm text-ink-subtle">Popular:</span>
+        <span
+          className={`text-sm ${dark ? "text-ink-inverse-muted" : "text-ink-subtle"}`}
+        >
+          Popular:
+        </span>
         {SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion}
             type="button"
             onClick={() => go(suggestion)}
-            className="rounded-full border border-line px-3 py-1 text-sm text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+              dark
+                ? "border-line-inverse text-ink-inverse-muted hover:border-ink-inverse-muted hover:text-ink-inverse"
+                : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
+            }`}
           >
             {suggestion}
           </button>
