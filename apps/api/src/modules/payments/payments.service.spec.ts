@@ -297,10 +297,23 @@ describe("PaymentsService.handleWebhook", () => {
       signatureValid = true,
       updateCount = 1,
     } = opts;
+    // Matches only when the order's status satisfies the update's status
+    // filter, as the database would — so a guard that's too narrow shows up.
+    const currentStatus = (order as { status?: string } | null)?.status;
     const prisma = {
       order: {
         findUnique: jest.fn().mockResolvedValue(order),
-        updateMany: jest.fn().mockResolvedValue({ count: updateCount }),
+        updateMany: jest.fn(
+          ({ where }: { where: { status: string | { in: string[] } } }) => {
+            const allowed =
+              typeof where.status === "string"
+                ? [where.status]
+                : where.status.in;
+            const matches =
+              currentStatus !== undefined && allowed.includes(currentStatus);
+            return Promise.resolve({ count: matches ? updateCount : 0 });
+          },
+        ),
       },
     };
     const razorpay = {
@@ -332,10 +345,27 @@ describe("PaymentsService.handleWebhook", () => {
       where: { razorpayOrderId: "order_rzp_1" },
     });
     expect(prisma.order.updateMany).toHaveBeenCalledWith({
-      where: { id: "ord-1", status: "PENDING" },
+      where: { id: "ord-1", status: { in: ["PENDING", "FAILED"] } },
       data: { status: "PAID", razorpayPaymentId: "pay_abc" },
     });
     expect(lms.enroll).toHaveBeenCalledWith("cust-1", "course-1", "ord-1");
+  });
+
+  /**
+   * Checkout lets a customer retry after a declined card, on the same order.
+   * The declined attempt's payment.failed marks the order FAILED first; the
+   * retry's capture must still settle it, or the customer is charged and
+   * gets nothing.
+   */
+  it("settles a capture that follows a declined attempt on the same order", async () => {
+    const { service, lms, invoices } = build({
+      order: { ...pendingOrder, status: "FAILED" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(lms.enroll).toHaveBeenCalledWith("cust-1", "course-1", "ord-1");
+    expect(invoices.issueForOrder).toHaveBeenCalledWith("ord-1");
   });
 
   /**

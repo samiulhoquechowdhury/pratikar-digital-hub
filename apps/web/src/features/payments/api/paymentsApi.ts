@@ -23,6 +23,17 @@ export const paymentsApi = {
   listMine: () => apiClient.get<CustomerOrder[]>("/orders/mine"),
 
   /**
+   * Asks the server to check with Razorpay whether this order was paid —
+   * for when the webhook is slow. The answer comes from Razorpay, not from
+   * anything the browser says.
+   */
+  confirm: (orderId: string) =>
+    apiClient.post<{ id: string; status: string }>(
+      `/orders/${orderId}/confirm`,
+      {},
+    ),
+
+  /**
    * The GST invoice for one order. Fetched on click rather than with the
    * list: the download URL it carries is signed and short-lived, so one
    * minted while the page loaded would be stale by the time it was used.

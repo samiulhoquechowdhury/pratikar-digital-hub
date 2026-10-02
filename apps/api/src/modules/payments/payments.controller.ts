@@ -12,7 +12,7 @@ import {
   Req,
   UseGuards,
 } from "@nestjs/common";
-import { SkipThrottle } from "@nestjs/throttler";
+import { SkipThrottle, Throttle } from "@nestjs/throttler";
 import { Role } from "@pratikar/types";
 import type { Request } from "express";
 
@@ -28,6 +28,7 @@ import { CreateOrderDto } from "./dto/create-order.dto";
 import { CreditNoteService } from "./invoice/credit-note.service";
 import { InvoiceService } from "./invoice/invoice.service";
 import { PaymentsService } from "./payments.service";
+import { PaymentReconciliationService } from "./reconciliation/payment-reconciliation.service";
 
 @Controller("orders")
 export class PaymentsController {
@@ -35,6 +36,7 @@ export class PaymentsController {
     private readonly paymentsService: PaymentsService,
     private readonly invoices: InvoiceService,
     private readonly creditNotes: CreditNoteService,
+    private readonly reconciliation: PaymentReconciliationService,
   ) {}
 
   @Post()
@@ -85,6 +87,20 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   listMine(@CurrentUser() user: RequestUser) {
     return this.paymentsService.listMyOrders(user.id);
+  }
+
+  /**
+   * "I've paid — has it gone through?" Asked by the checkout screen when the
+   * webhook is slow. Checks with Razorpay directly and settles the order if a
+   * payment was captured; the browser's own word is never taken. Throttled
+   * because each call is a call to Razorpay.
+   */
+  @Post(":id/confirm")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  confirm(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.reconciliation.confirmForCustomer(id, user.id);
   }
 
   /**
