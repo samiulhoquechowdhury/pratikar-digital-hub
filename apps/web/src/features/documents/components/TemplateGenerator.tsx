@@ -1,9 +1,15 @@
 "use client";
 
 import type { Template } from "@pratikar/types";
-import { Alert, ButtonLink, EmptyState, SkeletonForm } from "@pratikar/ui";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  EmptyState,
+  SkeletonForm,
+} from "@pratikar/ui";
 import { grossPaise } from "@pratikar/utils";
-import { CheckCircle2, Sparkles, type LucideIcon } from "lucide-react";
+import { PencilLine, Sparkles, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -23,6 +29,7 @@ import { useGenerateDocument } from "../hooks/useGenerateDocument";
 import { useTemplate } from "../hooks/useTemplate";
 
 import { DocumentFillChat } from "./DocumentFillChat";
+import { DocumentPreview } from "./DocumentPreview";
 import { DynamicTemplateForm, type FilledData } from "./DynamicTemplateForm";
 import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
 
@@ -37,11 +44,11 @@ const STEPS = [
     body: "Plain language, one field at a time. Generating is free.",
   },
   {
-    title: "Pay for the document",
-    body: "One price, GST included. Add a lawyer's review if you want one.",
+    title: "Check the preview",
+    body: "See every page, watermarked. Change any answer and generate again, free.",
   },
   {
-    title: "Download it",
+    title: "Pay and download",
     body: "Word and PDF, ready to print and sign. One download, so keep the files safe.",
   },
 ];
@@ -76,6 +83,8 @@ export function TemplateGenerator({
     isSubmitting,
     error: generateError,
     result,
+    answers,
+    edit,
   } = useGenerateDocument(templateId);
 
   if (isLoading) {
@@ -109,7 +118,7 @@ export function TemplateGenerator({
         <span className="text-sm text-ink-subtle">incl. GST</span>
       </div>
       <p className="mt-2 text-sm text-ink-muted">
-        Generating is free — you pay before downloading.
+        Generating and previewing are free — you pay only to download.
         {template.reviewPriceInPaise > 0 &&
           ` Lawyer review ${formatPrice(
             grossPaise(template.reviewPriceInPaise),
@@ -167,14 +176,17 @@ export function TemplateGenerator({
       {result ? (
         <ProductSection title="Your document">
           <div className="space-y-6">
-            <Alert tone="success" role="status">
-              <span className="flex items-start gap-2">
-                <Icon icon={CheckCircle2} className="mt-0.5" />
-                Your document is being prepared. Filling and PDF conversion take
-                a moment, so give it a few seconds if the download isn&apos;t
-                ready straight away.
-              </span>
-            </Alert>
+            <DocumentPreview documentId={result.id} title={template.title} />
+            <div className="flex flex-wrap items-center justify-between gap-4 rounded-card border border-line bg-surface px-5 py-4">
+              <p className="max-w-md text-sm text-ink-muted">
+                Spotted a mistake? Change your answers and generate again —
+                it&apos;s free until you pay.
+              </p>
+              <Button variant="secondary" onClick={edit}>
+                <Icon icon={PencilLine} />
+                Edit answers
+              </Button>
+            </div>
             <GeneratedDocumentActions
               documentId={result.id}
               template={template}
@@ -185,6 +197,7 @@ export function TemplateGenerator({
       ) : user ? (
         <FillOptions
           template={template}
+          initialAnswers={answers}
           onSubmit={generate}
           isSubmitting={isSubmitting}
           error={generateError}
@@ -228,11 +241,14 @@ type FillMode = "form" | "chat";
  */
 function FillOptions({
   template,
+  initialAnswers,
   onSubmit,
   isSubmitting,
   error,
 }: {
   template: Template;
+  /** The answers behind a document being edited, to start the form from. */
+  initialAnswers: FilledData | null;
   onSubmit: (answers: FilledData) => void | Promise<void>;
   isSubmitting: boolean;
   error: string | null;
@@ -294,7 +310,7 @@ function FillOptions({
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}
           error={error}
-          initialValues={handedOver ?? undefined}
+          initialValues={handedOver ?? initialAnswers ?? undefined}
           notice={
             aiUnavailable ? (
               <Alert tone="info">

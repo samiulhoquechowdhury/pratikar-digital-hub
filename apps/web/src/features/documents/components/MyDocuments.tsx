@@ -1,10 +1,15 @@
 "use client";
 
 import type { GeneratedDocument } from "@pratikar/types";
-import { Badge, ButtonLink, Card, EmptyState } from "@pratikar/ui";
+import { Badge, Button, ButtonLink, Card, EmptyState } from "@pratikar/ui";
+import { Eye } from "lucide-react";
+import { useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 import type { MyDocument } from "../api/documentsApi";
 
+import { DocumentPreview } from "./DocumentPreview";
 import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
 
 /** What each status means to the person looking at it, not to the database. */
@@ -61,6 +66,8 @@ export function MyDocuments({ documents }: { documents: MyDocument[] }) {
               </Badge>
             </div>
 
+            <PreviewToggle documentId={doc.id} title={doc.template.title} />
+
             <div className="mt-5 border-t border-line pt-5">
               <GeneratedDocumentActions
                 documentId={doc.id}
@@ -72,5 +79,34 @@ export function MyDocuments({ documents }: { documents: MyDocument[] }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** The watermarked preview, shown on request so a long list stays light. */
+function PreviewToggle({
+  documentId,
+  title,
+}: {
+  documentId: string;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-4">
+      <Button
+        size="sm"
+        variant="ghost"
+        aria-expanded={open}
+        onClick={() => setOpen((shown) => !shown)}
+      >
+        <Icon icon={Eye} />
+        {open ? "Hide preview" : "Preview"}
+      </Button>
+      {open && (
+        <div className="mt-3">
+          <DocumentPreview documentId={documentId} title={title} />
+        </div>
+      )}
+    </div>
   );
 }

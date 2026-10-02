@@ -1,4 +1,10 @@
-import { BadRequestException, NotFoundException } from "@nestjs/common";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "@nestjs/common";
+import { Role } from "@pratikar/types";
 
 import type { PrismaService } from "../../prisma/prisma.service";
 import {
@@ -438,5 +444,100 @@ describe("DocumentsService.generate", () => {
     });
     expect(prisma.generatedDocument.create).not.toHaveBeenCalled();
     expect(queue.add).not.toHaveBeenCalled();
+  });
+});
+
+describe("DocumentsService preview and download", () => {
+  const doc = (overrides: Record<string, unknown> = {}) => ({
+    id: "doc-1",
+    userId: "cust-1",
+    status: "GENERATED",
+    fileUrl: "documents/doc-1.docx",
+    pdfFileUrl: "documents/doc-1.pdf",
+    previewPageCount: 2,
+    ...overrides,
+  });
+
+  const build = (row: unknown) => {
+    const prisma = {
+      generatedDocument: {
+        findUnique: jest.fn().mockResolvedValue(row),
+        update: jest.fn(),
+      },
+    };
+    const storage = { signUrl: jest.fn((key: string) => `signed:${key}`) };
+    const service = new DocumentsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      { send: jest.fn() } as unknown as NotificationSender,
+      storage as never,
+      { add: jest.fn() } as never,
+      { reindex: jest.fn() } as never,
+    );
+    return { service, prisma, storage };
+  };
+
+  it("gives the owner a link to each watermarked page", async () => {
+    const { service } = build(doc());
+
+    await expect(
+      service.getPreview("doc-1", "cust-1", Role.CUSTOMER),
+    ).resolves.toEqual({
+      ready: true,
+      pages: [
+        "signed:documents/doc-1/preview-1.png",
+        "signed:documents/doc-1/preview-2.png",
+      ],
+    });
+  });
+
+  // Never the clean file: the preview is free, the document is not.
+  it("never signs the clean Word or PDF for a preview", async () => {
+    const { service, storage } = build(doc());
+
+    await service.getPreview("doc-1", "cust-1", Role.CUSTOMER);
+
+    const signed = storage.signUrl.mock.calls.map(([key]) => key);
+    expect(signed).not.toContain("documents/doc-1.docx");
+    expect(signed).not.toContain("documents/doc-1.pdf");
+  });
+
+  it("says not ready while the worker is still generating", async () => {
+    const { service } = build(doc({ fileUrl: "" }));
+
+    await expect(
+      service.getPreview("doc-1", "cust-1", Role.CUSTOMER),
+    ).resolves.toEqual({ ready: false, pages: [] });
+  });
+
+  // A document holds someone's personal details.
+  it("refuses another customer", async () => {
+    const { service } = build(doc());
+
+    await expect(
+      service.getPreview("doc-1", "someone-else", Role.CUSTOMER),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+  });
+
+  it("downloads both the Word file and the PDF in one go", async () => {
+    const { service, prisma } = build(doc({ status: "PAID" }));
+
+    await expect(
+      service.consumeDownload("doc-1", "cust-1", Role.CUSTOMER),
+    ).resolves.toEqual({
+      fileUrl: "signed:documents/doc-1.docx",
+      pdfUrl: "signed:documents/doc-1.pdf",
+    });
+    expect(prisma.generatedDocument.update).toHaveBeenCalled();
+  });
+
+  // Paying before the worker finishes must not spend the only download.
+  it("keeps the download unspent when the file isn't ready yet", async () => {
+    const { service, prisma } = build(doc({ status: "PAID", fileUrl: "" }));
+
+    await expect(
+      service.consumeDownload("doc-1", "cust-1", Role.CUSTOMER),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.generatedDocument.update).not.toHaveBeenCalled();
   });
 });

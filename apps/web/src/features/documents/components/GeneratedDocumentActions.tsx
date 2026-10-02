@@ -29,20 +29,25 @@ export function GeneratedDocumentActions({
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // The PDF's signed link, kept just long enough to offer it after the Word
+  // file starts: the download is spent once, and both come from that call.
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+
   const download = () => {
     setError(null);
     setIsDownloading(true);
     documentsApi
       .download(documentId)
-      .then(({ fileUrl }) => {
-        // Mark it spent before navigating: the server has already consumed the
-        // link by this point, so the UI must not keep offering it.
+      .then(({ fileUrl, pdfUrl: pdf }) => {
         setStatus("DOWNLOADED");
+        setPdfUrl(pdf);
         window.location.href = fileUrl;
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         setError(
-          "Couldn't start the download. If you've just paid, wait a few seconds and try again.",
+          cause instanceof Error && cause.message.includes("NOT_READY")
+            ? "Your document is still being prepared. Try again in a few seconds — your download hasn't been used."
+            : "Couldn't start the download. If you've just paid, wait a few seconds and try again.",
         );
       })
       .finally(() => setIsDownloading(false));
@@ -79,7 +84,17 @@ export function GeneratedDocumentActions({
             </div>
           )}
 
-          {status === "DOWNLOADED" && (
+          {status === "DOWNLOADED" && pdfUrl && (
+            <Alert tone="success" role="status">
+              Your Word file is downloading.{" "}
+              <a href={pdfUrl} className="font-semibold underline">
+                Download the PDF too
+              </a>{" "}
+              — this link works for the next few minutes.
+            </Alert>
+          )}
+
+          {status === "DOWNLOADED" && !pdfUrl && (
             <Alert tone="info">
               Already downloaded. Downloads are one-time, so this document
               can&apos;t be fetched again — contact support if something went
