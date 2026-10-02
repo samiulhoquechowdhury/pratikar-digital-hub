@@ -23,26 +23,71 @@ export type CatalogueKind =
  */
 export const CATALOGUE_KINDS: Record<
   CatalogueKind,
-  { label: string; icon: LucideIcon; tint: string }
+  { label: string; icon: LucideIcon; cover: string }
 > = {
   document: {
     label: "Document template",
     icon: FileText,
-    tint: "bg-primary-subtle",
+    cover: "bg-primary",
   },
   course: {
     label: "Certificate course",
     icon: GraduationCap,
-    tint: "bg-brand-subtle",
+    cover: "bg-surface-inverse-deep",
   },
-  ebook: { label: "E-book", icon: BookOpen, tint: "bg-surface-sunken" },
+  ebook: { label: "E-book", icon: BookOpen, cover: "bg-surface-inverse" },
   checklist: {
     label: "Checklist",
     icon: ListChecks,
-    tint: "bg-surface-sunken",
+    cover: "bg-surface-inverse-raised",
   },
-  form: { label: "Form", icon: FileSignature, tint: "bg-surface-sunken" },
+  form: { label: "Form", icon: FileSignature, cover: "bg-surface-inverse" },
 };
+
+/**
+ * A product's cover — what a photograph is on Udemy or Coursera, drawn
+ * instead: the kind, the title set like a book jacket, and the brand's gold
+ * rule. Every item gets one without anyone designing 450 images, and they
+ * can never go stale against the title.
+ *
+ * Decorative: the card's own heading carries the title for screen readers.
+ */
+export function CatalogueCover({
+  kind,
+  title,
+  className = "",
+}: {
+  kind: CatalogueKind;
+  title: string;
+  className?: string;
+}) {
+  const { label, icon, cover } = CATALOGUE_KINDS[kind];
+  return (
+    <div
+      aria-hidden
+      className={`relative flex aspect-[16/9] flex-col overflow-hidden p-5 ${cover} ${className}`}
+    >
+      {/* A book's spine for e-books; a soft light for everything else. */}
+      {kind === "ebook" ? (
+        <span className="absolute inset-y-0 left-0 w-3 bg-brand/80" />
+      ) : (
+        <span className="absolute inset-0 bg-[radial-gradient(18rem_10rem_at_100%_0%,theme(colors.navy.500/45%),transparent_70%)]" />
+      )}
+      <span className="absolute -bottom-4 -right-3 text-ink-inverse opacity-[0.07]">
+        <Icon icon={icon} size="lg" className="h-28 w-28" />
+      </span>
+
+      <span className="relative flex items-center gap-1.5 text-[0.6875rem] font-semibold uppercase tracking-[0.12em] text-brand">
+        <Icon icon={icon} size="xs" />
+        {label}
+      </span>
+      <span className="relative mt-auto line-clamp-3 font-display text-lg font-semibold leading-snug text-ink-inverse">
+        {title}
+      </span>
+      <span className="relative mt-3 h-0.5 w-10 rounded-full bg-brand" />
+    </div>
+  );
+}
 
 /**
  * One product, as every grid on the site shows it: documents, courses, and
@@ -72,19 +117,12 @@ export function CatalogueCard({
   /** The list price, before GST. The card adds GST for display. */
   priceInPaise: number;
 }) {
-  const { label, icon, tint } = CATALOGUE_KINDS[kind];
-
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition-[border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-line-strong hover:shadow-raised motion-reduce:transform-none">
-      <div aria-hidden className={`flex h-20 items-center px-5 ${tint}`}>
-        <span className="grid h-10 w-10 place-items-center rounded-control bg-surface text-primary shadow-card">
-          <Icon icon={icon} size="lg" />
-        </span>
-      </div>
+      <CatalogueCover kind={kind} title={title} />
 
       <div className="flex flex-1 flex-col p-5">
-        <p className="text-xs font-medium text-ink-subtle">{label}</p>
-        <h3 className="mt-1.5 text-base font-semibold leading-snug">
+        <h3 className="text-base font-semibold leading-snug">
           <Link
             href={href}
             className="text-ink transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-primary"

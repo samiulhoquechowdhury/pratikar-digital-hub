@@ -1,10 +1,10 @@
 "use client";
 
 import { CONTENT_CATEGORIES, type ContentLibraryItem } from "@pratikar/types";
-import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
+import { Alert, Button, EmptyState, SkeletonCards } from "@pratikar/ui";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   CatalogueCard,
@@ -19,6 +19,36 @@ import { CONTENT_CATEGORY_LABELS, CONTENT_KIND } from "@/shared/lib/labels";
 import { categorySlug, LIBRARY_SHELVES } from "@/shared/lib/navigation";
 
 import { useContentLibrary } from "../hooks/useContentLibrary";
+
+/** Cards shown before "Show more" — enough to fill several rows. */
+const PAGE_SIZE = 24;
+
+type SortKey = "title" | "price-asc" | "price-desc" | "newest";
+
+const SORTS: Record<
+  SortKey,
+  {
+    label: string;
+    compare: (a: ContentLibraryItem, b: ContentLibraryItem) => number;
+  }
+> = {
+  title: {
+    label: "Title A–Z",
+    compare: (a, b) => a.title.localeCompare(b.title),
+  },
+  "price-asc": {
+    label: "Price: low to high",
+    compare: (a, b) => a.priceInPaise - b.priceInPaise,
+  },
+  "price-desc": {
+    label: "Price: high to low",
+    compare: (a, b) => b.priceInPaise - a.priceInPaise,
+  },
+  newest: {
+    label: "Newest",
+    compare: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  },
+};
 
 /**
  * The library: e-books, checklists and forms, one shelf per tab.
@@ -49,6 +79,8 @@ export function ContentLibraryList({
       ) ?? ALL,
   );
   const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<SortKey>("title");
+  const [limit, setLimit] = useState(PAGE_SIZE);
 
   const counts = useMemo(() => {
     const byType = new Map<string, number>();
@@ -75,13 +107,18 @@ export function ContentLibraryList({
 
   const visible = useMemo(
     () =>
-      onShelf.filter(
-        (item) =>
-          (category === ALL || item.category === category) &&
-          matchesQuery(item.title, query),
-      ),
-    [onShelf, category, query],
+      onShelf
+        .filter(
+          (item) =>
+            (category === ALL || item.category === category) &&
+            matchesQuery(item.title, query),
+        )
+        .sort(SORTS[sort].compare),
+    [onShelf, category, query, sort],
   );
+
+  // A new filter starts from the top of its own results.
+  useEffect(() => setLimit(PAGE_SIZE), [shelf, category, query, sort]);
 
   const tabs = [
     { slug: null, label: "All", count: items.length },
@@ -167,19 +204,56 @@ export function ContentLibraryList({
               description="Try a shorter search, or choose All."
             />
           ) : (
-            <CatalogueGrid>
-              {visible.map((item) => (
-                <li key={item.id}>
-                  <CatalogueCard
-                    href={`/content-library/${item.id}`}
-                    kind={CONTENT_KIND[item.type]}
-                    title={item.title}
-                    meta={[CONTENT_CATEGORY_LABELS[item.category]]}
-                    priceInPaise={item.priceInPaise}
-                  />
-                </li>
-              ))}
-            </CatalogueGrid>
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <p className="text-sm text-ink-muted" aria-live="polite">
+                  <span className="font-semibold text-ink">
+                    {visible.length}
+                  </span>{" "}
+                  {visible.length === 1 ? "result" : "results"}
+                </p>
+                <label className="flex items-center gap-2 text-sm text-ink-muted">
+                  Sort by
+                  <select
+                    value={sort}
+                    onChange={(event) => setSort(event.target.value as SortKey)}
+                    className="h-9 rounded-control border border-line-strong bg-surface px-2 text-sm text-ink"
+                  >
+                    {(Object.keys(SORTS) as SortKey[]).map((key) => (
+                      <option key={key} value={key}>
+                        {SORTS[key].label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <CatalogueGrid>
+                {visible.slice(0, limit).map((item) => (
+                  <li key={item.id}>
+                    <CatalogueCard
+                      href={`/content-library/${item.id}`}
+                      kind={CONTENT_KIND[item.type]}
+                      title={item.title}
+                      meta={[CONTENT_CATEGORY_LABELS[item.category]]}
+                      priceInPaise={item.priceInPaise}
+                    />
+                  </li>
+                ))}
+              </CatalogueGrid>
+              {visible.length > limit && (
+                <div className="flex flex-col items-center gap-2 pt-2">
+                  <Button
+                    variant="secondary"
+                    onClick={() => setLimit((shown) => shown + PAGE_SIZE)}
+                  >
+                    Show more
+                  </Button>
+                  <p className="text-xs text-ink-subtle">
+                    Showing {limit} of {visible.length}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </>
       )}

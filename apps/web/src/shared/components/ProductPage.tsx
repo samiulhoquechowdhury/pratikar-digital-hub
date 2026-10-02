@@ -20,19 +20,23 @@ export function Breadcrumbs({
 }) {
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
+      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-inverse-muted">
         {trail.map((crumb) => (
           <li key={crumb.href} className="flex items-center gap-1.5">
             <Link
               href={crumb.href}
-              className="transition-colors hover:text-ink"
+              className="transition-colors hover:text-ink-inverse"
             >
               {crumb.label}
             </Link>
-            <Icon icon={ChevronRight} size="xs" className="text-ink-subtle" />
+            <Icon
+              icon={ChevronRight}
+              size="xs"
+              className="text-ink-inverse-muted"
+            />
           </li>
         ))}
-        <li aria-current="page" className="truncate text-ink">
+        <li aria-current="page" className="truncate text-ink-inverse">
           {current}
         </li>
       </ol>
@@ -41,12 +45,19 @@ export function Breadcrumbs({
 }
 
 /**
- * Content on the left, the purchase panel pinned on the right.
+ * Content on the left, the purchase panel pinned on the right — under a navy
+ * title band, with the panel floating over its edge, the way Udemy and
+ * Coursera present a course.
  *
  * Three slots rather than two so the phone order can differ from the desktop
  * one: on a phone the panel comes straight after the title — price and the
  * button a scroll away from the top, not below a long syllabus — while on a
  * desktop it sits in its own sticky column beside everything.
+ *
+ * The band is the header cell's own background, stretched to the viewport's
+ * edges, so it is exactly as tall as the title it holds; the wrapper clips
+ * the overhang without becoming a scroll container, so the panel can still
+ * stick.
  */
 export function ProductLayout({
   header,
@@ -58,19 +69,23 @@ export function ProductLayout({
   children?: ReactNode;
 }) {
   return (
-    <div className="mx-auto max-w-shell px-4 pb-8 pt-8 sm:px-6 lg:px-8">
-      <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-x-16 lg:gap-y-0">
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">{header}</div>
-        {/* Sticky below the header, so the price and the button stay in view
-            while someone reads a long syllabus or list of questions. */}
-        <aside className="lg:sticky lg:top-24 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
-          {aside}
-        </aside>
-        {children && (
-          <div className="min-w-0 lg:col-start-1 lg:row-start-2">
-            {children}
+    <div className="overflow-x-clip">
+      <div className="mx-auto max-w-shell px-4 pb-8 sm:px-6 lg:px-8">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-x-16 lg:gap-y-0">
+          <div className="relative min-w-0 py-10 before:absolute before:inset-y-0 before:-left-[100vw] before:-right-[100vw] before:-z-10 before:bg-surface-inverse lg:col-start-1 lg:row-start-1 lg:py-14">
+            {header}
           </div>
-        )}
+          {/* Sticky below the header, so the price and the button stay in
+              view while someone reads a long syllabus or list of questions. */}
+          <aside className="lg:sticky lg:top-32 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:mt-10 lg:self-start">
+            {aside}
+          </aside>
+          {children && (
+            <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+              {children}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -90,13 +105,13 @@ export function ProductHeading({
   const { label, icon } = CATALOGUE_KINDS[kind];
   return (
     <header className="mt-6">
-      <p className="flex items-center gap-2 text-sm font-medium text-primary">
+      <p className="flex items-center gap-2 text-sm font-semibold text-brand">
         <Icon icon={icon} />
         {label}
       </p>
-      <h1 className="mt-3 text-4xl sm:text-5xl">{title}</h1>
+      <h1 className="mt-3 text-4xl text-ink-inverse sm:text-5xl">{title}</h1>
       {description && (
-        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
+        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-inverse-muted">
           {description}
         </p>
       )}
@@ -105,7 +120,7 @@ export function ProductHeading({
           {meta.map((fact) => (
             <li
               key={fact}
-              className="rounded-full border border-line px-3 py-1 text-sm text-ink-muted"
+              className="rounded-full border border-line-inverse px-3 py-1 text-sm text-ink-inverse-muted"
             >
               {fact}
             </li>
@@ -125,7 +140,7 @@ export function ProductSection({
   children: ReactNode;
 }) {
   return (
-    <section className="mt-12 border-t border-line pt-10">
+    <section className="mt-12 border-t border-line pt-10 first:mt-10 first:border-t-0 first:pt-0">
       <h2 className="text-xl font-semibold">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
