@@ -3,18 +3,13 @@ import {
   BadgeCheck,
   GraduationCap,
   PlayCircle,
-  Scale,
-  Sparkles,
 } from "lucide-react";
 import Link from "next/link";
 
 import { Icon } from "@/shared/components/Icon";
 
 /**
- * The courses banner — the one full-width navy block on the page.
- *
- * Navy is kept off the chrome in this design so that it means something
- * where it does appear: a single strong band between shelves marks the
+ * The courses banner: a navy block between the shelves, marking the
  * product the business most wants to grow. Gold works as text only here, on
  * navy (7.86:1).
  */
@@ -96,71 +91,6 @@ export function CoursesBanner() {
             ))}
           </ul>
         </div>
-      </div>
-    </section>
-  );
-}
-
-/**
- * Two lighter banners for the services that sit beside the catalogue rather
- * than in it. Both describe something the product really does: every
- * template carries a review price, and the assistant exists — labelled
- * Preview because its answers are scripted until the RAG chatbot ships.
- */
-export function FeatureBanners() {
-  return (
-    <section className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
-      <div className="grid gap-5 md:grid-cols-2">
-        <Link
-          href="/documents"
-          className="group relative flex flex-col overflow-hidden rounded-card border border-brand-border bg-brand-subtle p-8 transition-shadow hover:shadow-raised sm:p-10"
-        >
-          <span className="grid h-12 w-12 place-items-center rounded-card bg-surface text-gold-ink shadow-card">
-            <Icon icon={Scale} size="lg" />
-          </span>
-          <h2 className="mt-6 text-2xl font-semibold">
-            Want a lawyer to check it?
-          </h2>
-          <p className="mt-2 max-w-md text-base leading-relaxed text-ink-muted">
-            Add a lawyer&apos;s review to any document before you sign. They
-            read what you filled in and send it back with their notes.
-          </p>
-          <span className="mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
-            Choose a document
-            <Icon
-              icon={ArrowRight}
-              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-            />
-          </span>
-        </Link>
-
-        <Link
-          href="/assistant"
-          className="group relative flex flex-col overflow-hidden rounded-card border border-primary-border bg-primary-subtle p-8 transition-shadow hover:shadow-raised sm:p-10"
-        >
-          <div className="flex items-center gap-3">
-            <span className="grid h-12 w-12 place-items-center rounded-card bg-surface text-primary shadow-card">
-              <Icon icon={Sparkles} size="lg" />
-            </span>
-            <span className="rounded-full bg-surface px-2.5 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-              Preview
-            </span>
-          </div>
-          <h2 className="mt-6 text-2xl font-semibold">
-            Not sure which document you need?
-          </h2>
-          <p className="mt-2 max-w-md text-base leading-relaxed text-ink-muted">
-            Describe your situation in plain words and get pointed to a
-            template, course or guide. An early preview — try it and see.
-          </p>
-          <span className="mt-8 inline-flex items-center gap-1.5 text-sm font-semibold text-ink">
-            Ask the assistant
-            <Icon
-              icon={ArrowRight}
-              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-            />
-          </span>
-        </Link>
       </div>
     </section>
   );

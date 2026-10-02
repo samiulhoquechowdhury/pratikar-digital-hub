@@ -1,4 +1,4 @@
-import type { ContentType } from "@pratikar/types";
+import type { ContentCategory, ContentType } from "@pratikar/types";
 
 /**
  * One description of the site's shape, shared by the header, the mobile
@@ -77,6 +77,14 @@ export const shelfHref = (type: ContentType) => {
   const shelf = LIBRARY_SHELVES.find((s) => s.type === type);
   return shelf ? `/content-library?shelf=${shelf.slug}` : "/content-library";
 };
+
+/** A library category as it appears in a URL: PROPERTY_DOCUMENTATION → property-documentation. */
+export const categorySlug = (category: ContentCategory) =>
+  category.toLowerCase().replace(/_/g, "-");
+
+/** The library filtered to one category, across every shelf. */
+export const categoryHref = (category: ContentCategory) =>
+  `/content-library?category=${categorySlug(category)}`;
 
 /**
  * The legal and contact pages, in the order the footer and each page's own

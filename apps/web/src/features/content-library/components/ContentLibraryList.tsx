@@ -16,7 +16,7 @@ import {
   matchesQuery,
 } from "@/shared/components/CatalogueToolbar";
 import { CONTENT_CATEGORY_LABELS, CONTENT_KIND } from "@/shared/lib/labels";
-import { LIBRARY_SHELVES } from "@/shared/lib/navigation";
+import { categorySlug, LIBRARY_SHELVES } from "@/shared/lib/navigation";
 
 import { useContentLibrary } from "../hooks/useContentLibrary";
 
@@ -40,7 +40,14 @@ export function ContentLibraryList({
     LIBRARY_SHELVES.find((s) => s.slug === searchParams.get("shelf")) ?? null;
 
   const { items, isLoading, error } = useContentLibrary(initial);
-  const [category, setCategory] = useState(ALL);
+  // A category can arrive in the URL, from the home page's topic tiles. It
+  // seeds the chip rather than owning it, so picking another chip still works.
+  const [category, setCategory] = useState<string>(
+    () =>
+      CONTENT_CATEGORIES.find(
+        (value) => categorySlug(value) === searchParams.get("category"),
+      ) ?? ALL,
+  );
   const [query, setQuery] = useState("");
 
   const counts = useMemo(() => {
