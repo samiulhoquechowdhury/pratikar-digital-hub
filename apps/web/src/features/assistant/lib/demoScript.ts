@@ -139,7 +139,7 @@ export const DEMO_SCRIPT: ScriptEntry[] = [
     ],
     links: [
       { href: "/documents", label: "Browse templates" },
-      { href: "/dashboard", label: "Your documents" },
+      { href: "/dashboard/documents", label: "Your documents" },
     ],
   },
   {

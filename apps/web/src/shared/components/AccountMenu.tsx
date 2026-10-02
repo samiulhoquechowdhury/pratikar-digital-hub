@@ -7,9 +7,11 @@ import { useDismissable } from "../hooks/useDismissable";
 
 const ACCOUNT_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard#documents", label: "My documents" },
-  { href: "/dashboard#courses", label: "My courses" },
-  { href: "/dashboard#purchases", label: "Purchases" },
+  { href: "/dashboard/documents", label: "My documents" },
+  { href: "/dashboard/courses", label: "My courses" },
+  { href: "/dashboard/library", label: "My library" },
+  { href: "/dashboard/orders", label: "Orders & invoices" },
+  { href: "/dashboard/settings", label: "Account settings" },
 ];
 
 /** First letter of the name, or of the role — never an empty circle. */

@@ -213,10 +213,10 @@ export class PaymentsService {
 
     const destination =
       order.itemType === "COURSE"
-        ? { path: "/dashboard#courses", label: "Start the course" }
+        ? { path: "/dashboard/courses", label: "Start the course" }
         : order.itemType === "CONTENT_ITEM"
-          ? { path: "/dashboard#purchases", label: "Download it" }
-          : { path: "/dashboard#documents", label: "Open your document" };
+          ? { path: "/dashboard/library", label: "Download it" }
+          : { path: "/dashboard/documents", label: "Open your document" };
 
     await this.notifications.send({
       type: "purchase",

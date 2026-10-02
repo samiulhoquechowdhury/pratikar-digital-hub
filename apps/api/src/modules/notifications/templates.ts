@@ -89,7 +89,7 @@ export function purchaseConfirmation(p: PurchasePayload): RenderedEmail {
     <tr><td style="padding:10px 0;border-top:1px solid #e5e7eb;font-weight:600">Total paid</td><td style="padding:10px 0;border-top:1px solid #e5e7eb;text-align:right;font-weight:600">Rs ${rupees(total)}</td></tr>
   </table>
   ${button(`${site}${p.destinationPath}`, p.destinationLabel)}
-  <p style="margin:0;font-size:14px;color:#4b5563">Your invoice is in <a href="${site}/dashboard#purchases" style="color:#6f561b">your account</a>.</p>`,
+  <p style="margin:0;font-size:14px;color:#4b5563">Your invoice is in <a href="${site}/dashboard/orders" style="color:#6f561b">your account</a>.</p>`,
     ),
   };
 }
@@ -109,7 +109,7 @@ export function reviewReady(p: ReviewReadyPayload): RenderedEmail {
         ? `${p.customerName}, your review is back`
         : "Your review is back",
       `<p style="margin:0 0 16px">A professional has finished reviewing <strong>${p.documentTitle}</strong>. Their corrections and comments are on the reviewed copy.</p>
-  ${button(`${site}/dashboard#documents`, "Open your documents")}`,
+  ${button(`${site}/dashboard/documents`, "Open your documents")}`,
     ),
   };
 }
@@ -135,7 +135,7 @@ export function refundIssued(p: RefundPayload): RenderedEmail {
         ? `${p.customerName}, your refund is on its way`
         : "Your refund is on its way",
       `<p style="margin:0 0 16px">We've refunded <strong>Rs ${rupees(p.totalInPaise)}</strong> for ${p.itemTitle}. It usually reaches your account within 5–7 working days, depending on your bank.</p>
-  <p style="margin:0 0 16px">Access to it has ended, and a credit note is in <a href="${SITE_URL()}/dashboard#purchases" style="color:#6f561b">your account</a> alongside the original invoice.</p>`,
+  <p style="margin:0 0 16px">Access to it has ended, and a credit note is in <a href="${SITE_URL()}/dashboard/orders" style="color:#6f561b">your account</a> alongside the original invoice.</p>`,
     ),
   };
 }

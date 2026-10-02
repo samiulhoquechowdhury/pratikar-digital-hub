@@ -99,7 +99,7 @@ export function SiteHeader() {
               className="h-9 w-24 rounded-control bg-surface-sunken"
             />
           ) : user ? (
-            <AccountMenu user={user} onLogout={logout} />
+            <AccountMenu user={user} onLogout={() => void logout()} />
           ) : (
             <>
               {/* Two buttons, not one. "Sign in" alone reads as a members-only

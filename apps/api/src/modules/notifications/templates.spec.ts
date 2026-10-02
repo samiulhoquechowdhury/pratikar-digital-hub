@@ -5,7 +5,7 @@ const purchase = {
   itemTitle: "GST for Freelancers",
   amountInPaise: 100_000,
   gstInPaise: 18_000,
-  destinationPath: "/dashboard#courses",
+  destinationPath: "/dashboard/courses",
   destinationLabel: "Start the course",
 };
 
@@ -58,7 +58,7 @@ describe("purchaseConfirmation", () => {
    */
   it("links to the account rather than attaching the invoice", () => {
     const { html } = purchaseConfirmation(purchase);
-    expect(html).toContain("/dashboard#purchases");
+    expect(html).toContain("/dashboard/orders");
     expect(html).not.toMatch(/attachment|\.pdf/i);
   });
 
@@ -69,7 +69,7 @@ describe("purchaseConfirmation", () => {
       // A relative href in an email goes nowhere — there is no page it is
       // relative to.
       const { html } = purchaseConfirmation(purchase);
-      expect(html).toContain("https://pratikar.example/dashboard#courses");
+      expect(html).toContain("https://pratikar.example/dashboard/courses");
       expect(html).not.toMatch(/href="\//);
     } finally {
       process.env.PUBLIC_SITE_URL = original;
@@ -93,7 +93,7 @@ describe("reviewReady", () => {
       documentTitle: "Rent Agreement",
     });
     expect(mail.subject).toContain("Rent Agreement");
-    expect(mail.html).toContain("/dashboard#documents");
+    expect(mail.html).toContain("/dashboard/documents");
   });
 });
 
