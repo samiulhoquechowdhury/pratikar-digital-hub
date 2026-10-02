@@ -5,6 +5,7 @@ import {
   Logger,
   NotFoundException,
 } from "@nestjs/common";
+import type { Order } from "@prisma/client";
 
 import { PrismaService } from "../../prisma/prisma.service";
 import {
@@ -38,6 +39,12 @@ interface RazorpayWebhookBody {
     payment?: { entity?: { id?: string; order_id?: string } };
   };
 }
+
+/** The fields settling a payment reads from an order. */
+export type SettleableOrder = Pick<
+  Order,
+  "id" | "userId" | "itemType" | "status" | "courseId" | "generatedDocumentId"
+>;
 
 @Injectable()
 export class PaymentsService {
@@ -116,14 +123,33 @@ export class PaymentsService {
       return;
     }
 
-    // Razorpay retries a webhook until it gets a 2xx, so this handler will be
-    // called more than once for the same payment. The conditional update is
-    // the idempotency guard: only the delivery that actually moves the row
-    // out of PENDING goes on to grant the entitlement, so a retry can't
-    // enrol the customer on a course twice.
+    await this.settleCapturedPayment(order, event.razorpayPaymentId);
+  }
+
+  /**
+   * Everything that follows a captured payment: mark the order paid, hand
+   * over what was bought, invoice it, tell the customer.
+   *
+   * Shared by the webhook and by reconciliation (a missed webhook, caught by
+   * asking Razorpay directly), so the two can't drift apart. Both can run for
+   * the same payment, in either order and more than once — hence the guards.
+   *
+   * FAILED is claimable as well as PENDING. Checkout lets a customer retry
+   * after a declined card, on the same order: the first attempt's
+   * payment.failed marks the order FAILED, and the retry's capture then has
+   * to be able to move it on. Refusing that would take the customer's money
+   * and give them nothing.
+   */
+  async settleCapturedPayment(
+    order: SettleableOrder,
+    razorpayPaymentId: string,
+  ) {
+    // The conditional update is the idempotency guard: only the call that
+    // actually moves the row to PAID goes on to grant the entitlement, so a
+    // redelivery can't enrol the customer on a course twice.
     const claimed = await this.prisma.order.updateMany({
-      where: { id: order.id, status: "PENDING" },
-      data: { status: "PAID", razorpayPaymentId: event.razorpayPaymentId },
+      where: { id: order.id, status: { in: ["PENDING", "FAILED"] } },
+      data: { status: "PAID", razorpayPaymentId },
     });
     if (claimed.count > 0) {
       await this.grantEntitlement(order);
@@ -141,11 +167,12 @@ export class PaymentsService {
       await this.invoices.issueForOrder(order.id);
     }
 
-    // Only on the delivery that actually claimed the order, so a Razorpay
-    // redelivery does not send a second confirmation for one payment.
+    // Only on the call that actually claimed the order, so a redelivery does
+    // not send a second confirmation for one payment.
     if (claimed.count > 0) {
       await this.notifyPurchase(order.id);
     }
+    return { settled: claimed.count > 0 };
   }
 
   /**

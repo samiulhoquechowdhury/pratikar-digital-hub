@@ -18,6 +18,13 @@ export type CheckoutStatus =
 
 const POLL_INTERVAL_MS = 2000;
 const POLL_TIMEOUT_MS = 60_000;
+/**
+ * When the webhook still hasn't landed, ask the server to check with Razorpay
+ * directly — first after this long, then every CONFIRM_EVERY_MS. A lost
+ * webhook is otherwise only caught by the ten-minute background sweep.
+ */
+const CONFIRM_AFTER_MS = 10_000;
+const CONFIRM_EVERY_MS = 20_000;
 
 export function useCheckout(onPaid?: () => void) {
   const [status, setStatus] = useState<CheckoutStatus>("idle");
@@ -38,25 +45,45 @@ export function useCheckout(onPaid?: () => void) {
     (orderId: string) => {
       setStatus("confirming");
       const startedAt = Date.now();
+      let nextConfirmAt = startedAt + CONFIRM_AFTER_MS;
+      let done = false;
+
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearInterval(timer);
+        setStatus("paid");
+        onPaid?.();
+      };
 
       const timer = setInterval(() => {
+        if (Date.now() >= nextConfirmAt) {
+          nextConfirmAt += CONFIRM_EVERY_MS;
+          void paymentsApi
+            .confirm(orderId)
+            .then((order) => {
+              if (order.status === "PAID") finish();
+            })
+            .catch(() => {
+              /* the poll below carries on regardless */
+            });
+        }
+
         void paymentsApi
           .listMine()
           .then((orders) => {
+            if (done) return;
             const order = orders.find((o) => o.id === orderId);
+            // FAILED is not an answer here. The widget only calls onSuccess
+            // after a payment succeeds, so a FAILED order at this point was
+            // left by an earlier declined attempt in the same checkout — and
+            // the successful retry's capture will move it to PAID.
             if (order?.status === "PAID") {
-              clearInterval(timer);
-              setStatus("paid");
-              onPaid?.();
-              return;
-            }
-            if (order?.status === "FAILED") {
-              clearInterval(timer);
-              setError("The payment didn't go through.");
-              setStatus("failed");
+              finish();
               return;
             }
             if (Date.now() - startedAt > POLL_TIMEOUT_MS) {
+              done = true;
               clearInterval(timer);
               // Deliberately not "failed": the webhook may still arrive, and
               // the money may well have left the customer's account.

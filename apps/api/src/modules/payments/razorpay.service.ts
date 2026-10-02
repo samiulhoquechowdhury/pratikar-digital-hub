@@ -11,8 +11,8 @@ import {
 // ever swap payment providers — nothing else should import the Razorpay SDK
 // directly.
 //
-// Uses global fetch rather than the `razorpay` npm package: we need exactly two
-// endpoints, and the SDK would add a dependency (plus its own transitive tree)
+// Uses global fetch rather than the `razorpay` npm package: we need a handful
+// of endpoints, and the SDK would add a dependency (plus its own transitive tree)
 // for the sake of a Basic-auth header.
 
 const API_BASE = "https://api.razorpay.com/v1";
@@ -23,6 +23,13 @@ const TIMEOUT_MS = 15_000;
 /** Shape of Razorpay's error envelope: `{ error: { code, description, ... } }`. */
 interface RazorpayErrorBody {
   error?: { code?: string; description?: string; reason?: string };
+}
+
+/** One payment attempt against an order, as Razorpay reports it. */
+export interface RazorpayPayment {
+  id: string;
+  /** created → authorized → captured, or failed; refunded after a refund. */
+  status: "created" | "authorized" | "captured" | "refunded" | "failed";
 }
 
 @Injectable()
@@ -96,9 +103,36 @@ export class RazorpayService {
     return { id: refund.id };
   }
 
-  private async post<T>(
+  /**
+   * Every payment attempt made against one of our Razorpay orders.
+   *
+   * An order can have several: checkout lets a customer retry after a
+   * declined card, and each try is its own payment. This is how a missed
+   * webhook is caught — asked server to server, so unlike anything the
+   * browser reports, it can be trusted.
+   */
+  async fetchOrderPayments(
+    razorpayOrderId: string,
+  ): Promise<RazorpayPayment[]> {
+    const page = await this.request<{ items?: RazorpayPayment[] }>(
+      "GET",
+      `/orders/${encodeURIComponent(razorpayOrderId)}/payments`,
+    );
+    return (page.items ?? []).map(({ id, status }) => ({ id, status }));
+  }
+
+  private post<T>(
     path: string,
     body: unknown,
+    idempotencyKey?: string,
+  ): Promise<T> {
+    return this.request<T>("POST", path, body, idempotencyKey);
+  }
+
+  private async request<T>(
+    method: "GET" | "POST",
+    path: string,
+    body?: unknown,
     idempotencyKey?: string,
   ): Promise<T> {
     if (!this.keyId || !this.keySecret) {
@@ -112,15 +146,15 @@ export class RazorpayService {
     let response: Response;
     try {
       response = await fetch(`${API_BASE}${path}`, {
-        method: "POST",
+        method,
         headers: {
           Authorization: `Basic ${credentials}`,
-          "Content-Type": "application/json",
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
           ...(idempotencyKey
             ? { "X-Razorpay-Idempotency-Key": idempotencyKey }
             : {}),
         },
-        body: JSON.stringify(body),
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
     } catch (cause) {
