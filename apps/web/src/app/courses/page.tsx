@@ -1,8 +1,9 @@
 import type { Course } from "@pratikar/types";
 import type { Metadata } from "next";
 
-import { CourseList } from "@/features/lms";
+import { CourseList, CoursesComingSoon } from "@/features/lms";
 import { PageIntro, PageSection } from "@/shared/components/PageIntro";
+import { COURSES_LIVE } from "@/shared/lib/features";
 import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
 export const metadata: Metadata = {
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CoursesPage() {
+  if (!COURSES_LIVE) return <CoursesComingSoon />;
   const courses = dataOf(await serverGet<Course[]>("/courses"));
   return (
     <>

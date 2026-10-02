@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 
 import { useDismissable } from "../hooks/useDismissable";
+import { COURSES_LIVE } from "../lib/features";
 import { CONTENT_CATEGORY_LABELS } from "../lib/labels";
 import { categoryHref, shelfHref } from "../lib/navigation";
 
@@ -54,7 +55,9 @@ export const OFFERINGS: {
   {
     href: "/courses",
     label: "Courses",
-    hint: "Video courses with a certificate",
+    hint: COURSES_LIVE
+      ? "Video courses with a certificate"
+      : "Coming soon — video courses with a certificate",
     icon: GraduationCap,
   },
   {

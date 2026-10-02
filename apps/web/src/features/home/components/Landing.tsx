@@ -24,6 +24,7 @@ import {
 import Link from "next/link";
 
 import { Icon } from "@/shared/components/Icon";
+import { COURSES_LIVE } from "@/shared/lib/features";
 import { CONTENT_CATEGORY_LABELS } from "@/shared/lib/labels";
 import { categoryHref, shelfHref } from "@/shared/lib/navigation";
 
@@ -176,6 +177,8 @@ interface OfferingCard {
   unit: string;
   examples: string[];
   cta: string;
+  /** Not on sale yet: shown with a "Coming soon" tag instead of a count. */
+  soon?: boolean;
 }
 
 /**
@@ -227,9 +230,10 @@ export function Offerings({ summary }: { summary: CatalogueSummary }) {
       count: summary.courses.count,
       unit: "courses",
       examples: summary.courses.examples,
-      cta: "Explore courses",
+      cta: COURSES_LIVE ? "Explore courses" : "See what's coming",
+      soon: !COURSES_LIVE,
     },
-  ].filter((card) => card.count > 0);
+  ].filter((card) => card.count > 0 || card.soon);
 
   return (
     <section aria-labelledby="offerings-title" className={`${FRAME} py-20`}>
@@ -316,7 +320,9 @@ export function Offerings({ summary }: { summary: CatalogueSummary }) {
                   <Icon icon={card.icon} size="md" />
                 </span>
                 <span className="rounded-full bg-brand-subtle px-2.5 py-1 text-xs font-semibold tabular-nums text-gold-ink">
-                  {countLabel(card.count)} {card.unit}
+                  {card.soon
+                    ? "Coming soon"
+                    : `${countLabel(card.count)} ${card.unit}`}
                 </span>
               </div>
               <h3 className="mt-5 text-lg font-semibold">{card.title}</h3>

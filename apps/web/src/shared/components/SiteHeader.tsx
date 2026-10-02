@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { COURSES_LIVE } from "../lib/features";
 import { useAuth } from "../providers/AuthProvider";
 
 import { AccountMenu } from "./AccountMenu";
@@ -20,7 +21,7 @@ const CATEGORY_BAR = [
   { href: "/content-library?shelf=forms", label: "Legal forms" },
   { href: "/content-library?shelf=checklists", label: "Checklists" },
   { href: "/content-library?shelf=ebooks", label: "E-books" },
-  { href: "/courses", label: "Courses" },
+  { href: "/courses", label: COURSES_LIVE ? "Courses" : "Courses (soon)" },
   { href: "/assistant", label: "AI assistant" },
   { href: "/verify", label: "Verify a certificate" },
 ];

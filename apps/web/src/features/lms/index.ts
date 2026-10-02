@@ -12,3 +12,4 @@ export * from "./hooks/useCourses";
 export * from "./hooks/useCourseOutline";
 export * from "./hooks/useQuizAttempt";
 export * from "./lib/certificate";
+export * from "./components/CoursesComingSoon";

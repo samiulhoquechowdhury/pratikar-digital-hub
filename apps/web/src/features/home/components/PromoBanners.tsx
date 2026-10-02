@@ -7,6 +7,7 @@ import {
 import Link from "next/link";
 
 import { Icon } from "@/shared/components/Icon";
+import { COURSES_LIVE } from "@/shared/lib/features";
 
 /**
  * The courses banner: a navy block between the shelves, marking the
@@ -26,7 +27,7 @@ export function CoursesBanner() {
         <div className="relative grid items-center gap-10 lg:grid-cols-[1.2fr_1fr]">
           <div>
             <p className="text-sm font-semibold text-brand">
-              Certificate courses
+              {COURSES_LIVE ? "Certificate courses" : "Coming soon"}
             </p>
             <h2 className="mt-3 font-display text-3xl font-semibold leading-tight text-ink-inverse sm:text-4xl">
               Learn the law you actually use — and prove it.
@@ -40,7 +41,7 @@ export function CoursesBanner() {
                 href="/courses"
                 className="inline-flex items-center gap-2 rounded-control bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
-                Explore courses
+                {COURSES_LIVE ? "Explore courses" : "See what's coming"}
                 <Icon icon={ArrowRight} />
               </Link>
               <Link
