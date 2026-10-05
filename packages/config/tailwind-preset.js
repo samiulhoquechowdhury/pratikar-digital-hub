@@ -161,7 +161,6 @@ module.exports = {
         /** Gold as a *text* colour on light surfaces. 6.95:1 — see header note. */
         "gold-ink": PALETTE.gold[800],
 
-        /** The navy half of the brand, for chrome and secondary emphasis. */
         /**
          * The logo's gold wordmark, as a top-to-bottom gradient like the
          * client's artwork. Deeper on white so "PRATIKAR" still reads; the
@@ -170,7 +169,14 @@ module.exports = {
          */
         "wordmark-light": { from: PALETTE.gold[600], to: PALETTE.gold[800] },
         "wordmark-dark": { from: PALETTE.gold[300], to: PALETTE.gold[500] },
+        /**
+         * Data marks. Navy-400 sits in the lightness band a chart mark needs
+         * (validated: L 0.43-0.77, >= 3:1 on white) — brand navy-800 is too
+         * dark to read as a bar rather than a hole.
+         */
+        "chart-bar": PALETTE.navy[400],
 
+        /** The navy half of the brand, for chrome and secondary emphasis. */
         primary: {
           DEFAULT: PALETTE.navy[800],
           hover: PALETTE.navy[700],
