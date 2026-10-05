@@ -8,3 +8,4 @@ export * from "./documents";
 export * from "./catalogue";
 export * from "./assessments";
 export * from "./billing";
+export * from "./gst";

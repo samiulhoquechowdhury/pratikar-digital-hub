@@ -24,6 +24,8 @@ export interface InvoiceView {
     name: string | null;
     email: string | null;
     phone: string | null;
+    /** One line, or null when the customer hasn't given an address. */
+    address: string | null;
     gstin: string | null;
   };
   description: string;
@@ -185,6 +187,9 @@ function drawInvoice(doc: PDFKit.PDFDocument, view: InvoiceView): void {
     .fontSize(10)
     .fillColor(INK)
     .text(view.buyer.name ?? "Customer");
+  if (view.buyer.address) {
+    doc.fontSize(9).fillColor(MUTED).text(view.buyer.address);
+  }
   const contact = [view.buyer.email, view.buyer.phone]
     .filter(Boolean)
     .join("  ·  ");

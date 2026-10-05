@@ -8,6 +8,8 @@ import {
   AuditTargetType,
 } from "../audit/audit.service";
 
+import type { UpdateProfileDto } from "./dto/update-profile.dto";
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -89,10 +91,13 @@ export class UsersService {
     return user;
   }
 
-  async updateProfile(id: string, changes: { name: string }) {
+  async updateProfile(id: string, changes: UpdateProfileDto) {
+    // Only what the form sent: a field left out is left alone, and null
+    // (an emptied box) clears it. Email, phone and role are not in the DTO.
+    const { name, addressLine, city, stateCode, pincode } = changes;
     await this.prisma.user.update({
       where: { id },
-      data: { name: changes.name },
+      data: { name, addressLine, city, stateCode, pincode },
     });
     return this.getProfile(id);
   }
@@ -107,6 +112,10 @@ export class UsersService {
         phone: true,
         role: true,
         createdAt: true,
+        addressLine: true,
+        city: true,
+        stateCode: true,
+        pincode: true,
       },
     });
   }

@@ -58,6 +58,12 @@ describe("AssistantChat", () => {
     ).toBeTruthy();
     const link = screen.getByRole("link", { name: /Rent Agreement ·/ });
     expect(link.getAttribute("href")).toBe("/documents/t1");
+    // A recommended template can be filled in by chat straight away.
+    expect(
+      screen
+        .getByRole("link", { name: /Fill in “Rent Agreement” by chat/ })
+        .getAttribute("href"),
+    ).toBe("/documents/t1?fill=chat");
     expect(ask).toHaveBeenCalledWith([
       { role: "user", content: "I need a rent agreement" },
     ]);

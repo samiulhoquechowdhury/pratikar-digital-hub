@@ -26,13 +26,22 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String?
-  email     String?  @unique
-  phone     String?  @unique
-  role      Role     @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id    String  @id @default(uuid())
+  name  String?
+  email String? @unique
+  phone String? @unique
+  role  Role    @default(CUSTOMER)
+
+  /// Billing address, for the invoice. The state decides the GST place of
+  /// supply (IGST Act s12(2)(b)): a customer in another state is billed
+  /// IGST rather than CGST + SGST.
+  addressLine String?
+  city        String?
+  /// Two-digit GST state code, e.g. "19" for West Bengal.
+  stateCode   String?
+  pincode     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   sessions           Session[]
   generatedDocuments GeneratedDocument[]

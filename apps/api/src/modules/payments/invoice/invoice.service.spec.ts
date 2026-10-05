@@ -14,7 +14,15 @@ const ORDER = {
   itemType: "COURSE",
   amount: 100_000, // Rs 1,000.00
   gstAmount: 18_000, // Rs 180.00
-  user: { name: "Asha Rao", email: "asha@example.com", phone: null },
+  user: {
+    name: "Asha Rao",
+    email: "asha@example.com",
+    phone: null,
+    addressLine: null as string | null,
+    city: null as string | null,
+    stateCode: null as string | null,
+    pincode: null as string | null,
+  },
   generatedDocument: null,
   contentLibraryItem: null,
   course: { title: "GST for Freelancers" },
@@ -47,6 +55,8 @@ function build(
   opts: {
     existingInvoice?: unknown;
     createImpl?: jest.Mock;
+    /** The order to issue against, when the test needs a different buyer. */
+    order?: unknown;
     envOverrides?: Record<string, string | undefined>;
   } = {},
 ) {
@@ -81,7 +91,7 @@ function build(
       findUnique: jest.fn().mockResolvedValue(opts.existingInvoice ?? null),
       update: jest.fn(),
     },
-    order: { findUnique: jest.fn().mockResolvedValue(ORDER) },
+    order: { findUnique: jest.fn().mockResolvedValue(opts.order ?? ORDER) },
     $transaction: jest.fn((cb: (client: typeof tx) => unknown) => cb(tx)),
   };
   const storage = {
@@ -131,6 +141,41 @@ describe("InvoiceService.issueForOrder", () => {
       igstAmount: 0,
       totalAmount: 118_000,
       taxRatePercent: 18,
+    });
+  });
+
+  // The customer's own state decides the place of supply (IGST Act
+  // s12(2)(b)); a different state from the supplier's is inter-state.
+  it("bills IGST to a customer whose address is in another state", async () => {
+    const { service, tx } = build({
+      order: {
+        ...ORDER,
+        user: { ...ORDER.user, stateCode: "27", city: "Mumbai" },
+      },
+    });
+
+    await service.issueForOrder("ord-1");
+
+    expect(invoiceWrittenBy(tx)).toMatchObject({
+      placeOfSupply: "27",
+      cgstAmount: 0,
+      sgstAmount: 0,
+      igstAmount: 18_000,
+    });
+  });
+
+  it("splits CGST and SGST for a customer in the supplier's state", async () => {
+    const { service, tx } = build({
+      order: { ...ORDER, user: { ...ORDER.user, stateCode: "19" } },
+    });
+
+    await service.issueForOrder("ord-1");
+
+    expect(invoiceWrittenBy(tx)).toMatchObject({
+      placeOfSupply: "19",
+      cgstAmount: 9_000,
+      sgstAmount: 9_000,
+      igstAmount: 0,
     });
   });
 
@@ -264,6 +309,7 @@ describe("renderInvoicePdf", () => {
       name: "Asha Rao",
       email: "asha@example.com",
       phone: null,
+      address: "12 Park Street, Kolkata, West Bengal 700016",
       gstin: null,
     },
     description: "GST for Freelancers",

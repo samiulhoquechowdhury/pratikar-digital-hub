@@ -67,10 +67,22 @@ function fromReply(reply: ChatReply): DemoAnswer {
     .filter(Boolean);
   return {
     paragraphs,
-    links: reply.sources.map((source) => ({
-      href: source.href,
-      label: `${source.title} · ${formatPaise(grossPaise(source.priceInPaise))}`,
-    })),
+    links: reply.sources.flatMap((source) => [
+      {
+        href: source.href,
+        label: `${source.title} · ${formatPaise(grossPaise(source.priceInPaise))}`,
+      },
+      // A template can be filled in by conversation too: straight into that
+      // tab, so the conversation carries on where it started.
+      ...(source.sourceType === "template"
+        ? [
+            {
+              href: `${source.href}?fill=chat`,
+              label: `Fill in “${source.title}” by chat`,
+            },
+          ]
+        : []),
+    ]),
   };
 }
 

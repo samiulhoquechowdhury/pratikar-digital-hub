@@ -11,7 +11,7 @@ import {
 import { grossPaise } from "@pratikar/utils";
 import { PencilLine, Sparkles, type LucideIcon } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Icon } from "@/shared/components/Icon";
 import {
@@ -254,6 +254,15 @@ function FillOptions({
   error: string | null;
 }) {
   const [mode, setMode] = useState<FillMode>("form");
+
+  // Arriving from the assistant's "Fill in by chat" link opens the chat tab.
+  // Read once from the address rather than through useSearchParams, which
+  // would need a Suspense boundary around the whole product page.
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("fill") === "chat") {
+      setMode("chat");
+    }
+  }, []);
   const [handedOver, setHandedOver] = useState<FilledData | null>(null);
   const [aiUnavailable, setAiUnavailable] = useState(false);
   // A fresh form each time answers arrive from the chat, so it starts from
