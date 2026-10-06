@@ -1,8 +1,11 @@
 import type { Template } from "@pratikar/types";
+import { SkeletonCards } from "@pratikar/ui";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 
 import { TemplateList } from "@/features/documents";
-import { PageIntro, PageSection } from "@/shared/components/PageIntro";
+import { CatalogueHeader } from "@/shared/catalogue";
+import { PageSection } from "@/shared/components/PageIntro";
 import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
 export const metadata: Metadata = {
@@ -21,13 +24,21 @@ export default async function DocumentsPage() {
   const templates = dataOf(await serverGet<Template[]>("/documents/templates"));
   return (
     <>
-      <PageIntro
-        eyebrow="Documents"
+      <CatalogueHeader
+        eyebrow="Document generator"
         title="Legal documents, ready to sign"
-        description="Answer a few plain-language questions and get a finished document as a Word file and a PDF. Add a lawyer's review if you'd like a second pair of eyes."
+        description="Answer a few plain-language questions and get a finished document as a Word file and a PDF — with a lawyer's review if you'd like one."
+        basePath="/documents"
+        popular={["Rent agreement", "Offer letter"]}
       />
-      <PageSection className="pb-8">
-        <TemplateList initial={templates} />
+      <PageSection className="pb-12">
+        {/* Filters live in the URL, which Next only reads inside Suspense
+            on a statically rendered page. */}
+        <Suspense
+          fallback={<SkeletonCards media={false} label="Loading templates…" />}
+        >
+          <TemplateList initial={templates} />
+        </Suspense>
       </PageSection>
     </>
   );

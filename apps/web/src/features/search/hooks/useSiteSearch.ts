@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { contentLibraryApi } from "@/features/content-library/api/contentLibraryApi";
 import { documentsApi } from "@/features/documents/api/documentsApi";
 import { lmsApi } from "@/features/lms/api/lmsApi";
+import { matchesWords } from "@/shared/catalogue";
+import { COURSES_LIVE } from "@/shared/lib/features";
 
 export interface SiteSearchResults {
   templates: Template[];
@@ -15,8 +17,13 @@ export interface SiteSearchResults {
 
 const EMPTY: SiteSearchResults = { templates: [], courses: [], library: [] };
 
+/**
+ * Every word of the search starts a word of the text, in any order — the
+ * same rule as the catalogue pages' search, so "deed sale" finds "Sale
+ * Deed" wherever someone types it.
+ */
 const matches = (haystack: string | null | undefined, needle: string) =>
-  (haystack ?? "").toLowerCase().includes(needle);
+  matchesWords(haystack ?? "", needle);
 
 /**
  * Site-wide search.
@@ -67,18 +74,24 @@ export function useSiteSearch(query: string) {
 
         setIncomplete(failed);
         setResults({
-          templates: templates.filter(
-            (t) => matches(t.title, needle) || matches(t.category, needle),
+          templates: templates.filter((t) =>
+            matches(`${t.title} ${t.category}`, needle),
           ),
-          courses: courses.filter(
-            (c) => matches(c.title, needle) || matches(c.description, needle),
-          ),
-          library: library.filter(
+          // Not searched while courses are coming soon: a result would lead
+          // to a page that says so.
+          courses: COURSES_LIVE
+            ? courses.filter((c) =>
+                matches(`${c.title} ${c.description ?? ""}`, needle),
+              )
+            : [],
+          library: library.filter((i) =>
             // The type too, so "checklist" or "form" finds the whole shelf.
-            (i) =>
-              matches(i.title, needle) ||
-              matches(i.category.replaceAll("_", " "), needle) ||
-              matches(i.type === "EBOOK" ? "e-book ebook" : i.type, needle),
+            matches(
+              `${i.title} ${i.category.replaceAll("_", " ")} ${
+                i.type === "EBOOK" ? "e-book ebook" : i.type
+              }`,
+              needle,
+            ),
           ),
         });
       })

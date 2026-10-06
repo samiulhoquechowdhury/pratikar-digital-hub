@@ -1,21 +1,45 @@
 "use client";
 
 import type { Template } from "@pratikar/types";
-import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 
 import {
-  CatalogueCard,
-  CatalogueGrid,
-} from "@/shared/components/CatalogueCard";
-import {
-  ALL,
-  CatalogueToolbar,
-  matchesQuery,
-} from "@/shared/components/CatalogueToolbar";
+  CatalogueBrowser,
+  priceFacet,
+  type FacetDef,
+  type SortDef,
+} from "@/shared/catalogue";
+import { CatalogueCard } from "@/shared/components/CatalogueCard";
+import { CatalogueRow } from "@/shared/components/CatalogueRow";
 import { templateCategoryLabel } from "@/shared/lib/labels";
 
 import { useTemplates } from "../hooks/useTemplates";
+
+const SORTS: SortDef<Template>[] = [
+  {
+    id: "title",
+    label: "Title A–Z",
+    compare: (a, b) => a.title.localeCompare(b.title),
+  },
+  {
+    id: "newest",
+    label: "Newest first",
+    compare: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  },
+  {
+    id: "price-asc",
+    label: "Price: low to high",
+    compare: (a, b) => a.priceInPaise - b.priceInPaise,
+  },
+  {
+    id: "price-desc",
+    label: "Price: high to low",
+    compare: (a, b) => b.priceInPaise - a.priceInPaise,
+  },
+];
+
+const questions = (template: Template) =>
+  `${template.fieldSchema.length} ${template.fieldSchema.length === 1 ? "question" : "questions"}`;
 
 /**
  * The template catalogue — open to visitors, since seeing what can be
@@ -27,82 +51,62 @@ import { useTemplates } from "../hooks/useTemplates";
  */
 export function TemplateList({ initial }: { initial?: Template[] } = {}) {
   const { templates, isLoading, error } = useTemplates(initial);
-  const [category, setCategory] = useState(ALL);
-  const [query, setQuery] = useState("");
 
-  const categories = useMemo(
-    () =>
-      Array.from(new Set(templates.map((t) => t.category).filter(Boolean)))
-        .sort((a, b) => a.localeCompare(b))
-        .map((value) => ({ value, label: templateCategoryLabel(value) })),
+  const facets = useMemo<FacetDef<Template>[]>(
+    () => [
+      {
+        id: "category",
+        label: "Category",
+        options: Array.from(
+          new Set(templates.map((t) => t.category).filter(Boolean)),
+        )
+          .sort((a, b) => a.localeCompare(b))
+          .map((value) => ({ value, label: templateCategoryLabel(value) })),
+        valuesOf: (template) => [template.category],
+      },
+      priceFacet((template) => template.priceInPaise),
+    ],
     [templates],
   );
 
-  const visible = useMemo(
-    () =>
-      templates.filter(
-        (template) =>
-          (category === ALL || template.category === category) &&
-          matchesQuery(template.title, query),
-      ),
-    [templates, category, query],
+  const searchText = useMemo(
+    () => (template: Template) =>
+      `${template.title} ${templateCategoryLabel(template.category)}`,
+    [],
   );
-
-  if (isLoading)
-    return <SkeletonCards media={false} label="Loading templates…" />;
-  if (error) {
-    return (
-      <Alert tone="danger" role="alert">
-        {error}
-      </Alert>
-    );
-  }
-  if (templates.length === 0) {
-    return (
-      <EmptyState
-        title="No templates published yet"
-        description="New templates appear here as they're reviewed and released."
-      />
-    );
-  }
+  const keyOf = useMemo(() => (template: Template) => template.id, []);
 
   return (
-    <div className="space-y-8">
-      <CatalogueToolbar
-        query={query}
-        onQueryChange={setQuery}
-        searchLabel="Search templates"
-        options={categories}
-        selected={category}
-        onSelect={setCategory}
-        filterLabel="Category"
-      />
-
-      {visible.length === 0 ? (
-        <EmptyState
-          title="Nothing matched that"
-          description="Try a shorter search, or choose All."
+    <CatalogueBrowser
+      items={templates}
+      isLoading={isLoading}
+      error={error}
+      facets={facets}
+      sorts={SORTS}
+      searchText={searchText}
+      searchPlaceholder="Search documents"
+      noun={["document", "documents"]}
+      keyOf={keyOf}
+      renderRow={(template) => (
+        <CatalogueRow
+          href={`/documents/${template.id}`}
+          kind="document"
+          title={template.title}
+          meta={[templateCategoryLabel(template.category), questions(template)]}
+          priceInPaise={template.priceInPaise}
         />
-      ) : (
-        <CatalogueGrid>
-          {visible.map((template) => (
-            <li key={template.id}>
-              <CatalogueCard
-                href={`/documents/${template.id}`}
-                kind="document"
-                title={template.title}
-                meta={[
-                  templateCategoryLabel(template.category),
-                  `${template.fieldSchema.length} ${
-                    template.fieldSchema.length === 1 ? "question" : "questions"
-                  }`,
-                ]}
-                priceInPaise={template.priceInPaise}
-              />
-            </li>
-          ))}
-        </CatalogueGrid>
       )}
-    </div>
+      renderCard={(template) => (
+        <CatalogueCard
+          href={`/documents/${template.id}`}
+          kind="document"
+          title={template.title}
+          meta={[templateCategoryLabel(template.category), questions(template)]}
+          priceInPaise={template.priceInPaise}
+        />
+      )}
+      emptyTitle="No templates published yet"
+      emptyDescription="New templates appear here as they're reviewed and released."
+    />
   );
 }

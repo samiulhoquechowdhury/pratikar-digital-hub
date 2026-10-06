@@ -33,9 +33,10 @@ const COPY: Record<AuthMode, { heading: string; sub: string }> = {
  * on the "wrong" one and get stuck.
  */
 const PROMISES = [
-  "Documents drafted from templates a lawyer has vetted",
-  "Certificate courses with a code anyone can verify",
-  "One account for documents, courses, and the library",
+  "Documents from templates a lawyer has vetted",
+  "See a watermarked preview before you pay",
+  "Forms, checklists and e-books to download and keep",
+  "One account for everything you buy, with GST invoices",
 ];
 
 export function AuthPanel({ mode }: { mode: AuthMode }) {
@@ -64,24 +65,34 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
-      <section className="hidden border-r border-line bg-primary-subtle/60 lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
-        <div className="max-w-md">
-          <p className="text-sm font-medium text-primary">
+      <section className="relative hidden overflow-hidden bg-surface-inverse lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
+        {/* The hero's light and grid, so signing in feels like the same
+            place as the home page rather than a utility screen. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(40rem_28rem_at_100%_0%,theme(colors.navy.600),transparent_70%)]"
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-[linear-gradient(theme(colors.navy.700)_1px,transparent_1px),linear-gradient(90deg,theme(colors.navy.700)_1px,transparent_1px)] [background-size:56px_56px] opacity-40 [mask-image:radial-gradient(60%_60%_at_30%_50%,black,transparent)]"
+        />
+        <div className="relative max-w-md">
+          <p className="text-sm font-semibold text-brand">
             Har Ghar Mein Kanooni Gyaan
           </p>
-          <p className="mt-4 font-display text-4xl font-semibold leading-tight text-ink">
-            Legal knowledge in every home.
+          <p className="mt-4 font-display text-4xl font-semibold leading-tight text-ink-inverse xl:text-5xl">
+            Legal knowledge in <span className="text-brand">every home.</span>
           </p>
-          <ul className="mt-8 space-y-4">
+          <ul className="mt-10 space-y-4">
             {PROMISES.map((promise) => (
               <li key={promise} className="flex gap-3">
                 <span
                   aria-hidden
-                  className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-surface text-primary shadow-card"
+                  className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-brand text-on-brand"
                 >
                   <Icon icon={Check} size="xs" />
                 </span>
-                <span className="text-base leading-relaxed text-ink-muted">
+                <span className="text-base leading-relaxed text-ink-inverse-muted">
                   {promise}
                 </span>
               </li>

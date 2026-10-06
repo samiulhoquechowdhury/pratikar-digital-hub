@@ -5,7 +5,15 @@ import Link from "next/link";
  * arrive: a navy tile with a gold "P" — gold on navy is 7.86:1, the one way
  * the brand's gold can carry text.
  */
-export function SiteLogo({ className = "" }: { className?: string }) {
+export function SiteLogo({
+  className = "",
+  tone = "light",
+}: {
+  className?: string;
+  /** "dark" on navy: a gold tile, so the mark doesn't vanish into the band. */
+  tone?: "light" | "dark";
+}) {
+  const dark = tone === "dark";
   return (
     <Link
       href="/"
@@ -13,15 +21,21 @@ export function SiteLogo({ className = "" }: { className?: string }) {
     >
       <span
         aria-hidden
-        className="grid h-8 w-8 place-items-center rounded-control bg-primary font-display text-lg font-bold leading-none text-brand"
+        className={`grid h-8 w-8 place-items-center rounded-control font-display text-lg font-bold leading-none ${
+          dark ? "bg-brand text-on-brand" : "bg-primary text-brand"
+        }`}
       >
         P
       </span>
       <span className="flex flex-col leading-none">
-        <span className="text-[0.95rem] font-semibold tracking-tight text-ink">
+        <span
+          className={`text-[0.95rem] font-semibold tracking-tight ${dark ? "text-ink-inverse" : "text-ink"}`}
+        >
           Pratikar
         </span>
-        <span className="mt-0.5 text-[0.7rem] font-medium text-ink-subtle">
+        <span
+          className={`mt-0.5 text-[0.7rem] font-medium ${dark ? "text-ink-inverse-muted" : "text-ink-subtle"}`}
+        >
           Digital Hub
         </span>
       </span>
