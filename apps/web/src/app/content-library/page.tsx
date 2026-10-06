@@ -4,7 +4,8 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { ContentLibraryList } from "@/features/content-library";
-import { PageIntro, PageSection } from "@/shared/components/PageIntro";
+import { CatalogueHeader } from "@/shared/catalogue";
+import { PageSection } from "@/shared/components/PageIntro";
 import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
 export const metadata: Metadata = {
@@ -20,12 +21,21 @@ export default async function ContentLibraryPage() {
   );
   return (
     <>
-      <PageIntro
+      <CatalogueHeader
         eyebrow="Library"
-        title="Guides, checklists and forms"
-        description="Buy once, download whenever you need it. E-books that explain, checklists that keep you on track, and forms you fill in yourself."
+        title="Forms, checklists and e-books"
+        description="Ready-to-use legal forms, checklists for before you sign or file, and plain-language e-books. Buy once, download whenever you need it."
+        basePath="/content-library"
+        popular={[
+          "Affidavit",
+          "Legal notice",
+          "Bail",
+          "GST",
+          "Divorce",
+          "Lease",
+        ]}
       />
-      <PageSection className="pb-8">
+      <PageSection className="pb-12 pt-6">
         {/* The shelf is read from the URL, which Next only allows inside a
             Suspense boundary on a statically rendered page. */}
         <Suspense
