@@ -8,3 +8,4 @@
 export * from "./components/primitives";
 export * from "./components/DataTable";
 export * from "./components/Skeleton";
+export * from "./components/BrandMark";

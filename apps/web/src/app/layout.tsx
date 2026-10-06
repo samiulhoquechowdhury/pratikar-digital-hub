@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Source_Serif_4 } from "next/font/google";
+import { Cinzel, Inter, Source_Serif_4 } from "next/font/google";
 
 import { AssistantLauncher } from "@/features/assistant";
 import { SiteFooter } from "@/shared/components/SiteFooter";
@@ -37,6 +37,14 @@ const displaySerif = Source_Serif_4({
   variable: "--font-display",
 });
 
+/** The logo's wordmark face — "PRATIKAR" only, so one weight is enough. */
+const brandFont = Cinzel({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["600"],
+  variable: "--font-brand",
+});
+
 /**
  * Site-wide defaults every page's own metadata builds on. metadataBase is
  * what turns the relative canonical and share-image paths pages declare into
@@ -68,7 +76,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${displaySerif.variable}`}>
+    <html
+      lang="en"
+      className={`${inter.variable} ${displaySerif.variable} ${brandFont.variable}`}
+    >
       <body className="flex min-h-screen flex-col font-sans">
         <AuthProvider>
           {/*

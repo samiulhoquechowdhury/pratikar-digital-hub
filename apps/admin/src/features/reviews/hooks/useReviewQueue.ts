@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-import { reviewsApi, type QueuedReview } from "../api/reviewsApi";
+import {
+  reviewsApi,
+  type QueuedReview,
+  type ReturnInput,
+} from "../api/reviewsApi";
 
 export function useReviewQueue() {
   const [reviews, setReviews] = useState<QueuedReview[]>([]);
@@ -51,18 +55,36 @@ export function useReviewQueue() {
     }
   };
 
+  /**
+   * Returns a review: uploads the reviewed file first when there is one,
+   * then sends it back — which is what notifies the customer.
+   */
   const returnReview = async (
     id: string,
-    reviewedFileUrl: string,
-    notes?: string,
+    input: { file?: File; approveAsDrafted?: boolean; notes?: string },
   ) => {
     setBusyId(id);
     setActionError(null);
     try {
-      await reviewsApi.return(id, reviewedFileUrl, notes);
+      const body: ReturnInput = { notes: input.notes };
+      if (input.approveAsDrafted) {
+        body.approveAsDrafted = true;
+      } else if (input.file) {
+        body.reviewedFileUrl = (
+          await reviewsApi.uploadFile(id, input.file)
+        ).key;
+      }
+      await reviewsApi.return(id, body);
       await load();
-    } catch {
-      setActionError("Couldn't return that review.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "";
+      setActionError(
+        message.includes("WORD_OR_PDF_ONLY")
+          ? "Upload a Word (.docx) or PDF file."
+          : message.includes("FILE_TOO_LARGE") || message.includes("413")
+            ? "That file is over 15 MB."
+            : "Couldn't return that review.",
+      );
     } finally {
       setBusyId(null);
     }

@@ -6,7 +6,11 @@ import {
   NotificationDispatchProcessor,
 } from "./notification-dispatch.processor";
 import { NotificationSender } from "./notification-sender.service";
+import { NotificationsController } from "./notifications.controller";
 import { NotificationsService } from "./notifications.service";
+import { SmsService } from "./sms.service";
+import { UserNotifier } from "./user-notifier.service";
+import { WebPushService } from "./web-push.service";
 
 @Module({
   imports: [
@@ -22,11 +26,15 @@ import { NotificationsService } from "./notifications.service";
       },
     }),
   ],
+  controllers: [NotificationsController],
   providers: [
     NotificationsService,
     NotificationSender,
     NotificationDispatchProcessor,
+    UserNotifier,
+    WebPushService,
+    SmsService,
   ],
-  exports: [NotificationsService, NotificationSender],
+  exports: [NotificationsService, NotificationSender, UserNotifier],
 })
 export class NotificationsModule {}

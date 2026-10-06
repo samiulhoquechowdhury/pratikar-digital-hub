@@ -13,6 +13,7 @@ import {
   type KnowledgeHit,
 } from "../knowledge-base/knowledge-base-search.service";
 import { VoyageRateLimitedError } from "../knowledge-base/voyage-embedder.service";
+import { servedText } from "../served-text";
 
 import { ANTHROPIC_CLIENT } from "./anthropic.provider";
 import { SYSTEM_PROMPT, catalogueBlock, citedHits } from "./chat.prompt";
@@ -34,16 +35,49 @@ export interface ChatSource {
   title: string;
   href: string;
   priceInPaise: number;
+  /** "Course", "E-book", "Legal form", "Document template"… */
+  kind: string;
 }
 
 export interface ChatReply {
   answer: string;
   sources: ChatSource[];
+  /** The model offered the custom-drafting service; the site shows its button. */
+  suggestDraft: boolean;
 }
+
+/** What the stream sends the browser, one event at a time. */
+export type ChatStreamEvent =
+  /** More of the answer. */
+  | { type: "delta"; text: string }
+  /**
+   * Throw away what has been shown: the model declined partway and a
+   * fallback model is starting over (or the answer became a refusal).
+   */
+  | { type: "reset" }
+  /** The finished answer, cleaned, with its sources. Replaces the deltas. */
+  | ({ type: "done" } & ChatReply)
+  /** It failed after streaming had begun; `reason` as for an HTTP error. */
+  | { type: "error"; reason: "AI_BUSY" | "AI_ERROR" };
 
 /** Said when the model declines. Not an error to the customer — just a no. */
 const REFUSAL_ANSWER =
-  "I can't help with that one. I can help you find a document template, a course, or a guide on this site — try describing what you need.";
+  "I can't help with that one. I can help you find a document, a form, an e-book or a course on this site — try describing what you need.";
+
+const EMPTY_ANSWER =
+  "Sorry — I couldn't put an answer together for that. Could you try asking another way?";
+
+/** How many catalogue matches the model chooses from. */
+const HITS_PER_QUESTION = 8;
+
+/** The marker the model ends an answer with to offer a custom draft. */
+const DRAFT_MARKER = /\s*\[draft\]\s*/gi;
+
+/**
+ * A follow-up this short ("how much is it?", "in Hindi?") says little on its
+ * own, so the search also reads the question before it.
+ */
+const FOLLOW_UP_CHARS = 60;
 
 @Injectable()
 export class ChatService {
@@ -60,15 +94,74 @@ export class ChatService {
   }
 
   /**
-   * Answers the last turn of a conversation, grounded in the catalogue.
-   *
-   * Retrieval runs on the new question only. Earlier turns go to the model as
-   * plain history so it can follow "and how much is that one?", but the
-   * catalogue it may recommend from is always the one found for this turn —
-   * with today's prices.
+   * Answers the last turn of a conversation, grounded in the catalogue, in
+   * one response. The site streams instead (streamAnswer); this stays for
+   * callers that want the whole answer at once.
    */
   async answer(turns: ChatTurnDto[]): Promise<ChatReply> {
-    if (!this.client || !this.search.isConfigured) {
+    const { client, hits, params } = await this.prepare(turns);
+
+    let response: Anthropic.Beta.BetaMessage;
+    try {
+      response = await client.beta.messages.create(params);
+    } catch (error) {
+      throw toServiceError(error, this.logger);
+    }
+    return this.finish(response, hits);
+  }
+
+  /**
+   * The same answer, streamed: `emit` receives the text as it's written,
+   * then the finished reply. Anything wrong before the first word — no
+   * key, bad input, search down — is thrown, so the caller can still answer
+   * with an HTTP error; after that, failures arrive as an "error" event.
+   */
+  async streamAnswer(
+    turns: ChatTurnDto[],
+    emit: (event: ChatStreamEvent) => void,
+    signal?: AbortSignal,
+  ): Promise<void> {
+    const { client, hits, params } = await this.prepare(turns);
+
+    let response: Anthropic.Beta.BetaMessage;
+    try {
+      const stream = client.beta.messages.stream(params, { signal });
+      stream.on("streamEvent", (event) => {
+        if (
+          event.type === "content_block_start" &&
+          event.content_block.type === "fallback"
+        ) {
+          emit({ type: "reset" });
+        } else if (
+          event.type === "content_block_delta" &&
+          event.delta.type === "text_delta"
+        ) {
+          emit({ type: "delta", text: event.delta.text });
+        }
+      });
+      response = await stream.finalMessage();
+    } catch (error) {
+      if (signal?.aborted) return;
+      const failure = toServiceError(error, this.logger);
+      emit({
+        type: "error",
+        reason:
+          failure instanceof ServiceUnavailableException
+            ? "AI_BUSY"
+            : "AI_ERROR",
+      });
+      return;
+    }
+
+    const reply = this.finish(response, hits);
+    if (response.stop_reason === "refusal") emit({ type: "reset" });
+    emit({ type: "done", ...reply });
+  }
+
+  /** Checks the request, searches the catalogue and builds the model request. */
+  private async prepare(turns: ChatTurnDto[]) {
+    const client = this.client;
+    if (!client || !this.search.isConfigured) {
       throw new ServiceUnavailableException("AI_NOT_CONFIGURED");
     }
 
@@ -79,7 +172,7 @@ export class ChatService {
 
     let hits: KnowledgeHit[];
     try {
-      hits = await this.search.search(question.content);
+      hits = await this.search.search(searchQuery(turns), HITS_PER_QUESTION);
     } catch (error) {
       if (error instanceof VoyageRateLimitedError) {
         throw new ServiceUnavailableException("AI_BUSY");
@@ -87,66 +180,81 @@ export class ChatService {
       throw error;
     }
 
-    const messages: Anthropic.Beta.BetaMessageParam[] = [
-      ...historyOf(turns.slice(0, -1)),
-      {
-        role: "user",
-        content: `${catalogueBlock(hits)}\n\n${question.content}`,
-      },
-    ];
+    const params = {
+      model: this.model,
+      max_tokens: MAX_TOKENS,
+      // Anthropic's server-side fallback: if the model declines on policy
+      // grounds, the same request is re-run on a model the API picks for
+      // that kind of refusal, inside this one call.
+      betas: ["server-side-fallback-2026-07-01"],
+      fallbacks: "default" as const,
+      // Chat, not analysis: low effort keeps answers quick and cheap, and
+      // matching a question to a catalogue doesn't reward deeper thought.
+      output_config: { effort: "low" as const },
+      system: [
+        {
+          type: "text" as const,
+          text: SYSTEM_PROMPT,
+          cache_control: { type: "ephemeral" as const },
+        },
+      ],
+      messages: [
+        ...historyOf(turns.slice(0, -1)),
+        {
+          role: "user" as const,
+          content: `${catalogueBlock(hits)}\n\n${question.content}`,
+        },
+      ],
+    } satisfies Anthropic.Beta.MessageCreateParamsNonStreaming;
 
-    let response: Anthropic.Beta.BetaMessage;
-    try {
-      response = await this.client.beta.messages.create({
-        model: this.model,
-        max_tokens: MAX_TOKENS,
-        // Anthropic's server-side fallback: if the model declines on policy
-        // grounds, the same request is re-run on a model the API picks for
-        // that kind of refusal, inside this one call.
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
-        // Chat, not analysis: low effort keeps answers quick and cheap, and
-        // matching a question to a catalogue doesn't reward deeper thought.
-        output_config: { effort: "low" },
-        system: [
-          {
-            type: "text",
-            text: SYSTEM_PROMPT,
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        messages,
-      });
-    } catch (error) {
-      throw toServiceError(error, this.logger);
-    }
+    return { client, hits, params };
+  }
 
+  /** The finished response as the reply the browser renders. */
+  private finish(
+    response: Anthropic.Beta.BetaMessage,
+    hits: KnowledgeHit[],
+  ): ChatReply {
     this.logger.log(
       `Answered with ${response.model}: ${response.usage.input_tokens} in, ${response.usage.output_tokens} out, ${hits.length} hits`,
     );
 
     if (response.stop_reason === "refusal") {
-      return { answer: REFUSAL_ANSWER, sources: [] };
+      return { answer: REFUSAL_ANSWER, sources: [], suggestDraft: false };
     }
 
-    const answer = response.content
-      .flatMap((block) => (block.type === "text" ? [block.text] : []))
-      .join("")
-      .trim();
+    const raw = servedText(response.content).trim();
+    const suggestDraft = /\[draft\]/i.test(raw);
+    const answer = raw.replace(DRAFT_MARKER, " ").trim();
 
     return {
-      answer:
-        answer ||
-        "Sorry — I couldn't put an answer together for that. Could you try asking another way?",
+      answer: answer || EMPTY_ANSWER,
+      suggestDraft,
       sources: citedHits(answer, hits).map((hit) => ({
         sourceType: hit.sourceType,
         sourceId: hit.sourceId,
         title: hit.title,
         href: hit.href,
         priceInPaise: hit.priceInPaise,
+        kind: hit.kind,
       })),
     };
   }
+}
+
+/**
+ * What to search the catalogue for: the new question, and — when it is a
+ * short follow-up — the customer's question before it, so "how much is
+ * it?" still finds the rent agreement.
+ */
+export function searchQuery(turns: ChatTurnDto[]): string {
+  const question = turns.at(-1)!.content;
+  if (question.length >= FOLLOW_UP_CHARS) return question;
+  const earlier = turns
+    .slice(0, -1)
+    .reverse()
+    .find((turn) => turn.role === "user");
+  return earlier ? `${earlier.content}\n${question}` : question;
 }
 
 /**

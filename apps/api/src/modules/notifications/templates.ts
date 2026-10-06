@@ -118,6 +118,8 @@ export function purchaseConfirmation(p: PurchasePayload): RenderedEmail {
 export interface ReviewReadyPayload {
   customerName: string | null;
   documentTitle: string;
+  /** The generated document, so the button opens it directly. */
+  documentId: string;
 }
 
 /** Sent when a reviewer returns a document. */
@@ -129,8 +131,8 @@ export function reviewReady(p: ReviewReadyPayload): RenderedEmail {
       p.customerName
         ? `${esc(p.customerName)}, your review is back`
         : "Your review is back",
-      `<p style="margin:0 0 16px">A professional has finished reviewing <strong>${esc(p.documentTitle)}</strong>. Their corrections and comments are on the reviewed copy.</p>
-  ${button(`${site}/dashboard/documents`, "Open your documents")}`,
+      `<p style="margin:0 0 16px">An advocate has finished reviewing <strong>${esc(p.documentTitle)}</strong>. The reviewed document is ready to download from your account, with any comments they left.</p>
+  ${button(`${site}/dashboard/documents/${encodeURIComponent(p.documentId)}`, "Download your document")}`,
     ),
   };
 }
@@ -267,7 +269,7 @@ export function staffReviewRequested(
     subject: `Review requested: ${p.documentTitle}`,
     html: layout(
       "A document is waiting for review",
-      `<p style="margin:0 0 16px">${p.customerName ? `<strong>${esc(p.customerName)}</strong>` : "A customer"} has paid for a lawyer review of <strong>${esc(p.documentTitle)}</strong>.</p>
+      `<p style="margin:0 0 16px">${p.customerName ? `<strong>${esc(p.customerName)}</strong>` : "A customer"} has paid for an advocate review of <strong>${esc(p.documentTitle)}</strong>.</p>
   ${button(`${ADMIN_URL()}/reviews`, "Open the review queue")}`,
     ),
   };

@@ -2,10 +2,11 @@
 
 import { GST_STATE_NAMES } from "@pratikar/types";
 import { Alert, Button, Field, Input, Select, Skeleton } from "@pratikar/ui";
-import { LogOut, ShieldCheck } from "lucide-react";
+import { Bell, LogOut, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 
+import { PushOptIn } from "@/features/notifications";
 import { Icon } from "@/shared/components/Icon";
 import { apiClient } from "@/shared/lib/apiClient";
 import { useAuth } from "@/shared/providers/AuthProvider";
@@ -274,6 +275,28 @@ export function AccountSettings() {
             </p>
           </>
         )}
+      </section>
+
+      <section
+        id="notifications"
+        aria-labelledby="notifications-title"
+        className="scroll-mt-28 rounded-card border border-line bg-surface p-6"
+      >
+        <h3
+          id="notifications-title"
+          className="flex items-center gap-2 text-lg font-semibold"
+        >
+          <Icon icon={Bell} className="text-primary" />
+          Notifications
+        </h3>
+        <p className="mt-2 max-w-xl text-sm text-ink-muted">
+          When an advocate finishes reviewing your document we tell you by
+          email, by SMS to your phone number, in the bell at the top of the site
+          — and, if you turn it on, with a notification on this device.
+        </p>
+        <div className="mt-5">
+          <PushOptIn />
+        </div>
       </section>
 
       <section

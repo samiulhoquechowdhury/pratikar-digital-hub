@@ -16,6 +16,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+import { documentStage } from "@/features/documents/lib/documentStage";
 import { Icon } from "@/shared/components/Icon";
 
 import { legacyHashTarget } from "../lib/accountNav";
@@ -48,7 +49,8 @@ const ORDER_STATUS: Record<
 export const orderTitle = (order: CustomerOrder) =>
   order.course?.title ??
   order.contentLibraryItem?.title ??
-  order.generatedDocument?.template.title ??
+  order.generatedDocument?.template?.title ??
+  order.generatedDocument?.title ??
   "Order";
 
 const progressOf = (enrollment: Enrollment) => {
@@ -72,8 +74,8 @@ export function AccountOverview() {
   }, [router]);
 
   const now = Date.now();
-  const awaitingPayment = data.documents.filter(
-    (d) => d.status === "GENERATED",
+  const waitingOnYou = data.documents.filter(
+    (d) => documentStage(d).needsAction,
   );
   const live = data.enrollments.filter(
     (e) => new Date(e.expiresAt).getTime() > now,
@@ -101,23 +103,20 @@ export function AccountOverview() {
       <div className="space-y-10">
         <DashboardSummary data={data} />
 
-        {(awaitingPayment.length > 0 || expiringSoon.length > 0) && (
+        {(waitingOnYou.length > 0 || expiringSoon.length > 0) && (
           <section aria-labelledby="attention-title">
             <h3 id="attention-title" className="text-lg font-semibold">
               Needs your attention
             </h3>
             <ul className="mt-4 space-y-3">
-              {awaitingPayment.length > 0 && (
+              {waitingOnYou.slice(0, 3).map((doc) => (
                 <Attention
-                  href="/dashboard/documents"
-                  title={`${awaitingPayment.length} ${
-                    awaitingPayment.length === 1
-                      ? "document is"
-                      : "documents are"
-                  } ready and waiting for payment`}
-                  body="Pay to download the final Word and PDF files."
+                  key={doc.id}
+                  href={`/dashboard/documents/${doc.id}`}
+                  title={`${doc.title} — ${documentStage(doc).label.toLowerCase()}`}
+                  body="Open it to preview, send for review or download."
                 />
-              )}
+              ))}
               {expiringSoon.map((enrollment) => (
                 <Attention
                   key={enrollment.id}

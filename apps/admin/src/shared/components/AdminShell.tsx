@@ -1,5 +1,6 @@
 "use client";
 
+import { BrandMark } from "@pratikar/ui";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
@@ -58,14 +59,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
         className="hidden w-64 shrink-0 flex-col bg-surface-inverse-deep lg:fixed lg:inset-y-0 lg:left-0 lg:z-30 lg:flex"
       >
         <div className="flex h-16 items-center gap-2.5 border-b border-line-inverse px-5">
-          <span
-            aria-hidden
-            className="grid h-9 w-9 place-items-center rounded-control bg-brand text-base font-bold text-on-brand"
-          >
-            P
-          </span>
+          <BrandMark className="h-9 w-auto text-ink-inverse" />
           <span className="flex flex-col leading-none">
-            <span className="text-sm font-bold tracking-wide text-ink-inverse">
+            <span className="bg-gradient-to-b from-wordmark-dark-from to-wordmark-dark-to bg-clip-text font-brand text-base font-semibold tracking-[0.04em] text-transparent">
               PRATIKAR
             </span>
             {/* Says "Admin", not "Digital Hub" — staff should never be unsure

@@ -68,7 +68,12 @@ export interface CustomerOrder {
   createdAt: string;
   contentLibraryItem: { id: string; title: string } | null;
   course: { id: string; title: string } | null;
-  generatedDocument: { id: string; template: { title: string } } | null;
+  generatedDocument: {
+    id: string;
+    /** A custom draft's own title; null for a template document. */
+    title: string | null;
+    template: { title: string } | null;
+  } | null;
 }
 
 export interface Enrollment {

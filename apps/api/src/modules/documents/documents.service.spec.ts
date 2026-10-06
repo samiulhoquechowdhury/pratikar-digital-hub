@@ -68,6 +68,8 @@ describe("DocumentsService template mutations", () => {
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
       knowledgeBase as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
 
   /**
@@ -202,6 +204,8 @@ describe("DocumentsService.listTaggableStorage", () => {
       storage as never,
       { add: jest.fn() } as never,
       { reindex: jest.fn() } as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
     return { service, storage };
   };
@@ -322,6 +326,8 @@ describe("DocumentsService public catalogue", () => {
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
       { reindex: jest.fn() } as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
     return { service, prisma };
   };
@@ -405,6 +411,8 @@ describe("DocumentsService.generate", () => {
       { signUrl: jest.fn() } as never,
       queue as never,
       { reindex: jest.fn() } as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
     return { service, prisma, queue };
   };
@@ -473,6 +481,8 @@ describe("DocumentsService preview and download", () => {
       storage as never,
       { add: jest.fn() } as never,
       { reindex: jest.fn() } as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
     return { service, prisma, storage };
   };
@@ -563,6 +573,8 @@ describe("DocumentsService.queueReview", () => {
       { signUrl: jest.fn() } as never,
       { add: jest.fn() } as never,
       { reindex: jest.fn() } as never,
+      { isConfigured: true } as never,
+      { notifyUser: jest.fn() } as never,
     );
     return { service, notifications };
   };

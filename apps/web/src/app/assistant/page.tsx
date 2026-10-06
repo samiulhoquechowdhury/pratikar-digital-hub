@@ -6,37 +6,27 @@ import { PageIntro } from "@/shared/components/PageIntro";
 export const metadata: Metadata = {
   title: "AI legal assistant",
   description:
-    "A preview of the Pratikar assistant, with scripted answers about our documents, courses and guides.",
+    "Describe your situation and the Pratikar assistant finds the right course, document, legal form or e-book — or sets up a custom draft reviewed by an advocate.",
 };
 
 /**
- * The destination behind the header's "Ask AI" button.
- *
- * ── A DELIBERATE REVERSAL ─────────────────────────────────────────────────
- * This page used to be a description of a chat that didn't exist, and argued
- * that showing a chat box which can't answer is worse than showing none. The
- * interface is now here, ahead of the model, so the conversation design can
- * be settled and demonstrated before Milestone 4 builds retrieval behind it.
- *
- * The original concern was right and has not gone away, so it is answered in
- * the build rather than dismissed: every reply is scripted, the preview
- * labelling is persistent rather than a dismissible notice, unmatched
- * questions say plainly that they can't be answered instead of improvising,
- * and nothing in the script gives advice. What stays is the boundary — it
- * points at material, and it is not a substitute for the lawyer review.
+ * The destination behind the header's "Ask AI" button: the same assistant as
+ * the floating panel, given the page to itself, with its limits spelled out
+ * underneath — on a legal site, what it won't do matters as much as what it
+ * does.
  */
 const LIMITS = [
   {
-    title: "What it does here",
-    body: "Answers a handful of scripted questions about our templates, courses and guides, and links you to the page behind each one.",
+    title: "What it does",
+    body: "Reads everything on this site — courses, document templates, legal forms, checklists and e-books — and recommends what fits your situation, with prices.",
   },
   {
-    title: "What it will do",
-    body: "Search everything on this site and show where each answer came from — plus fill a document in by conversation instead of a long form.",
+    title: "When nothing fits",
+    body: "It sets up a custom document: the AI drafts it from your description, an advocate reviews it, and then it's yours to download.",
   },
   {
     title: "What it won't do",
-    body: "Give legal advice, or replace the lawyer review you can add to any document you generate.",
+    body: "Give legal advice about your own case. For that, send your document for an advocate's review.",
   },
 ];
 
@@ -44,9 +34,9 @@ export default function AssistantPage() {
   return (
     <>
       <PageIntro
-        eyebrow="Ask AI · Preview"
-        title="An assistant that speaks plain language"
-        description="Try it below. The answers are scripted for now — the assistant that reads our whole library is still being built."
+        eyebrow="Ask AI"
+        title="Tell us what you're dealing with"
+        description="Describe it in your own words, in any language. The assistant answers from what this site offers, and shows you exactly where to go next."
       />
 
       <section className="mx-auto max-w-shell px-4 pb-12 sm:px-6 lg:px-8">

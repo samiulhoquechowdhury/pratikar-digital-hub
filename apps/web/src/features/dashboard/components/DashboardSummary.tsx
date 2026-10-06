@@ -4,6 +4,7 @@ import { formatPaise } from "@pratikar/utils";
 import { FileText, GraduationCap, ShieldCheck, Wallet } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
+import { documentStage } from "@/features/documents/lib/documentStage";
 import { Icon } from "@/shared/components/Icon";
 
 import type { DashboardData } from "../hooks/useDashboardData";
@@ -18,7 +19,7 @@ import type { DashboardData } from "../hooks/useDashboardData";
  */
 export function DashboardSummary({ data }: { data: DashboardData }) {
   const awaiting = data.documents.filter(
-    (d) => d.status === "GENERATED",
+    (d) => documentStage(d).needsAction,
   ).length;
   const activeCourses = data.enrollments.filter(
     (e) => new Date(e.expiresAt) > new Date(),
@@ -34,7 +35,11 @@ export function DashboardSummary({ data }: { data: DashboardData }) {
         icon={FileText}
         label="Documents"
         value={String(data.documents.length)}
-        note={awaiting > 0 ? `${awaiting} awaiting payment` : undefined}
+        note={
+          awaiting > 0
+            ? `${awaiting} need${awaiting === 1 ? "s" : ""} you`
+            : undefined
+        }
         attention={awaiting > 0}
       />
       <Stat

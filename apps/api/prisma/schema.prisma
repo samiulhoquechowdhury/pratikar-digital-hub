@@ -51,6 +51,8 @@ model User {
   enrollments        Enrollment[]
   chatbotSessions    ChatbotConversation[]
   auditLogEntries    AuditLog[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
 
   @@index([role])
 }
@@ -143,10 +145,22 @@ enum GeneratedDocumentStatus {
   REFUNDED
 }
 
+/// Where a generated document came from.
+enum DocumentKind {
+  /// Filled in from a Template's fields — the original product.
+  TEMPLATE
+  /// Drafted by the AI from the customer's own description. There is no
+  /// template behind it, so nothing a lawyer has vetted: it can only be
+  /// downloaded after an advocate has reviewed it (see DocumentsService).
+  CUSTOM
+}
+
 model GeneratedDocument {
   id               String                  @id @default(uuid())
   userId           String
-  templateId       String
+  kind             DocumentKind            @default(TEMPLATE)
+  /// Null for a CUSTOM draft, which has no template.
+  templateId       String?
   filledData       Json
   fileUrl          String // R2 key — clean DOCX, gated behind payment (one-time download)
   pdfFileUrl       String? // R2 key — clean PDF, gated behind payment alongside the DOCX
@@ -157,8 +171,22 @@ model GeneratedDocument {
   downloadedAt     DateTime?
   createdAt        DateTime                @default(now())
 
+  // CUSTOM drafts only. A template document takes its title from the
+  // template and has none of these.
+  /// The title the draft was given, e.g. "Leave and Licence Agreement".
+  title            String?
+  /// What the customer asked for: { documentType, details, state }.
+  brief            Json?
+  /// The current draft, as structured sections (see ai/drafting). Kept so a
+  /// revision builds on it rather than starting again.
+  draft            Json?
+  /// Revisions asked for so far. Capped, because each one is a paid model call.
+  revisionCount    Int                     @default(0)
+  /// Why drafting failed, in words for the customer. Cleared on a new attempt.
+  draftError       String?
+
   user     User             @relation(fields: [userId], references: [id])
-  template Template         @relation(fields: [templateId], references: [id])
+  template Template?        @relation(fields: [templateId], references: [id])
   reviews  DocumentReview[]
   orders   Order[]
 
@@ -181,7 +209,11 @@ model DocumentReview {
   assignedToUserId    String?
   status              DocumentReviewStatus @default(QUEUED)
   reviewedFileUrl     String? // R2 key
+  /// PDF of the reviewed file, when there is one — the drafted PDF when the
+  /// advocate approved the draft unchanged.
+  reviewedPdfUrl      String?
   notes               String?
+  returnedAt          DateTime?
   orderId             String               @unique
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
@@ -596,6 +628,46 @@ model KnowledgeBaseDocument {
   updatedAt      DateTime                    @updatedAt
 
   @@unique([sourceType, sourceId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+/// One entry in a customer's in-app inbox — the bell in the site header.
+/// Every other channel (push, email, SMS) is a way of telling them one of
+/// these exists, so this row is written first and always.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  /// Where clicking it goes, a path on the website, e.g. /dashboard/documents/<id>.
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/// A browser that agreed to receive push notifications (the Web Push API).
+/// One per browser per device; a customer may have several.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  /// The push service URL. Unique: the same browser subscribing again is
+  /// the same subscription, possibly now signed in as someone else.
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------------------

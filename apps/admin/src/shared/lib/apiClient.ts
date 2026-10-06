@@ -19,12 +19,15 @@ export class ApiError extends Error {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const accessToken = getAccessToken();
+  // A FormData body sets its own multipart Content-Type, boundary included;
+  // forcing JSON on it would make the upload unreadable.
+  const isForm = init?.body instanceof FormData;
 
   const res = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
     credentials: "include",
     headers: {
-      "Content-Type": "application/json",
+      ...(isForm ? {} : { "Content-Type": "application/json" }),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...init?.headers,
     },
@@ -58,6 +61,12 @@ export const apiClient = {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  /** A multipart upload: one file under `field`. */
+  upload: <T>(path: string, file: File, field = "file") => {
+    const form = new FormData();
+    form.append(field, file);
+    return request<T>(path, { method: "POST", body: form });
+  },
   // `del` rather than `delete`, which is a reserved word as a bare identifier.
   del: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };

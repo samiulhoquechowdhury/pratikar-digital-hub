@@ -121,7 +121,7 @@ export function TemplateGenerator({
       <p className="mt-2 text-sm text-ink-muted">
         Generating and previewing are free — you pay only to download.
         {template.reviewPriceInPaise > 0 &&
-          ` Lawyer review ${formatPrice(
+          ` Advocate review ${formatPrice(
             grossPaise(template.reviewPriceInPaise),
           )} extra, if you want one.`}
       </p>

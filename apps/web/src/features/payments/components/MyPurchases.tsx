@@ -20,13 +20,18 @@ import { InvoiceButton } from "./InvoiceButton";
 function describe(order: CustomerOrder): string {
   if (order.contentLibraryItem) return order.contentLibraryItem.title;
   if (order.course) return order.course.title;
-  if (order.generatedDocument) return order.generatedDocument.template.title;
+  if (order.generatedDocument)
+    return (
+      order.generatedDocument.template?.title ??
+      order.generatedDocument.title ??
+      "Custom document"
+    );
   return "—";
 }
 
 const ITEM_TYPE_LABELS: Record<CustomerOrder["itemType"], string> = {
   DOCUMENT: "Document",
-  DOCUMENT_REVIEW: "Lawyer review",
+  DOCUMENT_REVIEW: "Advocate review",
   CONTENT_ITEM: "Content library",
   COURSE: "Course",
 };

@@ -1,112 +1,81 @@
 "use client";
 
-import type { GeneratedDocument } from "@pratikar/types";
-import { Badge, Button, ButtonLink, Card, EmptyState } from "@pratikar/ui";
-import { Eye } from "lucide-react";
-import { useState } from "react";
+import { Badge, ButtonLink, EmptyState } from "@pratikar/ui";
+import { ChevronRight, FilePenLine, FileText } from "lucide-react";
+import Link from "next/link";
 
 import { Icon } from "@/shared/components/Icon";
 
 import type { MyDocument } from "../api/documentsApi";
-
-import { DocumentPreview } from "./DocumentPreview";
-import { GeneratedDocumentActions } from "./GeneratedDocumentActions";
-
-/** What each status means to the person looking at it, not to the database. */
-const STATUS: Record<
-  GeneratedDocument["status"],
-  { label: string; tone: "warning" | "success" | "neutral" }
-> = {
-  GENERATED: { label: "Awaiting payment", tone: "warning" },
-  PAID: { label: "Ready to download", tone: "success" },
-  DOWNLOADED: { label: "Downloaded", tone: "neutral" },
-};
+import { documentStage } from "../lib/documentStage";
 
 /**
- * The customer's generated documents, each with whatever action it's waiting
- * on — pay, download, or nothing. Documents are commonly generated in one
- * sitting and paid for in another, so the dashboard has to be able to finish
- * the transaction, not just report on it.
+ * The customer's documents, one compact row each, with where it stands —
+ * drafting, awaiting review, ready. Each row opens the document's own page,
+ * which is where the preview, the review and the download live.
  *
  * Presentational: the account is loaded once by useDashboardData and handed
- * down. This used to fetch for itself, along with its own auth gate, loading
- * state and error — which is how a signed-out visitor ended up looking at
- * three separate "Sign in" cards down one page.
+ * down.
  */
 export function MyDocuments({ documents }: { documents: MyDocument[] }) {
   if (documents.length === 0) {
     return (
       <EmptyState
         title="No documents yet"
-        description="Pick a template, answer the questions, and your document appears here."
-        action={<ButtonLink href="/documents">Browse templates</ButtonLink>}
+        description="Fill in one of our templates, or describe any document and have the AI draft it — an advocate reviews it before you download."
+        action={
+          <div className="flex flex-wrap justify-center gap-3">
+            <ButtonLink href="/documents/custom">Draft with AI</ButtonLink>
+            <ButtonLink href="/documents" variant="secondary">
+              Browse templates
+            </ButtonLink>
+          </div>
+        }
       />
     );
   }
 
   return (
-    <ul className="space-y-4">
-      {documents.map((doc) => (
-        <li key={doc.id}>
-          <Card className="p-6">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="text-base">{doc.template.title}</h3>
-                <p className="mt-1 text-sm text-ink-subtle">
-                  Generated{" "}
+    <ul className="divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+      {documents.map((doc) => {
+        const stage = documentStage(doc);
+        return (
+          <li key={doc.id}>
+            <Link
+              href={`/dashboard/documents/${doc.id}`}
+              className="group flex items-center gap-4 px-4 py-4 transition-colors hover:bg-surface-sunken sm:px-5"
+            >
+              <span
+                aria-hidden
+                className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-primary-subtle text-primary"
+              >
+                <Icon
+                  icon={doc.kind === "CUSTOM" ? FilePenLine : FileText}
+                  size="md"
+                />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[0.9375rem] font-semibold text-ink group-hover:text-primary">
+                  {doc.title}
+                </span>
+                <span className="mt-0.5 block text-xs text-ink-muted">
+                  {doc.kind === "CUSTOM" ? "AI draft" : "Template"} ·{" "}
                   {new Date(doc.createdAt).toLocaleDateString("en-IN", {
                     day: "numeric",
                     month: "short",
                     year: "numeric",
                   })}
-                </p>
-              </div>
-              <Badge tone={STATUS[doc.status].tone}>
-                {STATUS[doc.status].label}
-              </Badge>
-            </div>
-
-            <PreviewToggle documentId={doc.id} title={doc.template.title} />
-
-            <div className="mt-5 border-t border-line pt-5">
-              <GeneratedDocumentActions
-                documentId={doc.id}
-                template={doc.template}
-                initialStatus={doc.status}
+                </span>
+              </span>
+              <Badge tone={stage.tone}>{stage.label}</Badge>
+              <Icon
+                icon={ChevronRight}
+                className="hidden shrink-0 text-ink-subtle transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none sm:block"
               />
-            </div>
-          </Card>
-        </li>
-      ))}
+            </Link>
+          </li>
+        );
+      })}
     </ul>
-  );
-}
-
-/** The watermarked preview, shown on request so a long list stays light. */
-function PreviewToggle({
-  documentId,
-  title,
-}: {
-  documentId: string;
-  title: string;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="mt-4">
-      <Button
-        size="sm"
-        variant="ghost"
-        aria-expanded={open}
-        onClick={() => setOpen((shown) => !shown)}
-      >
-        <Icon icon={Eye} />
-        {open ? "Hide preview" : "Preview"}
-      </Button>
-      {open && (
-        <div className="mt-3">
-          <DocumentPreview documentId={documentId} title={title} />
-        </div>
-      )}
-    </div>
   );
 }
