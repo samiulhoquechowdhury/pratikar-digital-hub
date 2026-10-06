@@ -1,4 +1,4 @@
-import { BadRequestException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 
 import type { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
@@ -32,6 +32,7 @@ describe("ContentLibraryService — the app's own files", () => {
       new AuditService(prisma as unknown as PrismaService),
       storage as never,
       { reindex: jest.fn() } as never,
+      { addBulk: jest.fn() } as never,
     );
     return { service, prisma };
   };
@@ -119,6 +120,7 @@ describe("ContentLibraryService.importFromStorage — knowledge base", () => {
       new AuditService(prisma as unknown as PrismaService),
       { list: jest.fn() } as never,
       knowledgeBase as never,
+      { addBulk: jest.fn() } as never,
     );
     return { service, prisma, knowledgeBase };
   };
@@ -148,5 +150,101 @@ describe("ContentLibraryService.importFromStorage — knowledge base", () => {
 
     expect(prisma.contentLibraryItem.findMany).toHaveBeenCalledTimes(1);
     expect(knowledgeBase.reindex).not.toHaveBeenCalled();
+  });
+});
+
+describe("ContentLibraryService previews", () => {
+  const item = (overrides: Record<string, unknown> = {}) => ({
+    id: "i-1",
+    fileUrl: "froms/Sale Deed.docx",
+    previewOfFile: "froms/Sale Deed.docx",
+    previewPageCount: 2,
+    ...overrides,
+  });
+
+  const build = (found: unknown, published: unknown[] = []) => {
+    const prisma = {
+      contentLibraryItem: {
+        findFirst: jest.fn().mockResolvedValue(found),
+        findMany: jest.fn().mockResolvedValue(published),
+      },
+    };
+    const storage = { signUrl: jest.fn((key: string) => `signed:${key}`) };
+    const queue = { addBulk: jest.fn() };
+    const service = new ContentLibraryService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      storage as never,
+      { reindex: jest.fn() } as never,
+      queue as never,
+    );
+    return { service, prisma, storage, queue };
+  };
+
+  it("hands out the watermarked pages, never the file itself", async () => {
+    const { service, storage } = build(item());
+
+    await expect(service.getPreview("i-1")).resolves.toEqual({
+      ready: true,
+      pages: [
+        "signed:library-previews/i-1/page-1.png",
+        "signed:library-previews/i-1/page-2.png",
+      ],
+    });
+    const signed = storage.signUrl.mock.calls.map(([key]) => key);
+    expect(signed).not.toContain("froms/Sale Deed.docx");
+  });
+
+  it("only previews published items", async () => {
+    const { service, prisma } = build(null);
+
+    await expect(service.getPreview("i-1")).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(prisma.contentLibraryItem.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "i-1", status: "PUBLISHED" } }),
+    );
+  });
+
+  // A replaced file must not keep showing the old file's pages.
+  it("asks for a new excerpt when the file has changed", async () => {
+    const { service, queue } = build(
+      item({ previewOfFile: "froms/Old Deed.docx" }),
+    );
+
+    await expect(service.getPreview("i-1")).resolves.toEqual({
+      ready: false,
+      pages: [],
+    });
+    expect(queue.addBulk).toHaveBeenCalledWith([
+      { name: "render", data: { itemId: "i-1" }, opts: { jobId: "i-1" } },
+    ]);
+  });
+
+  it("says plainly when a file can't be previewed", async () => {
+    const { service } = build(item({ previewPageCount: 0 }));
+
+    await expect(service.getPreview("i-1")).resolves.toEqual({
+      ready: true,
+      pages: [],
+    });
+  });
+
+  it("backfills only the items without a current excerpt", async () => {
+    const { service, queue } = build(null, [
+      item({ id: "a" }),
+      item({ id: "b", previewOfFile: null }),
+      item({ id: "c", previewOfFile: "something else.docx" }),
+    ]);
+
+    await expect(service.backfillPreviews()).resolves.toEqual({
+      queued: 2,
+      alreadyCurrent: 1,
+    });
+    expect(
+      (queue.addBulk.mock.calls[0] as [{ data: { itemId: string } }[]])[0].map(
+        (job) => job.data.itemId,
+      ),
+    ).toEqual(["b", "c"]);
   });
 });

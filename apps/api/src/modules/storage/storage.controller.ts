@@ -42,13 +42,24 @@ export class StorageController {
 
     try {
       const buffer = await this.storage.read(key);
-      // Force a download rather than letting the browser render the object
-      // inline; inline HTML or SVG would otherwise execute on our origin.
-      res.setHeader("Content-Type", "application/octet-stream");
-      res.setHeader(
-        "Content-Disposition",
-        `attachment; filename="${key.split("/").pop() ?? "download"}"`,
-      );
+      const filename = key.split("/").pop() ?? "download";
+      // nosniff on everything: the browser takes the type we send, and never
+      // guesses its way from "image" to something that runs.
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      if (key.toLowerCase().endsWith(".png")) {
+        // Preview pages are PNGs, shown in <img> tags. A PNG can't execute,
+        // so it's the one type served inline, as what it is.
+        res.setHeader("Content-Type", "image/png");
+        res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+      } else {
+        // Everything else is a download. Rendered inline, an HTML or SVG
+        // object would execute on our origin.
+        res.setHeader("Content-Type", "application/octet-stream");
+        res.setHeader(
+          "Content-Disposition",
+          `attachment; filename="${filename}"`,
+        );
+      }
       res.send(buffer);
     } catch {
       throw new NotFoundException("FILE_NOT_FOUND");

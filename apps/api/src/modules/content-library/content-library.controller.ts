@@ -66,6 +66,23 @@ export class ContentLibraryController {
     return this.contentLibraryService.importFromStorage(dto, user.id);
   }
 
+  /**
+   * The free excerpt: an item's first pages as watermarked images, or
+   * `ready: false` while they're made. Public, like the item's own page.
+   */
+  @Get("catalogue/:id/preview")
+  @Public()
+  getPreview(@Param("id") id: string) {
+    return this.contentLibraryService.getPreview(id);
+  }
+
+  /** Queues an excerpt for every published item that hasn't got a current one. */
+  @Post("previews/backfill")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  backfillPreviews() {
+    return this.contentLibraryService.backfillPreviews();
+  }
+
   // Customer-facing detail view. Separate from the admin ":id" route below,
   // which returns every status and includes the storage key.
   @Get("catalogue/:id")

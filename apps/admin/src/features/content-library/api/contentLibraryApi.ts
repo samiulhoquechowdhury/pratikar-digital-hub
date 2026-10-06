@@ -40,6 +40,12 @@ export const contentLibraryApi = {
   /** Every status, unlike the customer-facing GET /content-library. */
   listAll: () => apiClient.get<ContentItem[]>("/content-library/all"),
 
+  /** Queues the free excerpt for every published item that hasn't got one. */
+  backfillPreviews: () =>
+    apiClient.post<{ queued: number; alreadyCurrent: number }>(
+      "/content-library/previews/backfill",
+    ),
+
   get: (id: string) => apiClient.get<ContentItem>(`/content-library/${id}`),
 
   create: (payload: UpsertContentItemPayload) =>

@@ -147,7 +147,15 @@ export const isSellable = (key: string): boolean =>
  * but they are output, not stock — a generated document carries a customer's
  * name and address, and an invoice is a customer's tax record.
  */
-const APP_WRITTEN = ["documents/", "templates/", "invoices/", "credit-notes/"];
+const APP_WRITTEN = [
+  "documents/",
+  "templates/",
+  "invoices/",
+  "credit-notes/",
+  // Watermarked excerpt pages of library items: a picture of a product
+  // page, never something to sell in its own right.
+  "library-previews/",
+];
 
 export const isAppWritten = (key: string): boolean =>
   APP_WRITTEN.some((prefix) => key.startsWith(prefix));

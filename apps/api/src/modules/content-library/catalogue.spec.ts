@@ -110,6 +110,8 @@ describe("isAppWritten", () => {
     "templates/1790000000000-A.docx",
     "invoices/9c1b.pdf",
     "credit-notes/77aa.pdf",
+    // An excerpt page must never be offered for import as stock.
+    "library-previews/i-1/page-1.png",
   ])("recognises %p as the app's own output", (key) => {
     expect(isAppWritten(key)).toBe(true);
   });

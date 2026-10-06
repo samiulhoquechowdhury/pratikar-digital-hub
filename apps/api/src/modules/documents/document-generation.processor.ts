@@ -1,9 +1,3 @@
-import { execFile } from "node:child_process";
-import * as fs from "node:fs";
-import * as os from "node:os";
-import * as path from "node:path";
-import { promisify } from "node:util";
-
 import { OnWorkerEvent, Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
 import type { Job } from "bullmq";
@@ -11,12 +5,13 @@ import Docxtemplater from "docxtemplater";
 import PizZip from "pizzip";
 
 import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
+import { convertToPdf } from "../../common/office/convert-to-pdf";
+import {
+  previewPageKey,
+  renderPreviewPages,
+} from "../../common/office/preview";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
-
-import { previewPageKey, renderPreviewPages } from "./preview";
-
-const execFileAsync = promisify(execFile);
 
 export interface DocumentGenerationJobData {
   generatedDocumentId: string;
@@ -65,7 +60,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     );
 
-    const pdfBuffer = await this.convertToPdf(filledDocx, doc.id);
+    const pdfBuffer = await convertToPdf(filledDocx, ".docx");
     const pdfKey = `documents/${doc.id}.pdf`;
     await this.storage.upload(pdfKey, pdfBuffer, "application/pdf");
 
@@ -112,30 +107,6 @@ export class DocumentGenerationProcessor extends WorkerHost {
     });
     template.render(filledData);
     return template.getZip().generate({ type: "nodebuffer" });
-  }
-
-  private async convertToPdf(
-    docxBuffer: Buffer,
-    generatedDocumentId: string,
-  ): Promise<Buffer> {
-    const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "pratikar-docgen-"));
-    const docxPath = path.join(workDir, `${generatedDocumentId}.docx`);
-    const pdfPath = path.join(workDir, `${generatedDocumentId}.pdf`);
-
-    try {
-      fs.writeFileSync(docxPath, docxBuffer);
-      await execFileAsync("soffice", [
-        "--headless",
-        "--convert-to",
-        "pdf",
-        "--outdir",
-        workDir,
-        docxPath,
-      ]);
-      return fs.readFileSync(pdfPath);
-    } finally {
-      fs.rmSync(workDir, { recursive: true, force: true });
-    }
   }
 
   /** Reports the job to monitoring once its last retry has failed. */

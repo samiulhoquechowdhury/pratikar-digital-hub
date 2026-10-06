@@ -11,6 +11,7 @@ import { Role } from "@pratikar/types";
 import type { Prisma } from "@prisma/client";
 import type { Queue } from "bullmq";
 
+import { previewPageKey } from "../../common/office/preview";
 import { PrismaService } from "../../prisma/prisma.service";
 import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
@@ -30,7 +31,6 @@ import type { DocumentGenerationJobData } from "./document-generation.processor"
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 import { fieldsOf, validateAnswers } from "./filled-data";
-import { previewPageKey } from "./preview";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
 import { guessFieldType, labelFor } from "./tagging/field-type";
 

@@ -28,6 +28,8 @@ import { useAuth } from "@/shared/providers/AuthProvider";
 import { contentLibraryApi } from "../api/contentLibraryApi";
 import { useContentItem } from "../hooks/useContentItem";
 
+import { LibraryExcerpt } from "./LibraryExcerpt";
+
 /**
  * The catalogue has no description column yet, so each format says what it
  * actually gets you. Worth replacing with real per-item copy once the model
@@ -203,6 +205,7 @@ export function ContentItemDetail({
       <ProductSection title="What you get">
         <FeatureList items={about.includes} />
       </ProductSection>
+      <LibraryExcerpt itemId={item.id} title={item.title} />
     </ProductLayout>
   );
 }

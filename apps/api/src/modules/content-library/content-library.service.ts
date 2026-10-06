@@ -1,11 +1,15 @@
+import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import type { ContentCategory } from "@prisma/client";
+import type { Queue } from "bullmq";
 
+import { libraryPreviewKey } from "../../common/office/preview";
 import { PrismaService } from "../../prisma/prisma.service";
 import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
@@ -24,6 +28,10 @@ import {
 } from "./catalogue";
 import { ImportContentItemsDto } from "./dto/import-content-items.dto";
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
+import {
+  LIBRARY_PREVIEW_QUEUE,
+  type LibraryPreviewJob,
+} from "./library-preview.processor";
 
 /**
  * What a customer may see about an item they have not bought. Deliberately a
@@ -51,14 +59,103 @@ function assertNotAppWritten(keys: string[]): void {
   }
 }
 
+/** Excerpt links last long enough to read through; they're watermarked pictures. */
+const PREVIEW_URL_TTL_MS = 30 * 60_000;
+
 @Injectable()
 export class ContentLibraryService {
+  private readonly logger = new Logger(ContentLibraryService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly storage: StorageService,
     private readonly knowledgeBase: KnowledgeBaseIndexer,
+    @InjectQueue(LIBRARY_PREVIEW_QUEUE)
+    private readonly previews: Queue<LibraryPreviewJob>,
   ) {}
+
+  /**
+   * Asks for an item's excerpt to be rendered. The item id is the job id,
+   * so asking twice while one is waiting adds nothing, and a page visited by
+   * many people at once queues one render, not one per visitor.
+   */
+  async queuePreview(...itemIds: string[]) {
+    try {
+      await this.previews.addBulk(
+        itemIds.map((itemId) => ({
+          name: "render",
+          data: { itemId },
+          opts: { jobId: itemId },
+        })),
+      );
+    } catch (error) {
+      // A missing excerpt is a gap on a product page, not a reason to fail
+      // the save or the page that asked.
+      this.logger.error(
+        `Could not queue previews: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
+   * The free excerpt of a published item (docs/srs.md 3.4): links to its
+   * first pages as watermarked images.
+   *
+   *   ready: true,  pages: [...]  — here it is
+   *   ready: true,  pages: []     — this file can't be previewed
+   *   ready: false                — being made; ask again shortly
+   *
+   * A visit to an item with no excerpt yet asks for one, so the library
+   * fills in its previews as people browse it.
+   */
+  async getPreview(itemId: string) {
+    const item = await this.prisma.contentLibraryItem.findFirst({
+      where: { id: itemId, status: "PUBLISHED" },
+      select: {
+        id: true,
+        fileUrl: true,
+        previewOfFile: true,
+        previewPageCount: true,
+      },
+    });
+    if (!item) throw new NotFoundException("CONTENT_ITEM_NOT_FOUND");
+
+    if (item.previewOfFile !== item.fileUrl) {
+      await this.queuePreview(item.id);
+      return { ready: false, pages: [] as string[] };
+    }
+    return {
+      ready: true,
+      pages: Array.from({ length: item.previewPageCount }, (_, i) =>
+        this.storage.signUrl(
+          libraryPreviewKey(item.id, i + 1),
+          PREVIEW_URL_TTL_MS,
+        ),
+      ),
+    };
+  }
+
+  /**
+   * Queues an excerpt for every published item without a current one —
+   * for the items catalogued before previews existed, or after files were
+   * replaced in bulk. Safe to run again: current items are skipped here and
+   * again by the worker.
+   */
+  async backfillPreviews() {
+    const items = await this.prisma.contentLibraryItem.findMany({
+      where: { status: "PUBLISHED" },
+      select: { id: true, fileUrl: true, previewOfFile: true },
+    });
+    const stale = items.filter((item) => item.previewOfFile !== item.fileUrl);
+    if (stale.length > 0) await this.queuePreview(...stale.map((i) => i.id));
+    return {
+      queued: stale.length,
+      alreadyCurrent: items.length - stale.length,
+    };
+  }
 
   // Re-download policy for this module is still open (docs/srs.md Section 8)
   // — unlike Documents, there's no one-time-use enforcement here yet.
@@ -191,11 +288,12 @@ export class ContentLibraryService {
       return created;
     });
 
-    // After the commit, so the worker reads the row as saved.
+    // After the commit, so the workers read the row as saved.
     await this.knowledgeBase.reindex({
       sourceType: "content",
       sourceId: item.id,
     });
+    if (item.status === "PUBLISHED") await this.queuePreview(item.id);
     return item;
   }
 
@@ -311,6 +409,7 @@ export class ContentLibraryService {
           sourceId: id,
         })),
       );
+      await this.queuePreview(...rows.map(({ id }) => id));
     }
 
     return { created, skipped: dto.items.length - created };
