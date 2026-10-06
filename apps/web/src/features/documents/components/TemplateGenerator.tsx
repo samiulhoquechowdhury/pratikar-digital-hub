@@ -26,6 +26,7 @@ import { templateCategoryLabel } from "@/shared/lib/labels";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useGenerateDocument } from "../hooks/useGenerateDocument";
+import { useSavedDetails, type SavedDetails } from "../hooks/useSavedDetails";
 import { useTemplate } from "../hooks/useTemplate";
 
 import { DocumentFillChat } from "./DocumentFillChat";
@@ -265,6 +266,9 @@ function FillOptions({
   }, []);
   const [handedOver, setHandedOver] = useState<FilledData | null>(null);
   const [aiUnavailable, setAiUnavailable] = useState(false);
+  const saved = useSavedDetails(template);
+  // Profile details by default; the last document's answers on request.
+  const [startFrom, setStartFrom] = useState<"profile" | "previous">("profile");
   // A fresh form each time answers arrive from the chat, so it starts from
   // them rather than keeping whatever it held before.
   const [formKey, setFormKey] = useState(0);
@@ -312,6 +316,8 @@ function FillOptions({
             setMode("form");
           }}
         />
+      ) : !saved.loaded && !handedOver && !initialAnswers ? (
+        <SkeletonForm fields={4} label="Loading the form…" />
       ) : (
         <DynamicTemplateForm
           key={formKey}
@@ -319,7 +325,13 @@ function FillOptions({
           onSubmit={onSubmit}
           isSubmitting={isSubmitting}
           error={error}
-          initialValues={handedOver ?? initialAnswers ?? undefined}
+          initialValues={
+            handedOver ??
+            initialAnswers ??
+            (startFrom === "previous" && saved.previous
+              ? saved.previous.answers
+              : saved.fromProfile)
+          }
           notice={
             aiUnavailable ? (
               <Alert tone="info">
@@ -332,10 +344,74 @@ function FillOptions({
                 check each one — especially names, amounts and dates — before
                 you generate.
               </Alert>
-            ) : undefined
+            ) : initialAnswers ? undefined : (
+              <SavedDetailsNotice
+                saved={saved}
+                startFrom={startFrom}
+                onChange={(next) => {
+                  setStartFrom(next);
+                  setFormKey((k) => k + 1);
+                }}
+              />
+            )
           }
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Says where the form's starting values came from, and offers the other
+ * start: the customer's last answers to this template, or their profile.
+ * Nothing at all when there's nothing saved.
+ */
+function SavedDetailsNotice({
+  saved,
+  startFrom,
+  onChange,
+}: {
+  saved: SavedDetails;
+  startFrom: "profile" | "previous";
+  onChange: (next: "profile" | "previous") => void;
+}) {
+  const profileCount = Object.keys(saved.fromProfile).length;
+  if (!saved.previous && profileCount === 0) return undefined;
+
+  const lastDate = saved.previous
+    ? new Date(saved.previous.createdAt).toLocaleDateString("en-IN", {
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      })
+    : "";
+
+  return (
+    <Alert tone="info">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span>
+          {startFrom === "previous"
+            ? `Filled in with your answers from ${lastDate}. Change anything that's different this time.`
+            : profileCount > 0
+              ? `We've filled in ${profileCount} ${profileCount === 1 ? "detail" : "details"} from your profile — check ${profileCount === 1 ? "it" : "them"} before you generate.`
+              : `You made this document before, on ${lastDate}.`}
+        </span>
+        {saved.previous && (
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              onChange(startFrom === "previous" ? "profile" : "previous")
+            }
+          >
+            {startFrom === "previous"
+              ? profileCount > 0
+                ? "Use my profile details instead"
+                : "Start fresh instead"
+              : "Use my last answers"}
+          </Button>
+        )}
+      </div>
+    </Alert>
   );
 }

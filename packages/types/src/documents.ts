@@ -13,6 +13,33 @@ export interface TemplateFieldOption {
   label: string;
 }
 
+/**
+ * The customer's own details a template field can be filled from. Marked by
+ * staff per field — "this is the customer's name" — never guessed from the
+ * label: a rent agreement has two names, and only one of them is the
+ * customer's.
+ */
+export const PROFILE_FIELDS = [
+  "name",
+  "email",
+  "phone",
+  "address",
+  "city",
+  "state",
+  "pincode",
+] as const;
+export type ProfileField = (typeof PROFILE_FIELDS)[number];
+
+export const PROFILE_FIELD_LABELS: Record<ProfileField, string> = {
+  name: "Customer's full name",
+  email: "Customer's email",
+  phone: "Customer's phone",
+  address: "Customer's street address",
+  city: "Customer's city",
+  state: "Customer's state",
+  pincode: "Customer's PIN code",
+};
+
 export interface TemplateField {
   key: string; // maps 1:1 to the docxtemplater tag and the filledData key
   label: string;
@@ -20,6 +47,8 @@ export interface TemplateField {
   required: boolean;
   placeholder?: string;
   options?: TemplateFieldOption[]; // only meaningful when type === "select"
+  /** Filled in from the customer's profile when they start this template. */
+  profileField?: ProfileField;
 }
 
 export type TemplateFieldSchema = TemplateField[];

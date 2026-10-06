@@ -1,3 +1,4 @@
+import { PROFILE_FIELDS, type ProfileField } from "@pratikar/types";
 import { Type } from "class-transformer";
 import {
   IsArray,
@@ -46,4 +47,9 @@ export class TemplateFieldDto {
   @ValidateNested({ each: true })
   @Type(() => TemplateFieldOptionDto)
   options?: TemplateFieldOptionDto[];
+
+  /** Which of the customer's own details pre-fills this field, if any. */
+  @IsOptional()
+  @IsIn(PROFILE_FIELDS)
+  profileField?: ProfileField;
 }

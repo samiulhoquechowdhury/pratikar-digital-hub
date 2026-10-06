@@ -1,6 +1,12 @@
 "use client";
 
-import type { TemplateFieldSchema, TemplateFieldType } from "@pratikar/types";
+import {
+  PROFILE_FIELD_LABELS,
+  PROFILE_FIELDS,
+  type ProfileField,
+  type TemplateFieldSchema,
+  type TemplateFieldType,
+} from "@pratikar/types";
 import { Button, Field, IconButton, Input, Select } from "@pratikar/ui";
 
 import {
@@ -162,6 +168,34 @@ export function FieldSchemaEditor({ schema, problems, onChange }: Props) {
                             )
                           }
                         />
+                      </Field>
+
+                      <Field
+                        label="Pre-fill from"
+                        htmlFor={`field-profile-${index}`}
+                        hint="Only when this field is the customer's own detail — not the other party's."
+                      >
+                        <Select
+                          id={`field-profile-${index}`}
+                          value={field.profileField ?? ""}
+                          onChange={(e) =>
+                            onChange(
+                              updateField(schema, index, {
+                                profileField:
+                                  (e.target.value as ProfileField) || undefined,
+                              }),
+                            )
+                          }
+                        >
+                          <option value="">
+                            Nothing — the customer types it
+                          </option>
+                          {PROFILE_FIELDS.map((profileField) => (
+                            <option key={profileField} value={profileField}>
+                              {PROFILE_FIELD_LABELS[profileField]}
+                            </option>
+                          ))}
+                        </Select>
                       </Field>
                     </div>
 
