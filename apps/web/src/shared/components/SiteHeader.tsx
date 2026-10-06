@@ -5,6 +5,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
+import { NotificationBell } from "@/features/notifications";
+
 import { COURSES_LIVE } from "../lib/features";
 import { useAuth } from "../providers/AuthProvider";
 
@@ -18,6 +20,7 @@ import { SiteSearch } from "./SiteSearch";
 /** The category bar under the header — the catalogue's sections, Udemy-style. */
 const CATEGORY_BAR = [
   { href: "/documents", label: "Document generator" },
+  { href: "/documents/custom", label: "AI drafting" },
   { href: "/content-library?shelf=forms", label: "Legal forms" },
   { href: "/content-library?shelf=checklists", label: "Checklists" },
   { href: "/content-library?shelf=ebooks", label: "E-books" },
@@ -79,6 +82,7 @@ export function SiteHeader() {
               >
                 My account
               </Link>
+              <NotificationBell />
               <AccountMenu user={user} onLogout={() => void logout()} />
             </>
           ) : (
@@ -214,10 +218,23 @@ function CategoryBar({
   shelf: string | null;
   pathname: string;
 }) {
-  /** Current when its path — and its shelf, if it names one — match. */
+  const pathOf = (href: string) => href.split("?")[0]!;
+  const under = (path: string) =>
+    pathname === path || pathname.startsWith(`${path}/`);
+
+  /**
+   * Current when its path — and its shelf, if it names one — match, and no
+   * longer item matches better: /documents/custom is "AI drafting", not
+   * also "Document generator".
+   */
   const isCurrent = (href: string) => {
-    const [path, query] = href.split("?");
-    if (pathname !== path && !pathname.startsWith(`${path}/`)) return false;
+    const [path, query] = [pathOf(href), href.split("?")[1]];
+    if (!under(path)) return false;
+    const deeper = CATEGORY_BAR.some(
+      (item) =>
+        pathOf(item.href).length > path.length && under(pathOf(item.href)),
+    );
+    if (deeper) return false;
     const wanted = new URLSearchParams(query ?? "").get("shelf");
     return wanted ? shelf === wanted : true;
   };

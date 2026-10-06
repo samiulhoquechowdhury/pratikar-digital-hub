@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   Logger,
@@ -13,6 +14,10 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import {
+  customDraftReviewPrice,
+  documentTitle,
+} from "../documents/custom-draft";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
 import { NotificationSender } from "../notifications/notification-sender.service";
@@ -62,7 +67,7 @@ export class PaymentsService {
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
-    const amount = await this.resolveAmount(dto.itemType, dto.itemId);
+    const amount = await this.resolveAmount(dto.itemType, dto.itemId, userId);
     const gstAmount = Math.round(amount * GST_RATE);
 
     const order = await this.prisma.order.create({
@@ -489,6 +494,7 @@ export class PaymentsService {
   private async resolveAmount(
     itemType: CreateOrderDto["itemType"],
     itemId: string,
+    userId: string,
   ): Promise<number> {
     switch (itemType) {
       case "DOCUMENT": {
@@ -496,16 +502,41 @@ export class PaymentsService {
           where: { id: itemId },
           include: { template: true },
         });
-        if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
+        // Someone else's document is as good as missing: a generated
+        // document holds its owner's personal details.
+        if (!doc || doc.userId !== userId) {
+          throw new NotFoundException("DOCUMENT_NOT_FOUND");
+        }
+        // A custom draft isn't sold on its own: the advocate review is the
+        // purchase, and the reviewed copy is the download.
+        if (!doc.template) throw new BadRequestException("REVIEW_REQUIRED");
         return doc.template.priceInPaise;
       }
       case "DOCUMENT_REVIEW": {
         const doc = await this.prisma.generatedDocument.findUnique({
           where: { id: itemId },
-          include: { template: true },
+          include: {
+            template: true,
+            reviews: {
+              where: { status: { in: ["QUEUED", "IN_REVIEW", "RETURNED"] } },
+              select: { status: true },
+            },
+          },
         });
-        if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
-        return doc.template.reviewPriceInPaise;
+        if (!doc || doc.userId !== userId) {
+          throw new NotFoundException("DOCUMENT_NOT_FOUND");
+        }
+        // The advocate reviews the file as it is now; one still drafting
+        // or redrafting has nothing to review yet.
+        if (!doc.fileUrl) throw new ConflictException("NOT_READY");
+        // One review at a time. A custom draft is reviewed once — after
+        // that it's the reviewed document; a template document can be
+        // reviewed again once the last review is back.
+        const blocking = doc.reviews.some(
+          (r) => r.status !== "RETURNED" || doc.kind === "CUSTOM",
+        );
+        if (blocking) throw new ConflictException("REVIEW_ALREADY_REQUESTED");
+        return doc.template?.reviewPriceInPaise ?? customDraftReviewPrice();
       }
       case "CONTENT_ITEM": {
         const item = await this.prisma.contentLibraryItem.findUnique({
@@ -548,15 +579,20 @@ const ORDER_KIND_LABELS: Record<string, string> = {
 
 function describePurchase(order: {
   itemType: string;
-  generatedDocument?: { template: { title: string } } | null;
+  generatedDocument?: {
+    title: string | null;
+    template: { title: string } | null;
+  } | null;
   contentLibraryItem?: { title: string } | null;
   course?: { title: string } | null;
 }): string {
   switch (order.itemType) {
     case "DOCUMENT":
-      return order.generatedDocument?.template.title ?? "your document";
+      return order.generatedDocument
+        ? documentTitle(order.generatedDocument)
+        : "your document";
     case "DOCUMENT_REVIEW":
-      return `${order.generatedDocument?.template.title ?? "your document"} — professional review`;
+      return `${order.generatedDocument ? documentTitle(order.generatedDocument) : "your document"} — advocate review`;
     case "CONTENT_ITEM":
       return order.contentLibraryItem?.title ?? "your download";
     case "COURSE":

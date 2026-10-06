@@ -143,7 +143,7 @@ export const isSellable = (key: string): boolean =>
 
 /**
  * Prefixes the app writes to itself: generated documents, tagged templates,
- * invoices and credit notes. They share the bucket with the uploaded forms,
+ * reviewed documents, invoices and credit notes. They share the bucket with the uploaded forms,
  * but they are output, not stock — a generated document carries a customer's
  * name and address, and an invoice is a customer's tax record.
  */
@@ -155,6 +155,8 @@ const APP_WRITTEN = [
   // Watermarked excerpt pages of library items: a picture of a product
   // page, never something to sell in its own right.
   "library-previews/",
+  // Files advocates return after reviewing a customer's document.
+  "reviews/",
 ];
 
 export const isAppWritten = (key: string): boolean =>

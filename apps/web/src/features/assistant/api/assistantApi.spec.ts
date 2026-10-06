@@ -1,4 +1,4 @@
-import { classifyChatError } from "./assistantApi";
+import { classifyChatError, parseSseChunk } from "./assistantApi";
 
 /** apiClient's error message is the only signal the chat has to go on. */
 describe("classifyChatError", () => {
@@ -31,5 +31,19 @@ describe("classifyChatError", () => {
     ["not an error"],
   ])("reads anything else as failed (%p)", (error) => {
     expect(classifyChatError(error)).toBe("failed");
+  });
+});
+
+describe("parseSseChunk", () => {
+  it("reads complete events and keeps a partial one for the next chunk", () => {
+    const { events, rest } = parseSseChunk(
+      'data: {"type":"delta","text":"Hi"}\n\ndata: {"type":"del',
+    );
+    expect(events).toEqual([{ type: "delta", text: "Hi" }]);
+    expect(rest).toBe('data: {"type":"del');
+  });
+
+  it("skips a block that isn't JSON", () => {
+    expect(parseSseChunk("data: nope\n\n").events).toEqual([]);
   });
 });

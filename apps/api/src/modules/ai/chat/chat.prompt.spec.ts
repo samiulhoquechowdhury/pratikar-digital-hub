@@ -11,6 +11,7 @@ const hit = (
   title,
   priceInPaise: 34900,
   href: `/documents/${title.toLowerCase()}`,
+  kind: "Document template",
   content: `${title}\nA document template.`,
   score: 0.6,
   ...patch,
@@ -27,7 +28,9 @@ describe("catalogueBlock", () => {
   it("numbers the hits and quotes the live price, before GST", () => {
     const block = catalogueBlock([hit("Rent Agreement"), hit("NDA")]);
 
-    expect(block).toContain("[1] Rent Agreement — ₹349.00 + GST");
+    expect(block).toContain(
+      "[1] Rent Agreement (Document template) — ₹349.00 + GST",
+    );
     expect(block).toContain("[2] NDA");
     expect(block.startsWith("<catalogue>")).toBe(true);
   });

@@ -28,6 +28,7 @@ describe("ChatService", () => {
       title: "Rent Agreement",
       priceInPaise: 34900,
       href: "/documents/t1",
+      kind: "Document template",
       content: "Rent Agreement\nA document template.",
       score: 0.62,
     },
@@ -37,6 +38,7 @@ describe("ChatService", () => {
       title: "GST for Freelancers",
       priceInPaise: 249900,
       href: "/courses/c1",
+      kind: "Course",
       content: "GST for Freelancers\nAn online video course.",
       score: 0.45,
     },
@@ -116,11 +118,13 @@ describe("ChatService", () => {
     // The service always sends the new turn as one string.
     const content = last.content as string;
     expect(last.role).toBe("user");
-    expect(content).toContain("[1] Rent Agreement — ₹349.00 + GST");
+    expect(content).toContain(
+      "[1] Rent Agreement (Document template) — ₹349.00 + GST",
+    );
     expect(content.endsWith("I need a rental agreement")).toBe(true);
   });
 
-  it("searches on the new question only, and keeps the history as said", async () => {
+  it("searches a short follow-up with the question before it, and keeps the history as said", async () => {
     const { service, search, create } = build();
     create!.mockResolvedValue(reply("It's [1]."));
 
@@ -131,7 +135,10 @@ describe("ChatService", () => {
       { role: "user", content: "how much is it?" },
     ]);
 
-    expect(search.search).toHaveBeenCalledWith("how much is it?");
+    expect(search.search).toHaveBeenCalledWith(
+      "rent agreement\nhow much is it?",
+      8,
+    );
     const { messages } = sent(create);
     // The browser's greeting is dropped: a conversation opens with the user.
     expect(messages.map((m) => m.role)).toEqual(["user", "assistant", "user"]);
@@ -145,6 +152,7 @@ describe("ChatService", () => {
     const result = await service.answer(ask("rent"));
 
     expect(result.answer).toBe("For your flat, [1] fits.");
+    expect(result.suggestDraft).toBe(false);
     expect(result.sources).toEqual([
       {
         sourceType: "template",
@@ -152,8 +160,36 @@ describe("ChatService", () => {
         title: "Rent Agreement",
         href: "/documents/t1",
         priceInPaise: 34900,
+        kind: "Document template",
       },
     ]);
+  });
+
+  it("turns the [draft] marker into the custom-draft offer", async () => {
+    const { service, create } = build({ hits: [] });
+    create!.mockResolvedValue(
+      reply("We can draft a partnership deed for you. [draft]"),
+    );
+
+    const result = await service.answer(ask("partnership deed"));
+
+    expect(result.suggestDraft).toBe(true);
+    expect(result.answer).toBe("We can draft a partnership deed for you.");
+  });
+
+  it("searches a full question on its own", async () => {
+    const { service, search, create } = build();
+    create!.mockResolvedValue(reply("Try [1]."));
+    const long =
+      "I am renting out my flat in Pune to a family and need a written agreement";
+
+    await service.answer([
+      { role: "user", content: "earlier question" },
+      { role: "assistant", content: "ok" },
+      { role: "user", content: long },
+    ]);
+
+    expect(search.search).toHaveBeenCalledWith(long, 8);
   });
 
   it("answers a refusal with a plain no, and no sources", async () => {
@@ -195,5 +231,106 @@ describe("ChatService", () => {
     await expect(
       service.answer([{ role: "assistant", content: "Hello" }]),
     ).rejects.toThrow(BadRequestException);
+  });
+
+  describe("streaming", () => {
+    /** A stand-in for the SDK's MessageStream: replays events, then resolves. */
+    const fakeStream = (events: object[], final: object) => {
+      const handlers: ((event: object) => void)[] = [];
+      return {
+        on: (_name: string, handler: (event: object) => void) => {
+          handlers.push(handler);
+        },
+        finalMessage: () => {
+          events.forEach((event) => handlers.forEach((h) => h(event)));
+          return Promise.resolve(final);
+        },
+      };
+    };
+
+    const buildStreaming = (stream: object | Error) => {
+      const client = {
+        beta: {
+          messages: {
+            create: jest.fn(),
+            stream: jest.fn(() => {
+              if (stream instanceof Error) throw stream;
+              return stream;
+            }),
+          },
+        },
+      };
+      return build({ client });
+    };
+
+    const delta = (text: string) => ({
+      type: "content_block_delta",
+      delta: { type: "text_delta", text },
+    });
+
+    it("emits the text as it comes, then the finished answer", async () => {
+      const { service } = buildStreaming(
+        fakeStream([delta("Try "), delta("[1].")], reply("Try [1].")),
+      );
+      const events: object[] = [];
+
+      await service.streamAnswer(ask("rent"), (e) => events.push(e));
+
+      expect(events).toEqual([
+        { type: "delta", text: "Try " },
+        { type: "delta", text: "[1]." },
+        expect.objectContaining({
+          type: "done",
+          answer: "Try [1].",
+          sources: [expect.objectContaining({ sourceId: "t1" })],
+        }),
+      ]);
+    });
+
+    // The declining model's partial text must not stay on screen.
+    it("tells the browser to start over at a fallback", async () => {
+      const { service } = buildStreaming(
+        fakeStream(
+          [
+            delta("Partial"),
+            {
+              type: "content_block_start",
+              content_block: { type: "fallback" },
+            },
+            delta("Fresh"),
+          ],
+          reply("Fresh"),
+        ),
+      );
+      const events: { type: string }[] = [];
+
+      await service.streamAnswer(ask("rent"), (e) => events.push(e));
+
+      expect(events.map((e) => e.type)).toEqual([
+        "delta",
+        "reset",
+        "delta",
+        "done",
+      ]);
+    });
+
+    it("reports a failure mid-stream as an event", async () => {
+      const { service } = buildStreaming(
+        new Anthropic.RateLimitError(429, undefined, "busy", new Headers()),
+      );
+      const events: object[] = [];
+
+      await service.streamAnswer(ask("rent"), (e) => events.push(e));
+
+      expect(events).toEqual([{ type: "error", reason: "AI_BUSY" }]);
+    });
+
+    it("still throws before streaming when not configured", async () => {
+      const { service } = build({ client: null });
+
+      await expect(
+        service.streamAnswer(ask("rent"), jest.fn()),
+      ).rejects.toThrow("AI_NOT_CONFIGURED");
+    });
   });
 });

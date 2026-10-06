@@ -11,6 +11,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       heading: "Documents",
       links: [
         { href: "/documents", label: "Document generator" },
+        { href: "/documents/custom", label: "AI drafting" },
         { href: shelfHref("FORM"), label: "Legal forms" },
         { href: "/dashboard/documents", label: "My documents" },
       ],

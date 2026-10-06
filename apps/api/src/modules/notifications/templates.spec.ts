@@ -95,13 +95,14 @@ describe("purchaseConfirmation", () => {
 });
 
 describe("reviewReady", () => {
-  it("names the document and points at the dashboard", () => {
+  it("names the document and links straight to it", () => {
     const mail = reviewReady({
       customerName: null,
       documentTitle: "Rent Agreement",
+      documentId: "doc-1",
     });
     expect(mail.subject).toContain("Rent Agreement");
-    expect(mail.html).toContain("/dashboard/documents");
+    expect(mail.html).toContain("/dashboard/documents/doc-1");
   });
 });
 
@@ -138,6 +139,7 @@ describe("escaping", () => {
     const mail = reviewReady({
       customerName: "<script>x</script>",
       documentTitle: "Deed",
+      documentId: "doc-1",
     });
     expect(mail.html).not.toContain("<script>");
   });

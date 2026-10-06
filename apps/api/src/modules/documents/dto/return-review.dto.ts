@@ -1,16 +1,22 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsString, MaxLength } from "class-validator";
 
 /**
- * Replaces an inline `@Body() body: { ... }` annotation, which Nest does not
- * validate — the type was erased at runtime, so an empty reviewedFileUrl
- * reached the database and produced a RETURNED review pointing at nothing.
+ * How a reviewer returns a review: with the key of the file they uploaded
+ * for it (POST reviews/:id/file), or by approving the draft unchanged. The
+ * service refuses a request that does neither.
  */
 export class ReturnReviewDto {
-  @IsString()
-  @IsNotEmpty()
-  reviewedFileUrl!: string; // R2 key of the reviewed document
-
   @IsOptional()
   @IsString()
+  reviewedFileUrl?: string; // storage key under reviews/<reviewId>/
+
+  @IsOptional()
+  @IsBoolean()
+  approveAsDrafted?: boolean;
+
+  /** Shown to the customer with the reviewed document. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
   notes?: string;
 }

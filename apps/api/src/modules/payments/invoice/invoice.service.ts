@@ -2,6 +2,7 @@ import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { documentTitle } from "../../documents/custom-draft";
 import { StorageService } from "../../storage/storage.service";
 
 import { allocateDocumentNumber } from "./allocate-number";
@@ -220,9 +221,11 @@ export class InvoiceService {
 function describeOrder(order: OrderWithItem): string {
   switch (order.itemType) {
     case "DOCUMENT":
-      return order.generatedDocument?.template.title ?? "Legal document";
+      return order.generatedDocument
+        ? documentTitle(order.generatedDocument)
+        : "Legal document";
     case "DOCUMENT_REVIEW":
-      return `${order.generatedDocument?.template.title ?? "Legal document"} — professional review`;
+      return `${order.generatedDocument ? documentTitle(order.generatedDocument) : "Legal document"} — advocate review`;
     case "CONTENT_ITEM":
       return order.contentLibraryItem?.title ?? "Content library item";
     case "COURSE":

@@ -79,8 +79,10 @@ describe("public routes", () => {
       )
       .sort();
 
-  it("opens only the template catalogue on DocumentsController", () => {
+  // The custom-draft price is shown before sign-in; it reveals a number.
+  it("opens only the template catalogue and draft pricing on DocumentsController", () => {
     expect(publicHandlers(DocumentsController)).toEqual([
+      "customPricing",
       "getPublishedTemplate",
       "listTemplates",
     ]);

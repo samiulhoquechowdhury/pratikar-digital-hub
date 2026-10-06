@@ -40,7 +40,7 @@ export class NotificationSender {
   }
 
   async send(job: NotificationJob): Promise<void> {
-    if (!job.to) {
+    if (job.type !== "push" && !job.to) {
       // Phone-only accounts have no address. Not an error — SMS is the
       // channel for them, and it is gated on the client's DLT registration.
       this.logger.log(`Skipped "${job.type}" — no email address on record`);
@@ -50,7 +50,7 @@ export class NotificationSender {
       await this.queue.add(job.type, job);
     } catch (error) {
       this.logger.error(
-        `Could not queue "${job.type}" for ${job.to}: ${
+        `Could not queue "${job.type}": ${
           error instanceof Error ? error.message : String(error)
         }`,
       );

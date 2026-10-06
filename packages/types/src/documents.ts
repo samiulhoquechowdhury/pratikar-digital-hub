@@ -66,7 +66,22 @@ export interface Template {
   createdAt: string;
 }
 
-export type GeneratedDocumentStatus = "GENERATED" | "PAID" | "DOWNLOADED";
+export type GeneratedDocumentStatus =
+  "GENERATED" | "PAID" | "DOWNLOADED" | "REFUNDED";
+
+/** TEMPLATE: filled in from a template. CUSTOM: drafted by the AI from a description. */
+export type DocumentKind = "TEMPLATE" | "CUSTOM";
+
+export type DocumentReviewStatus =
+  "QUEUED" | "IN_REVIEW" | "RETURNED" | "CANCELLED";
+
+/** What a customer asks the AI to draft. */
+export interface DraftCustomPayload {
+  documentType: string;
+  details: string;
+  /** Two-digit GST state code. */
+  stateCode?: string;
+}
 
 export interface GenerateDocumentPayload {
   templateId: string;
@@ -76,7 +91,9 @@ export interface GenerateDocumentPayload {
 export interface GeneratedDocument {
   id: string;
   userId: string;
-  templateId: string;
+  kind: DocumentKind;
+  /** Null for a custom draft. */
+  templateId: string | null;
   filledData: Record<string, unknown>;
   fileUrl: string;
   status: GeneratedDocumentStatus;

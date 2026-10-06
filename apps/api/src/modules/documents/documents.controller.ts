@@ -6,8 +6,12 @@ import {
   Post,
   Query,
   Put,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from "@nestjs/common";
+import { FileInterceptor } from "@nestjs/platform-express";
+import { Throttle } from "@nestjs/throttler";
 import { Role } from "@pratikar/types";
 
 import {
@@ -19,7 +23,12 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
-import { DocumentsService } from "./documents.service";
+import {
+  DocumentsService,
+  MAX_REVIEWED_FILE_BYTES,
+  type UploadedReviewFile,
+} from "./documents.service";
+import { DraftCustomDto, ReviseDraftDto } from "./dto/draft-custom.dto";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { ReturnReviewDto } from "./dto/return-review.dto";
 import { CreateTemplateFromStorageDto } from "./dto/tag-template.dto";
@@ -115,9 +124,47 @@ export class DocumentsController {
     return this.documentsService.generate(user.id, dto);
   }
 
+  /** Public: the custom-draft page shows the price before sign-in. */
+  @Get("custom/pricing")
+  @Public()
+  customPricing() {
+    return this.documentsService.customPricing();
+  }
+
+  /**
+   * A custom document, drafted by the AI from the customer's description.
+   * Throttled well below the default: each one is a long model call.
+   */
+  @Post("custom")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  draftCustom(@Body() dto: DraftCustomDto, @CurrentUser() user: RequestUser) {
+    return this.documentsService.draftCustom(user.id, dto);
+  }
+
+  @Post(":id/revise")
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  reviseCustom(
+    @Param("id") id: string,
+    @Body() dto: ReviseDraftDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.reviseCustom(id, user.id, dto.instruction);
+  }
+
   @Get("mine")
   listMine(@CurrentUser() user: RequestUser) {
     return this.documentsService.listMine(user.id);
+  }
+
+  @Get("mine/:id")
+  getMine(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.documentsService.getMine(id, user.id);
+  }
+
+  /** The advocate-reviewed copy. Repeatable, unlike the one-time download. */
+  @Post(":id/reviewed-download")
+  reviewedDownload(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.documentsService.reviewedDownload(id, user.id);
   }
 
   @Get(":id/preview")
@@ -142,6 +189,27 @@ export class DocumentsController {
     return this.documentsService.claimReview(id, user.id);
   }
 
+  /** The customer's document and what it was made from, for the reviewer. */
+  @Get("reviews/:id/files")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  reviewFiles(@Param("id") id: string) {
+    return this.documentsService.reviewFiles(id);
+  }
+
+  /** The reviewer's marked-up file, Word or PDF. Returns its storage key. */
+  @Post("reviews/:id/file")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  @UseInterceptors(
+    FileInterceptor("file", { limits: { fileSize: MAX_REVIEWED_FILE_BYTES } }),
+  )
+  uploadReviewedFile(
+    @Param("id") id: string,
+    @UploadedFile() file: UploadedReviewFile | undefined,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.documentsService.uploadReviewedFile(id, user.id, file);
+  }
+
   @Put("reviews/:id/return")
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
   returnReview(
@@ -149,11 +217,6 @@ export class DocumentsController {
     @Body() dto: ReturnReviewDto,
     @CurrentUser() user: RequestUser,
   ) {
-    return this.documentsService.returnReview(
-      id,
-      dto.reviewedFileUrl,
-      user.id,
-      dto.notes,
-    );
+    return this.documentsService.returnReview(id, dto, user.id);
   }
 }

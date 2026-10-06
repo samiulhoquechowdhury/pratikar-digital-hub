@@ -20,11 +20,16 @@ export function DocumentsSection() {
     <>
       <AccountPageHeader
         title="My documents"
-        description="Documents you've generated — pay, download, or send one for an advocate's review."
+        description="Documents you've generated or had drafted — preview, send for an advocate's review, and download."
         action={
-          <ButtonLink href="/documents" size="sm">
-            New document
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/documents/custom" size="sm">
+              Draft with AI
+            </ButtonLink>
+            <ButtonLink href="/documents" size="sm" variant="secondary">
+              Templates
+            </ButtonLink>
+          </div>
         }
       />
       <MyDocuments documents={data.documents} />

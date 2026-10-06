@@ -3,16 +3,22 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { Role } from "@pratikar/types";
 import type { Prisma } from "@prisma/client";
 import type { Queue } from "bullmq";
 
+import { convertToPdf } from "../../common/office/convert-to-pdf";
 import { previewPageKey } from "../../common/office/preview";
 import { PrismaService } from "../../prisma/prisma.service";
+import type { DocumentDraft, DraftBrief } from "../ai/drafting/draft-prompt";
+import { DraftingService } from "../ai/drafting/drafting.service";
 import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
   AuditAction,
@@ -25,10 +31,19 @@ import {
   titleFromKey,
 } from "../content-library/catalogue";
 import { NotificationSender } from "../notifications/notification-sender.service";
+import { UserNotifier } from "../notifications/user-notifier.service";
 import { StorageService } from "../storage/storage.service";
 
+import {
+  customDraftReviewPrice,
+  documentTitle,
+  MAX_DRAFT_REVISIONS,
+  MAX_DRAFTS_PER_DAY,
+} from "./custom-draft";
 import type { DocumentGenerationJobData } from "./document-generation.processor";
+import type { DraftCustomDto } from "./dto/draft-custom.dto";
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
+import type { ReturnReviewDto } from "./dto/return-review.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 import { fieldsOf, validateAnswers } from "./filled-data";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
@@ -56,6 +71,24 @@ const CATALOGUE_TEMPLATE_FIELDS = {
  */
 const PREVIEW_URL_TTL_MS = 30 * 60_000;
 
+/** Reviewed files an advocate may upload: Word or PDF, up to 15 MB. */
+export const REVIEWED_FILE_TYPES: Record<string, string> = {
+  ".docx":
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".pdf": "application/pdf",
+};
+export const MAX_REVIEWED_FILE_BYTES = 15 * 1024 * 1024;
+
+/** A file as Nest's FileInterceptor hands it over (multer, in memory). */
+export interface UploadedReviewFile {
+  originalname: string;
+  size: number;
+  buffer: Buffer;
+}
+
+/** Reviews still being worked on — a second one can't be bought meanwhile. */
+const ACTIVE_REVIEW = ["QUEUED", "IN_REVIEW"] as const;
+
 @Injectable()
 export class DocumentsService {
   private readonly logger = new Logger(DocumentsService.name);
@@ -68,6 +101,8 @@ export class DocumentsService {
     @InjectQueue("document-generation")
     private readonly documentGenerationQueue: Queue<DocumentGenerationJobData>,
     private readonly knowledgeBase: KnowledgeBaseIndexer,
+    private readonly drafting: DraftingService,
+    private readonly notifier: UserNotifier,
   ) {}
 
   /**
@@ -220,6 +255,190 @@ export class DocumentsService {
     return generatedDocument;
   }
 
+  /** What a custom draft costs: the advocate review, which unlocks it. */
+  customPricing() {
+    return {
+      available: this.drafting.isConfigured,
+      reviewPriceInPaise: customDraftReviewPrice(),
+      maxRevisions: MAX_DRAFT_REVISIONS,
+    };
+  }
+
+  /**
+   * Starts a custom document: the AI drafts it from the customer's own
+   * description, in the background. The draft is free to preview; it can
+   * only be downloaded once an advocate has reviewed it (consumeDownload).
+   */
+  async draftCustom(userId: string, dto: DraftCustomDto) {
+    if (!this.drafting.isConfigured) {
+      throw new ServiceUnavailableException("AI_NOT_CONFIGURED");
+    }
+
+    // Each draft is a paid model call, so a day's worth is capped.
+    const since = new Date(Date.now() - 24 * 3600_000);
+    const today = await this.prisma.generatedDocument.count({
+      where: { userId, kind: "CUSTOM", createdAt: { gte: since } },
+    });
+    if (today >= MAX_DRAFTS_PER_DAY) {
+      throw new HttpException(
+        "DRAFT_LIMIT_REACHED",
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
+    }
+
+    const brief: DraftBrief = {
+      documentType: dto.documentType.trim(),
+      details: dto.details.trim(),
+      stateCode: dto.stateCode ?? null,
+    };
+    const doc = await this.prisma.generatedDocument.create({
+      data: {
+        userId,
+        kind: "CUSTOM",
+        title: brief.documentType,
+        brief: brief as unknown as Prisma.InputJsonValue,
+        filledData: {},
+        fileUrl: "",
+        status: "GENERATED",
+      },
+    });
+    await this.documentGenerationQueue.add("draft", {
+      generatedDocumentId: doc.id,
+    });
+    return { id: doc.id };
+  }
+
+  /**
+   * Redrafts a custom document with the customer's change. Only while it's
+   * still theirs to change — once a review is bought, the advocate is
+   * working from this draft and it must hold still.
+   */
+  async reviseCustom(documentId: string, userId: string, instruction: string) {
+    if (!this.drafting.isConfigured) {
+      throw new ServiceUnavailableException("AI_NOT_CONFIGURED");
+    }
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: documentId },
+      include: { reviews: { where: { status: { not: "CANCELLED" } } } },
+    });
+    if (!doc || doc.userId !== userId || doc.kind !== "CUSTOM") {
+      throw new NotFoundException("DOCUMENT_NOT_FOUND");
+    }
+    if (doc.reviews.length > 0) {
+      throw new ConflictException("UNDER_REVIEW");
+    }
+    if (!doc.fileUrl || !doc.draft) {
+      throw new ConflictException("NOT_READY");
+    }
+    if (doc.revisionCount >= MAX_DRAFT_REVISIONS) {
+      throw new ConflictException("REVISION_LIMIT_REACHED");
+    }
+
+    // Conditional on the count read above, so two quick clicks can't both
+    // start a revision of the same draft.
+    const claimed = await this.prisma.generatedDocument.updateMany({
+      where: {
+        id: doc.id,
+        revisionCount: doc.revisionCount,
+        fileUrl: { not: "" },
+      },
+      data: {
+        revisionCount: { increment: 1 },
+        fileUrl: "",
+        draftError: null,
+      },
+    });
+    if (claimed.count === 0) throw new ConflictException("NOT_READY");
+
+    await this.documentGenerationQueue.add("draft", {
+      generatedDocumentId: doc.id,
+      instruction: instruction.trim(),
+    });
+    return { id: doc.id };
+  }
+
+  /**
+   * One of the customer's documents, with everything its page shows: the
+   * draft's summary and blanks, the latest review, and what a review costs.
+   */
+  async getMine(documentId: string, userId: string) {
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: documentId },
+      include: {
+        template: {
+          select: { title: true, priceInPaise: true, reviewPriceInPaise: true },
+        },
+        reviews: {
+          where: { status: { not: "CANCELLED" } },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            returnedAt: true,
+            reviewedPdfUrl: true,
+          },
+        },
+      },
+    });
+    if (!doc || doc.userId !== userId) {
+      throw new NotFoundException("DOCUMENT_NOT_FOUND");
+    }
+    return this.toCustomerView(doc);
+  }
+
+  /** The shape the customer's pages read: one title, one review price, no storage keys. */
+  private toCustomerView<
+    D extends {
+      id: string;
+      kind: "TEMPLATE" | "CUSTOM";
+      title: string | null;
+      draft: unknown;
+      brief: unknown;
+      template: {
+        title: string;
+        priceInPaise: number;
+        reviewPriceInPaise: number;
+      } | null;
+      reviews: {
+        id: string;
+        status: string;
+        notes: string | null;
+        createdAt: Date;
+        returnedAt: Date | null;
+        reviewedPdfUrl: string | null;
+      }[];
+      fileUrl: string;
+      pdfFileUrl: string | null;
+    },
+  >(doc: D) {
+    const draft = doc.draft as DocumentDraft | null;
+    // Storage keys stay on the server; the draft is summarised below.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- named only to be left out
+    const { reviews, fileUrl, pdfFileUrl: _pdf, draft: _draft, ...rest } = doc;
+    const review = reviews[0] ?? null;
+    return {
+      ...rest,
+      title: documentTitle(doc),
+      ready: fileUrl !== "",
+      priceInPaise: doc.template?.priceInPaise ?? null,
+      reviewPriceInPaise:
+        doc.template?.reviewPriceInPaise ?? customDraftReviewPrice(),
+      summary: draft?.summary ?? null,
+      missingDetails: draft?.missingDetails ?? [],
+      review: review && {
+        id: review.id,
+        status: review.status,
+        notes: review.status === "RETURNED" ? review.notes : null,
+        createdAt: review.createdAt,
+        returnedAt: review.returnedAt,
+        hasPdf: review.reviewedPdfUrl !== null,
+      },
+    };
+  }
+
   /**
    * The customer's own documents, for their dashboard.
    *
@@ -228,16 +447,30 @@ export class DocumentsService {
    * row. fileUrl comes back too — harmless, since it's now a storage key that
    * cannot be fetched without a signature (see StorageService.signUrl).
    */
-  listMine(userId: string) {
-    return this.prisma.generatedDocument.findMany({
+  async listMine(userId: string) {
+    const docs = await this.prisma.generatedDocument.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
       include: {
         template: {
           select: { title: true, priceInPaise: true, reviewPriceInPaise: true },
         },
+        reviews: {
+          where: { status: { not: "CANCELLED" } },
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            notes: true,
+            createdAt: true,
+            returnedAt: true,
+            reviewedPdfUrl: true,
+          },
+        },
       },
     });
+    return docs.map((doc) => this.toCustomerView(doc));
   }
 
   /** Called once the paid order for this document is confirmed (see PaymentsService). */
@@ -265,6 +498,11 @@ export class DocumentsService {
     if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
     if (doc.userId !== requesterId && requesterRole === Role.CUSTOMER) {
       throw new ForbiddenException("NOT_YOUR_DOCUMENT");
+    }
+    // A custom draft has had no lawyer near it until it's reviewed; the
+    // reviewed copy is what's downloaded (reviewedDownload), never this.
+    if (doc.kind === "CUSTOM") {
+      throw new ForbiddenException("REVIEW_REQUIRED");
     }
     if (doc.status === "DOWNLOADED") {
       throw new ForbiddenException("ALREADY_DOWNLOADED");
@@ -314,16 +552,23 @@ export class DocumentsService {
         userId: true,
         fileUrl: true,
         previewPageCount: true,
+        draftError: true,
       },
     });
     if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
     if (doc.userId !== requesterId && requesterRole === Role.CUSTOMER) {
       throw new ForbiddenException("NOT_YOUR_DOCUMENT");
     }
-    if (!doc.fileUrl) return { ready: false, pages: [] as string[] };
+    // `error` is why a custom draft failed, in words for the customer. With
+    // no file it means drafting stopped; with one, a revision failed and the
+    // previous draft is what's shown.
+    if (!doc.fileUrl) {
+      return { ready: false, pages: [] as string[], error: doc.draftError };
+    }
 
     return {
       ready: true,
+      error: doc.draftError,
       pages: Array.from({ length: doc.previewPageCount }, (_, i) =>
         this.storage.signUrl(previewPageKey(doc.id, i + 1), PREVIEW_URL_TTL_MS),
       ),
@@ -345,6 +590,101 @@ export class DocumentsService {
       },
     });
     await this.alertStaffOfReview(review.id);
+    await this.notifier.notifyUser(requestedByUserId, {
+      title: "Sent for advocate review",
+      body: "An advocate will review your document. We'll let you know the moment it's ready to download.",
+      href: `/dashboard/documents/${generatedDocumentId}`,
+    });
+    return review;
+  }
+
+  /**
+   * The reviewed document, for its owner: signed links to the advocate's
+   * file and its PDF. Unlike the one-time template download, these can be
+   * fetched again — it's the customer's own document, reviewed for them.
+   */
+  async reviewedDownload(documentId: string, userId: string) {
+    const review = await this.prisma.documentReview.findFirst({
+      where: {
+        generatedDocumentId: documentId,
+        status: "RETURNED",
+        generatedDocument: { userId },
+      },
+      orderBy: { returnedAt: "desc" },
+    });
+    if (!review?.reviewedFileUrl) {
+      throw new NotFoundException("NO_REVIEWED_FILE");
+    }
+    return {
+      fileUrl: this.storage.signUrl(review.reviewedFileUrl),
+      pdfUrl:
+        review.reviewedPdfUrl &&
+        review.reviewedPdfUrl !== review.reviewedFileUrl
+          ? this.storage.signUrl(review.reviewedPdfUrl)
+          : null,
+    };
+  }
+
+  /**
+   * What a reviewer needs to do the review: the customer's document as Word
+   * and PDF, and what it was made from — the brief for a custom draft, the
+   * answers for a template. Staff only, at the controller.
+   */
+  async reviewFiles(reviewId: string) {
+    const review = await this.prisma.documentReview.findUnique({
+      where: { id: reviewId },
+      include: { generatedDocument: { include: { template: true } } },
+    });
+    if (!review) throw new NotFoundException("REVIEW_NOT_FOUND");
+    const doc = review.generatedDocument;
+    const draft = doc.draft as DocumentDraft | null;
+    return {
+      title: documentTitle(doc),
+      kind: doc.kind,
+      brief: doc.brief,
+      filledData: doc.kind === "TEMPLATE" ? doc.filledData : null,
+      missingDetails: draft?.missingDetails ?? [],
+      docxUrl: doc.fileUrl ? this.storage.signUrl(doc.fileUrl) : null,
+      pdfUrl: doc.pdfFileUrl ? this.storage.signUrl(doc.pdfFileUrl) : null,
+    };
+  }
+
+  /**
+   * Stores the advocate's reviewed file under reviews/<id>/ and returns its
+   * key, for returnReview. Only the reviewer who claimed it may upload.
+   */
+  async uploadReviewedFile(
+    reviewId: string,
+    reviewerId: string,
+    file: UploadedReviewFile | undefined,
+  ) {
+    if (!file) throw new BadRequestException("FILE_REQUIRED");
+    const ext = (/\.[a-z]+$/i.exec(file.originalname)?.[0] ?? "").toLowerCase();
+    const contentType = REVIEWED_FILE_TYPES[ext];
+    if (!contentType) throw new BadRequestException("WORD_OR_PDF_ONLY");
+    if (file.size > MAX_REVIEWED_FILE_BYTES) {
+      throw new BadRequestException("FILE_TOO_LARGE");
+    }
+    await this.assertReviewer(reviewId, reviewerId);
+
+    const key = `reviews/${reviewId}/reviewed-${Date.now()}${ext}`;
+    await this.storage.upload(key, file.buffer, contentType);
+    return { key };
+  }
+
+  /** The review exists, is in progress, and is this reviewer's. */
+  private async assertReviewer(reviewId: string, reviewerId: string) {
+    const review = await this.prisma.documentReview.findUnique({
+      where: { id: reviewId },
+      include: { generatedDocument: true },
+    });
+    if (!review) throw new NotFoundException("REVIEW_NOT_FOUND");
+    if (review.status !== "IN_REVIEW") {
+      throw new ConflictException("REVIEW_NOT_IN_PROGRESS");
+    }
+    if (review.assignedToUserId !== reviewerId) {
+      throw new ForbiddenException("NOT_YOUR_REVIEW");
+    }
     return review;
   }
 
@@ -359,7 +699,7 @@ export class DocumentsService {
         select: {
           requestedBy: { select: { name: true } },
           generatedDocument: {
-            select: { template: { select: { title: true } } },
+            select: { title: true, template: { select: { title: true } } },
           },
         },
       });
@@ -369,7 +709,7 @@ export class DocumentsService {
         to,
         payload: {
           customerName: review.requestedBy.name,
-          documentTitle: review.generatedDocument.template.title,
+          documentTitle: documentTitle(review.generatedDocument),
         },
       }));
     } catch (error) {
@@ -408,16 +748,50 @@ export class DocumentsService {
     });
   }
 
+  /**
+   * Sends a review back to the customer, which is what unlocks a custom
+   * draft for download. The reviewer either uploads their reviewed file
+   * (uploadReviewedFile, then its key here) or approves the draft as it
+   * stands, in which case the drafted files are the reviewed ones.
+   */
   async returnReview(
     reviewId: string,
-    reviewedFileUrl: string,
+    dto: Pick<
+      ReturnReviewDto,
+      "reviewedFileUrl" | "approveAsDrafted" | "notes"
+    >,
     actorUserId: string,
-    notes?: string,
   ) {
+    const review = await this.assertReviewer(reviewId, actorUserId);
+    const doc = review.generatedDocument;
+
+    let reviewedFileUrl: string;
+    let reviewedPdfUrl: string | null;
+    if (dto.approveAsDrafted) {
+      if (!doc.fileUrl) throw new ConflictException("NOT_READY");
+      reviewedFileUrl = doc.fileUrl;
+      reviewedPdfUrl = doc.pdfFileUrl;
+    } else {
+      // Only a file uploaded for this review. A free-typed key could hand the
+      // customer any object in the bucket — someone else's document included.
+      const key = dto.reviewedFileUrl ?? "";
+      if (!key.startsWith(`reviews/${reviewId}/`)) {
+        throw new BadRequestException("UPLOAD_THE_REVIEWED_FILE");
+      }
+      reviewedFileUrl = key;
+      reviewedPdfUrl = await this.pdfOfReviewedFile(key);
+    }
+
     const returned = await this.prisma.$transaction(async (tx) => {
       const returned = await tx.documentReview.update({
         where: { id: reviewId },
-        data: { status: "RETURNED", reviewedFileUrl, notes },
+        data: {
+          status: "RETURNED",
+          reviewedFileUrl,
+          reviewedPdfUrl,
+          notes: dto.notes?.trim() || null,
+          returnedAt: new Date(),
+        },
       });
 
       await this.audit.recordWith(tx, {
@@ -425,7 +799,10 @@ export class DocumentsService {
         action: AuditAction.REVIEW_RETURNED,
         targetType: AuditTargetType.DOCUMENT_REVIEW,
         targetId: reviewId,
-        metadata: { generatedDocumentId: returned.generatedDocumentId },
+        metadata: {
+          generatedDocumentId: returned.generatedDocumentId,
+          approvedAsDrafted: Boolean(dto.approveAsDrafted),
+        },
       });
 
       return returned;
@@ -434,31 +811,62 @@ export class DocumentsService {
     // Outside the transaction, and deliberately after it commits: the review
     // is returned whether or not the customer can be reached, and a mail
     // provider having a bad minute must not roll back a reviewer's work.
-    //
-    // Email only for now. The Android push confirmed in docs/srs.md 3.8
-    // arrives with the app (Milestone 5) and routes through the same queue.
     await this.notifyReviewReady(reviewId);
     return returned;
   }
 
+  /**
+   * A PDF of the reviewer's file: the file itself when it is one, otherwise
+   * converted. Null if conversion fails — the Word file is still the
+   * reviewed document, and the customer can download that.
+   */
+  private async pdfOfReviewedFile(key: string): Promise<string | null> {
+    if (key.toLowerCase().endsWith(".pdf")) return key;
+    try {
+      const pdf = await convertToPdf(await this.storage.read(key), ".docx");
+      const pdfKey = key.replace(/\.docx$/i, ".pdf");
+      await this.storage.upload(pdfKey, pdf, "application/pdf");
+      return pdfKey;
+    } catch (error) {
+      this.logger.warn(
+        `No PDF for reviewed file ${key}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * "Your document is ready" — on every channel: the inbox, browser push,
+   * email, and SMS, because this is the message a customer is waiting for.
+   */
   private async notifyReviewReady(reviewId: string) {
     const review = await this.prisma.documentReview.findUnique({
       where: { id: reviewId },
       include: {
-        requestedBy: { select: { name: true, email: true } },
+        requestedBy: { select: { name: true } },
         generatedDocument: {
           include: { template: { select: { title: true } } },
         },
       },
     });
-    if (!review?.requestedBy.email) return;
+    if (!review) return;
 
-    await this.notifications.send({
-      type: "review-ready",
-      to: review.requestedBy.email,
-      payload: {
-        customerName: review.requestedBy.name,
-        documentTitle: review.generatedDocument.template.title,
+    const title = documentTitle(review.generatedDocument);
+    await this.notifier.notifyUser(review.requestedByUserId, {
+      title: "Your document is ready to download",
+      body: `An advocate has reviewed “${title}”. Tap to download it.`,
+      href: `/dashboard/documents/${review.generatedDocumentId}`,
+      email: {
+        type: "review-ready",
+        payload: {
+          customerName: review.requestedBy.name,
+          documentTitle: title,
+          documentId: review.generatedDocumentId,
+        },
+      },
+      sms: {
+        template: "document-ready",
+        variables: { title: title.slice(0, 30) },
       },
     });
   }
@@ -635,11 +1043,16 @@ export class DocumentsService {
 
   listReviewQueue() {
     return this.prisma.documentReview.findMany({
-      where: { status: { in: ["QUEUED", "IN_REVIEW"] } },
+      where: { status: { in: [...ACTIVE_REVIEW] } },
       orderBy: { createdAt: "asc" },
       include: {
         generatedDocument: {
-          include: { template: { select: { title: true } } },
+          select: {
+            id: true,
+            kind: true,
+            title: true,
+            template: { select: { title: true } },
+          },
         },
       },
     });

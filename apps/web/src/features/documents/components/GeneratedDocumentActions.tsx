@@ -10,7 +10,7 @@ import { documentsApi } from "../api/documentsApi";
 
 /**
  * What a customer can do with a document they've generated: pay for it,
- * download it once, or buy a lawyer review.
+ * download it once, or buy an advocate review.
  *
  * The download is deliberately one click with no "check first" step — asking
  * the server whether a download is available would consume it (docs/srs.md
@@ -20,10 +20,13 @@ export function GeneratedDocumentActions({
   documentId,
   template,
   initialStatus,
+  showReview = true,
 }: {
   documentId: string;
   template: Pick<Template, "title" | "priceInPaise" | "reviewPriceInPaise">;
   initialStatus: GeneratedDocumentStatus;
+  /** Off where the page shows its own review panel (the document page). */
+  showReview?: boolean;
 }) {
   const [status, setStatus] = useState<GeneratedDocumentStatus>(initialStatus);
   const [error, setError] = useState<string | null>(null);
@@ -102,6 +105,12 @@ export function GeneratedDocumentActions({
             </Alert>
           )}
 
+          {status === "REFUNDED" && (
+            <Alert tone="info">
+              This document was refunded, so it can no longer be downloaded.
+            </Alert>
+          )}
+
           {error && (
             <div className="mt-4">
               <Alert tone="danger" role="alert">
@@ -112,22 +121,24 @@ export function GeneratedDocumentActions({
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h3 className="text-base">Lawyer review</h3>
-        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
-          Have a lawyer check this document and send back comments. Bought
-          separately from the document itself, and available whether or not
-          you&apos;ve downloaded it.
-        </p>
-        <div className="mt-4">
-          <BuyButton
-            itemType="DOCUMENT_REVIEW"
-            itemId={documentId}
-            label={`Review: ${template.title}`}
-            priceInPaise={template.reviewPriceInPaise}
-          />
-        </div>
-      </Card>
+      {showReview && (
+        <Card className="p-6">
+          <h3 className="text-base">Advocate review</h3>
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
+            Have an advocate check this document and send back a reviewed copy.
+            Bought separately from the document itself, and available whether or
+            not you&apos;ve downloaded it.
+          </p>
+          <div className="mt-4">
+            <BuyButton
+              itemType="DOCUMENT_REVIEW"
+              itemId={documentId}
+              label={`Review: ${template.title}`}
+              priceInPaise={template.reviewPriceInPaise}
+            />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

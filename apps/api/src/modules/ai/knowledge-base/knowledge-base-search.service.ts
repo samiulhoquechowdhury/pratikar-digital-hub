@@ -22,6 +22,8 @@ export interface KnowledgeHit {
   priceInPaise: number;
   /** The customer-facing page for this item. */
   href: string;
+  /** What it is, in the customer's words: "Course", "E-book", "Form"… */
+  kind: string;
   /** The indexed text: what the item is, for the model to reason about. */
   content: string;
   score: number;
@@ -32,6 +34,19 @@ interface RawHit {
   sourceId: string;
   content: string;
   score: number;
+}
+
+/** The kind of item, as a customer would call it. */
+const CONTENT_KIND: Record<string, string> = {
+  EBOOK: "E-book",
+  CHECKLIST: "Checklist",
+  FORM: "Legal form",
+};
+
+function kindOf(sourceType: KnowledgeSourceType, contentType?: string): string {
+  if (sourceType === "template") return "Document template";
+  if (sourceType === "course") return "Course";
+  return (contentType && CONTENT_KIND[contentType]) ?? "Library item";
 }
 
 const HREF: Record<KnowledgeSourceType, (id: string) => string> = {
@@ -88,6 +103,7 @@ export class KnowledgeBaseSearch {
           title: row.title,
           priceInPaise: row.priceInPaise,
           href: HREF[sourceType](hit.sourceId),
+          kind: kindOf(sourceType, row.type),
           content: hit.content,
           score: hit.score,
         },
@@ -115,12 +131,15 @@ export class KnowledgeBaseSearch {
       ids("content").length
         ? this.prisma.contentLibraryItem.findMany({
             where: where("content"),
-            select,
+            select: { ...select, type: true },
           })
         : [],
     ]);
 
-    const rows = new Map<string, { title: string; priceInPaise: number }>();
+    const rows = new Map<
+      string,
+      { title: string; priceInPaise: number; type?: string }
+    >();
     templates.forEach((r) => rows.set(`template:${r.id}`, r));
     courses.forEach((r) => rows.set(`course:${r.id}`, r));
     items.forEach((r) => rows.set(`content:${r.id}`, r));
