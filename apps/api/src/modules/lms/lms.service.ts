@@ -4,6 +4,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 
@@ -14,6 +15,7 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { NotificationSender } from "../notifications/notification-sender.service";
 
 import type { CourseModuleDto } from "./dto/replace-modules.dto";
 import type { UpsertCourseDto } from "./dto/upsert-course.dto";
@@ -27,10 +29,19 @@ export class LmsService {
    */
   static readonly PASS_PERCENT = 80;
 
+  /** How far ahead of expiry the reminder goes out. */
+  static readonly EXPIRY_REMINDER_DAYS = 7;
+
+  /** A ceiling per daily run; anything over waits for tomorrow's. */
+  static readonly EXPIRY_REMINDERS_PER_RUN = 500;
+
+  private readonly logger = new Logger(LmsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly knowledgeBase: KnowledgeBaseIndexer,
+    private readonly notifications: NotificationSender,
   ) {}
 
   listPublished() {
@@ -410,7 +421,7 @@ export class LmsService {
     enrollmentId: string,
     scorePercent: number | null,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const certificate = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.enrollment.updateMany({
         where: { id: enrollmentId, completedAt: null },
         data: { completedAt: new Date() },
@@ -428,6 +439,44 @@ export class LmsService {
         },
       });
     });
+
+    // After the transaction, and only for the call that issued it: the
+    // claim above means a concurrent completion gets null and sends nothing.
+    if (certificate) await this.notifyCertificate(enrollmentId, certificate);
+    return certificate;
+  }
+
+  /** Emails the learner their certificate. Never throws — it's already issued. */
+  private async notifyCertificate(
+    enrollmentId: string,
+    certificate: { verificationCode: string },
+  ) {
+    try {
+      const enrollment = await this.prisma.enrollment.findUnique({
+        where: { id: enrollmentId },
+        select: {
+          user: { select: { name: true, email: true } },
+          course: { select: { title: true } },
+        },
+      });
+      if (!enrollment?.user.email) return;
+      await this.notifications.send({
+        type: "certificate",
+        to: enrollment.user.email,
+        payload: {
+          customerName: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          enrollmentId,
+          verificationCode: certificate.verificationCode,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Certificate for ${enrollmentId} issued, but its email was not queued: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async progressSummary(enrollmentId: string, totalModules: number) {
@@ -445,6 +494,64 @@ export class LmsService {
       completedAt: enrollment?.completedAt ?? null,
       certificate: enrollment?.certificate ?? null,
     };
+  }
+
+  /**
+   * Emails each learner whose access ends within the next week and who
+   * hasn't finished, once (docs/srs.md 3.5, 3.8). Run daily.
+   *
+   * Each enrolment is claimed by setting expiryReminderSentAt before its
+   * email is queued, conditionally — so two runs at once, or a retried one,
+   * can't send the same reminder twice. A reminder that then fails to queue
+   * is lost rather than repeated; NotificationSender logs it.
+   */
+  async sendExpiryReminders(now = new Date()) {
+    const horizon = new Date(
+      now.getTime() + LmsService.EXPIRY_REMINDER_DAYS * 24 * 3600 * 1000,
+    );
+    const due = await this.prisma.enrollment.findMany({
+      where: {
+        completedAt: null,
+        expiryReminderSentAt: null,
+        expiresAt: { gt: now, lte: horizon },
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+        user: { select: { name: true, email: true } },
+        course: {
+          select: { title: true, _count: { select: { modules: true } } },
+        },
+        _count: { select: { progress: true } },
+      },
+      orderBy: { expiresAt: "asc" },
+      take: LmsService.EXPIRY_REMINDERS_PER_RUN,
+    });
+
+    let sent = 0;
+    for (const enrollment of due) {
+      const claimed = await this.prisma.enrollment.updateMany({
+        where: { id: enrollment.id, expiryReminderSentAt: null },
+        data: { expiryReminderSentAt: now },
+      });
+      if (claimed.count === 0 || !enrollment.user.email) continue;
+
+      const total = enrollment.course._count.modules;
+      await this.notifications.send({
+        type: "course-expiring",
+        to: enrollment.user.email,
+        payload: {
+          customerName: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          enrollmentId: enrollment.id,
+          expiresAt: enrollment.expiresAt,
+          progress:
+            total > 0 ? { done: enrollment._count.progress, total } : null,
+        },
+      });
+      sent += 1;
+    }
+    return { due: due.length, sent };
   }
 
   /**

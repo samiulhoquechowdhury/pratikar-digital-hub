@@ -47,6 +47,7 @@ describe("LmsService course management", () => {
       prisma as PrismaService,
       new AuditService(prisma as PrismaService),
       knowledgeBase as never,
+      { send: jest.fn() } as never,
     );
 
   it("queues a reindex of a saved course, after the commit", async () => {
@@ -270,13 +271,60 @@ describe("LmsService.completeModule", () => {
       },
       $transaction: jest.fn((cb: (client: typeof tx) => unknown) => cb(tx)),
     };
+    const notifications = { send: jest.fn() };
     const service = new LmsService(
       prisma as unknown as PrismaService,
       new AuditService(prisma as unknown as PrismaService),
       { reindex: jest.fn() } as never,
+      notifications as never,
     );
-    return { service, prisma, tx };
+    return { service, prisma, tx, notifications };
   };
+
+  it("emails the learner their certificate once it is issued", async () => {
+    const { service, prisma, tx, notifications } = build({ completedCount: 2 });
+    tx.certificate.create.mockResolvedValue({
+      id: "cert-1",
+      verificationCode: "abc123",
+    });
+    // The lookup the email makes, as opposed to the progress checks.
+    const progressLookup = prisma.enrollment.findUnique.getMockImplementation();
+    prisma.enrollment.findUnique.mockImplementation(
+      (args: { select?: { user?: unknown } }) =>
+        args.select?.user
+          ? Promise.resolve({
+              user: { name: "Asha", email: "asha@example.com" },
+              course: { title: "GST for Freelancers" },
+            })
+          : (progressLookup?.(args) as Promise<unknown>),
+    );
+
+    await service.completeModule("enr-1", "mod-2", "learner-1");
+
+    expect(notifications.send).toHaveBeenCalledWith({
+      type: "certificate",
+      to: "asha@example.com",
+      payload: {
+        customerName: "Asha",
+        courseTitle: "GST for Freelancers",
+        enrollmentId: "enr-1",
+        verificationCode: "abc123",
+      },
+    });
+  });
+
+  // A concurrent completion that lost the claim issues nothing — and so
+  // must not send a second "your certificate is ready".
+  it("sends no email when another completion already issued it", async () => {
+    const { service, notifications } = build({
+      completedCount: 2,
+      claimCount: 0,
+    });
+
+    await service.completeModule("enr-1", "mod-2", "learner-1");
+
+    expect(notifications.send).not.toHaveBeenCalled();
+  });
 
   it("records progress without issuing a certificate mid-course", async () => {
     const { service, prisma, tx } = build({ completedCount: 1 });
@@ -438,6 +486,7 @@ describe("LmsService.evaluateCompletion with quizzes", () => {
       prisma as unknown as PrismaService,
       new AuditService(prisma as unknown as PrismaService),
       { reindex: jest.fn() } as never,
+      { send: jest.fn() } as never,
     );
     return { service, tx };
   };

@@ -541,3 +541,60 @@ describe("DocumentsService preview and download", () => {
     expect(prisma.generatedDocument.update).not.toHaveBeenCalled();
   });
 });
+
+describe("DocumentsService.queueReview", () => {
+  const build = (lookup: unknown) => {
+    const prisma = {
+      documentReview: {
+        create: jest.fn().mockResolvedValue({ id: "rev-1" }),
+        findUnique: jest.fn().mockResolvedValue(lookup),
+      },
+    };
+    const notifications = {
+      send: jest.fn(),
+      sendToStaff: jest.fn((build: (to: string) => unknown) =>
+        Promise.resolve(build("team@example.com")),
+      ),
+    };
+    const service = new DocumentsService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+      notifications as unknown as NotificationSender,
+      { signUrl: jest.fn() } as never,
+      { add: jest.fn() } as never,
+      { reindex: jest.fn() } as never,
+    );
+    return { service, notifications };
+  };
+
+  it("tells the team a review is waiting", async () => {
+    const { service, notifications } = build({
+      requestedBy: { name: "Asha" },
+      generatedDocument: { template: { title: "Rent Agreement" } },
+    });
+
+    await service.queueReview("doc-1", "cust-1", "ord-1");
+
+    const alert = notifications.sendToStaff.mock.results[0]
+      ?.value as Promise<unknown>;
+    await expect(alert).resolves.toEqual({
+      type: "staff-review-requested",
+      to: "team@example.com",
+      payload: { customerName: "Asha", documentTitle: "Rent Agreement" },
+    });
+  });
+
+  // The review is paid for and queued; a mail problem mustn't undo that.
+  it("still queues the review when the alert fails", async () => {
+    const { service, notifications } = build({
+      requestedBy: { name: "Asha" },
+      generatedDocument: { template: { title: "Rent Agreement" } },
+    });
+    notifications.sendToStaff.mockRejectedValue(new Error("redis down"));
+
+    await expect(
+      service.queueReview("doc-1", "cust-1", "ord-1"),
+    ).resolves.toEqual({ id: "rev-1" });
+    expect(notifications.sendToStaff).toHaveBeenCalled();
+  });
+});

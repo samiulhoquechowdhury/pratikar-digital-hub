@@ -284,13 +284,16 @@ model ModuleProgress {
 }
 
 model Enrollment {
-  id          String    @id @default(uuid())
-  userId      String
-  courseId    String
-  orderId     String    @unique
-  enrolledAt  DateTime  @default(now())
-  expiresAt   DateTime
-  completedAt DateTime?
+  id                   String    @id @default(uuid())
+  userId               String
+  courseId             String
+  orderId              String    @unique
+  enrolledAt           DateTime  @default(now())
+  expiresAt            DateTime
+  completedAt          DateTime?
+  /// When the "your access ends soon" email went out — set once, so the
+  /// daily reminder run never sends it twice.
+  expiryReminderSentAt DateTime?
 
   user         User             @relation(fields: [userId], references: [id])
   course       Course           @relation(fields: [courseId], references: [id])
