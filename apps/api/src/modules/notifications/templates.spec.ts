@@ -1,4 +1,12 @@
-import { purchaseConfirmation, refundIssued, reviewReady } from "./templates";
+import {
+  certificateIssued,
+  courseExpiring,
+  refundIssued,
+  reviewReady,
+  staffNewOrder,
+  staffReviewRequested,
+  purchaseConfirmation,
+} from "./templates";
 
 const purchase = {
   customerName: "Asha Rao",
@@ -108,5 +116,92 @@ describe("refundIssued", () => {
     // Finding out by clicking a dead link is worse than being told.
     expect(html).toMatch(/access to it has ended/i);
     expect(html).toContain("credit note");
+  });
+});
+
+describe("escaping", () => {
+  // A customer's own name is quoted in staff alerts.
+  it("never lets a name or title put markup into an email", () => {
+    const mail = staffNewOrder({
+      customerName: '<a href="https://evil.example">Click</a>',
+      customerContact: null,
+      itemTitle: "Rent <b>Agreement</b>",
+      itemKind: "document",
+      totalInPaise: 14_900,
+    });
+    expect(mail.html).not.toContain('<a href="https://evil.example"');
+    expect(mail.html).toContain("&lt;a href=&quot;https://evil.example&quot;");
+    expect(mail.html).toContain("Rent &lt;b&gt;Agreement&lt;/b&gt;");
+  });
+
+  it("escapes the customer emails too", () => {
+    const mail = reviewReady({
+      customerName: "<script>x</script>",
+      documentTitle: "Deed",
+    });
+    expect(mail.html).not.toContain("<script>");
+  });
+});
+
+describe("certificateIssued", () => {
+  it("links to the certificate and its public verification page", () => {
+    const original = process.env.PUBLIC_SITE_URL;
+    process.env.PUBLIC_SITE_URL = "https://pratikar.example";
+    try {
+      const mail = certificateIssued({
+        customerName: "Asha",
+        courseTitle: "GST for Freelancers",
+        enrollmentId: "enr-1",
+        verificationCode: "abc123",
+      });
+      expect(mail.subject).toBe(
+        "Your certificate is ready — GST for Freelancers",
+      );
+      expect(mail.html).toContain(
+        "https://pratikar.example/learn/enr-1/certificate",
+      );
+      expect(mail.html).toContain("https://pratikar.example/verify/abc123");
+    } finally {
+      process.env.PUBLIC_SITE_URL = original;
+    }
+  });
+});
+
+describe("courseExpiring", () => {
+  const payload = {
+    customerName: "Asha",
+    courseTitle: "GST for Freelancers",
+    enrollmentId: "enr-1",
+    expiresAt: new Date("2026-10-13T12:00:00Z"),
+    progress: { done: 1, total: 4 },
+  };
+
+  it("names the day access ends, in India", () => {
+    const mail = courseExpiring(payload);
+    expect(mail.subject).toBe(
+      "Your access to GST for Freelancers ends on 13 October 2026",
+    );
+    expect(mail.html).toContain("1 of 4 lessons");
+  });
+
+  it("leaves out progress it doesn't know", () => {
+    expect(courseExpiring({ ...payload, progress: null }).html).not.toContain(
+      "lessons.</p>",
+    );
+  });
+});
+
+describe("staff alerts", () => {
+  it("link into the admin panel, not the website", () => {
+    const original = process.env.ADMIN_SITE_URL;
+    process.env.ADMIN_SITE_URL = "https://admin.pratikar.example";
+    try {
+      expect(
+        staffReviewRequested({ customerName: "Asha", documentTitle: "Deed" })
+          .html,
+      ).toContain("https://admin.pratikar.example/reviews");
+    } finally {
+      process.env.ADMIN_SITE_URL = original;
+    }
   });
 });

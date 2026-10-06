@@ -6,12 +6,21 @@ import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
 
 import { NotificationsService } from "./notifications.service";
 import {
+  certificateIssued,
+  courseExpiring,
   purchaseConfirmation,
   refundIssued,
   reviewReady,
+  staffNewOrder,
+  staffReviewRequested,
+  type CertificatePayload,
+  type CourseExpiringPayload,
   type PurchasePayload,
   type RefundPayload,
+  type RenderedEmail,
   type ReviewReadyPayload,
+  type StaffNewOrderPayload,
+  type StaffReviewRequestedPayload,
 } from "./templates";
 
 /**
@@ -22,7 +31,42 @@ import {
 export type NotificationJob =
   | { type: "purchase"; to: string; payload: PurchasePayload }
   | { type: "review-ready"; to: string; payload: ReviewReadyPayload }
-  | { type: "refund"; to: string; payload: RefundPayload };
+  | { type: "refund"; to: string; payload: RefundPayload }
+  | { type: "certificate"; to: string; payload: CertificatePayload }
+  | { type: "course-expiring"; to: string; payload: CourseExpiringPayload }
+  | { type: "staff-new-order"; to: string; payload: StaffNewOrderPayload }
+  | {
+      type: "staff-review-requested";
+      to: string;
+      payload: StaffReviewRequestedPayload;
+    };
+
+/**
+ * Renders a job's email. A switch over the union, so a notification type
+ * added without a renderer fails to compile rather than at send time.
+ */
+export function render(job: NotificationJob): RenderedEmail {
+  switch (job.type) {
+    case "purchase":
+      return purchaseConfirmation(job.payload);
+    case "review-ready":
+      return reviewReady(job.payload);
+    case "refund":
+      return refundIssued(job.payload);
+    case "certificate":
+      return certificateIssued(job.payload);
+    case "course-expiring":
+      // Dates arrive from Redis as strings; the template wants a Date.
+      return courseExpiring({
+        ...job.payload,
+        expiresAt: new Date(job.payload.expiresAt),
+      });
+    case "staff-new-order":
+      return staffNewOrder(job.payload);
+    case "staff-review-requested":
+      return staffReviewRequested(job.payload);
+  }
+}
 
 export const NOTIFICATION_QUEUE = "notification-dispatch";
 
@@ -48,14 +92,8 @@ export class NotificationDispatchProcessor extends WorkerHost {
   }
 
   async process(job: Job<NotificationJob>): Promise<void> {
-    const { type, to, payload } = job.data;
-
-    const rendered =
-      type === "purchase"
-        ? purchaseConfirmation(payload)
-        : type === "review-ready"
-          ? reviewReady(payload)
-          : refundIssued(payload);
+    const { type, to } = job.data;
+    const rendered = render(job.data);
 
     await this.notifications.sendEmail(to, rendered.subject, rendered.html);
     this.logger.log(`Sent "${type}" to ${to}`);

@@ -4,6 +4,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 import { Role } from "@pratikar/types";
@@ -57,6 +58,8 @@ const PREVIEW_URL_TTL_MS = 30 * 60_000;
 
 @Injectable()
 export class DocumentsService {
+  private readonly logger = new Logger(DocumentsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
@@ -333,7 +336,7 @@ export class DocumentsService {
     requestedByUserId: string,
     orderId: string,
   ) {
-    return this.prisma.documentReview.create({
+    const review = await this.prisma.documentReview.create({
       data: {
         generatedDocumentId,
         requestedByUserId,
@@ -341,6 +344,41 @@ export class DocumentsService {
         status: "QUEUED",
       },
     });
+    await this.alertStaffOfReview(review.id);
+    return review;
+  }
+
+  /**
+   * Tells the team a review is waiting — the queue only helps if someone
+   * looks at it. Never throws: the review is queued and paid for either way.
+   */
+  private async alertStaffOfReview(reviewId: string) {
+    try {
+      const review = await this.prisma.documentReview.findUnique({
+        where: { id: reviewId },
+        select: {
+          requestedBy: { select: { name: true } },
+          generatedDocument: {
+            select: { template: { select: { title: true } } },
+          },
+        },
+      });
+      if (!review) return;
+      await this.notifications.sendToStaff((to) => ({
+        type: "staff-review-requested",
+        to,
+        payload: {
+          customerName: review.requestedBy.name,
+          documentTitle: review.generatedDocument.template.title,
+        },
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Review ${reviewId} queued, but the staff alert was not: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   /** Atomic-claim pattern (docs/trd.md Section 4.3) — prevents two Content

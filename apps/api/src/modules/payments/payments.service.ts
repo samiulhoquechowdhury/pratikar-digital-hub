@@ -201,7 +201,7 @@ export class PaymentsService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: { select: { name: true, email: true } },
+        user: { select: { name: true, email: true, phone: true } },
         generatedDocument: {
           include: { template: { select: { title: true } } },
         },
@@ -209,7 +209,23 @@ export class PaymentsService {
         course: { select: { title: true } },
       },
     });
-    if (!order?.user?.email) return;
+    if (!order) return;
+
+    // The team hears about every paid order (docs/srs.md 3.8, admin-side) —
+    // including one from a phone-only account with no email to confirm to.
+    await this.notifications.sendToStaff((to) => ({
+      type: "staff-new-order",
+      to,
+      payload: {
+        customerName: order.user.name,
+        customerContact: order.user.email ?? order.user.phone,
+        itemTitle: describePurchase(order),
+        itemKind: ORDER_KIND_LABELS[order.itemType] ?? order.itemType,
+        totalInPaise: order.amount + order.gstAmount,
+      },
+    }));
+
+    if (!order.user.email) return;
 
     const destination =
       order.itemType === "COURSE"
@@ -522,6 +538,14 @@ export class PaymentsService {
 }
 
 /** What the customer would call the thing they bought. */
+/** What kind of thing an order was for, in the staff alert. */
+const ORDER_KIND_LABELS: Record<string, string> = {
+  DOCUMENT: "document",
+  DOCUMENT_REVIEW: "lawyer review",
+  CONTENT_ITEM: "library item",
+  COURSE: "course",
+};
+
 function describePurchase(order: {
   itemType: string;
   generatedDocument?: { template: { title: string } } | null;

@@ -28,6 +28,17 @@ export class NotificationSender {
    * outcome is a logged error and a customer who did not get an email, not a
    * payment that appears to have failed and gets retried.
    */
+  /**
+   * Sends one alert to every address in STAFF_ALERT_EMAILS (comma-separated).
+   * Unset means no alerts — a team that hasn't chosen where alerts go gets
+   * none, rather than them landing on whoever happens to be an admin.
+   */
+  async sendToStaff(build: (to: string) => NotificationJob): Promise<void> {
+    for (const to of staffAlertAddresses()) {
+      await this.send(build(to));
+    }
+  }
+
   async send(job: NotificationJob): Promise<void> {
     if (!job.to) {
       // Phone-only accounts have no address. Not an error — SMS is the
@@ -45,4 +56,18 @@ export class NotificationSender {
       );
     }
   }
+}
+
+/** The addresses in STAFF_ALERT_EMAILS, trimmed, de-duplicated, empties dropped. */
+export function staffAlertAddresses(
+  raw = process.env.STAFF_ALERT_EMAILS ?? "",
+): string[] {
+  return [
+    ...new Set(
+      raw
+        .split(",")
+        .map((address) => address.trim())
+        .filter((address) => address.includes("@")),
+    ),
+  ];
 }

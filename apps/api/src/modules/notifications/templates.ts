@@ -10,7 +10,26 @@
  * hero image buries all three and is more likely to land in a spam folder.
  */
 
-const SITE_URL = () => process.env.PUBLIC_SITE_URL ?? "http://localhost:3001";
+/** The customer website. 3001 is the admin panel locally, never this. */
+const SITE_URL = () => process.env.PUBLIC_SITE_URL ?? "http://localhost:3000";
+
+/** The admin panel, for the emails staff receive. */
+const ADMIN_URL = () => process.env.ADMIN_SITE_URL ?? "http://localhost:3001";
+
+/**
+ * Escapes text for the email's HTML. Names are typed by customers and titles
+ * by staff; either could contain markup, and a customer's name is quoted in
+ * the alerts staff receive — unescaped, it could put a link of anyone's
+ * choosing in the team's inbox.
+ */
+export function esc(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export interface RenderedEmail {
   subject: string;
@@ -81,8 +100,10 @@ export function purchaseConfirmation(p: PurchasePayload): RenderedEmail {
   return {
     subject: `Your purchase is confirmed — ${p.itemTitle}`,
     html: layout(
-      p.customerName ? `Thanks, ${p.customerName}` : "Thanks for your purchase",
-      `<p style="margin:0 0 16px">Your payment went through and <strong>${p.itemTitle}</strong> is ready.</p>
+      p.customerName
+        ? `Thanks, ${esc(p.customerName)}`
+        : "Thanks for your purchase",
+      `<p style="margin:0 0 16px">Your payment went through and <strong>${esc(p.itemTitle)}</strong> is ready.</p>
   <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 8px">
     <tr><td style="padding:6px 0;color:#4b5563">Amount</td><td style="padding:6px 0;text-align:right">Rs ${rupees(p.amountInPaise)}</td></tr>
     <tr><td style="padding:6px 0;color:#4b5563">GST</td><td style="padding:6px 0;text-align:right">Rs ${rupees(p.gstInPaise)}</td></tr>
@@ -106,9 +127,9 @@ export function reviewReady(p: ReviewReadyPayload): RenderedEmail {
     subject: `Your reviewed document is ready — ${p.documentTitle}`,
     html: layout(
       p.customerName
-        ? `${p.customerName}, your review is back`
+        ? `${esc(p.customerName)}, your review is back`
         : "Your review is back",
-      `<p style="margin:0 0 16px">A professional has finished reviewing <strong>${p.documentTitle}</strong>. Their corrections and comments are on the reviewed copy.</p>
+      `<p style="margin:0 0 16px">A professional has finished reviewing <strong>${esc(p.documentTitle)}</strong>. Their corrections and comments are on the reviewed copy.</p>
   ${button(`${site}/dashboard/documents`, "Open your documents")}`,
     ),
   };
@@ -132,10 +153,122 @@ export function refundIssued(p: RefundPayload): RenderedEmail {
     subject: `Refund issued — ${p.itemTitle}`,
     html: layout(
       p.customerName
-        ? `${p.customerName}, your refund is on its way`
+        ? `${esc(p.customerName)}, your refund is on its way`
         : "Your refund is on its way",
-      `<p style="margin:0 0 16px">We've refunded <strong>Rs ${rupees(p.totalInPaise)}</strong> for ${p.itemTitle}. It usually reaches your account within 5–7 working days, depending on your bank.</p>
+      `<p style="margin:0 0 16px">We've refunded <strong>Rs ${rupees(p.totalInPaise)}</strong> for ${esc(p.itemTitle)}. It usually reaches your account within 5–7 working days, depending on your bank.</p>
   <p style="margin:0 0 16px">Access to it has ended, and a credit note is in <a href="${SITE_URL()}/dashboard/orders" style="color:#6f561b">your account</a> alongside the original invoice.</p>`,
+    ),
+  };
+}
+
+const formatDate = (date: Date) =>
+  date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Asia/Kolkata",
+  });
+
+export interface CertificatePayload {
+  customerName: string | null;
+  courseTitle: string;
+  enrollmentId: string;
+  verificationCode: string;
+}
+
+/**
+ * Sent the moment a course is completed and its certificate issued. Carries
+ * the public verification link too, because the first thing people do with
+ * a certificate is send it to someone who wants to check it.
+ */
+export function certificateIssued(p: CertificatePayload): RenderedEmail {
+  const site = SITE_URL();
+  const verifyUrl = `${site}/verify/${encodeURIComponent(p.verificationCode)}`;
+  return {
+    subject: `Your certificate is ready — ${p.courseTitle}`,
+    html: layout(
+      p.customerName
+        ? `Congratulations, ${esc(p.customerName)}`
+        : "Congratulations",
+      `<p style="margin:0 0 16px">You've completed <strong>${esc(p.courseTitle)}</strong>, and your certificate has been issued.</p>
+  ${button(`${site}/learn/${encodeURIComponent(p.enrollmentId)}/certificate`, "View your certificate")}
+  <p style="margin:0;font-size:14px;color:#4b5563">Anyone can check it is genuine at <a href="${verifyUrl}" style="color:#6f561b">${esc(verifyUrl)}</a> — no account needed.</p>`,
+    ),
+  };
+}
+
+export interface CourseExpiringPayload {
+  customerName: string | null;
+  courseTitle: string;
+  enrollmentId: string;
+  expiresAt: Date;
+  /** Lessons done and in total, when known, so the email can say how close they are. */
+  progress: { done: number; total: number } | null;
+}
+
+/**
+ * Sent once, about a week before course access ends (docs/srs.md 3.5, 3.8).
+ * Only to learners who haven't finished: a certificate already earned is
+ * kept after expiry, so there's nothing to warn them about.
+ */
+export function courseExpiring(p: CourseExpiringPayload): RenderedEmail {
+  const site = SITE_URL();
+  const left =
+    p.progress && p.progress.total > p.progress.done
+      ? `<p style="margin:0 0 16px">You've finished ${p.progress.done} of ${p.progress.total} lessons.</p>`
+      : "";
+  return {
+    subject: `Your access to ${p.courseTitle} ends on ${formatDate(p.expiresAt)}`,
+    html: layout(
+      p.customerName
+        ? `${esc(p.customerName)}, your course access ends soon`
+        : "Your course access ends soon",
+      `<p style="margin:0 0 16px">Access to <strong>${esc(p.courseTitle)}</strong> ends on <strong>${formatDate(p.expiresAt)}</strong>. Finish the remaining lessons before then to earn your certificate — you keep the certificate after access ends.</p>
+  ${left}
+  ${button(`${site}/learn/${encodeURIComponent(p.enrollmentId)}`, "Continue the course")}`,
+    ),
+  };
+}
+
+export interface StaffNewOrderPayload {
+  customerName: string | null;
+  customerContact: string | null;
+  itemTitle: string;
+  itemKind: string;
+  totalInPaise: number;
+}
+
+/** To staff, when an order is paid (docs/srs.md 3.8, admin-side). */
+export function staffNewOrder(p: StaffNewOrderPayload): RenderedEmail {
+  const who = p.customerName ?? p.customerContact ?? "A customer";
+  return {
+    subject: `New order: ${p.itemTitle} — Rs ${rupees(p.totalInPaise)}`,
+    html: layout(
+      "New paid order",
+      `<p style="margin:0 0 16px"><strong>${esc(who)}</strong> bought <strong>${esc(p.itemTitle)}</strong> (${esc(p.itemKind)}) for <strong>Rs ${rupees(p.totalInPaise)}</strong>, GST included.</p>
+  ${button(`${ADMIN_URL()}/orders`, "Open orders")}`,
+    ),
+  };
+}
+
+export interface StaffReviewRequestedPayload {
+  customerName: string | null;
+  documentTitle: string;
+}
+
+/**
+ * To staff, when a customer pays for a lawyer review — the queue only helps
+ * if someone knows there's something in it.
+ */
+export function staffReviewRequested(
+  p: StaffReviewRequestedPayload,
+): RenderedEmail {
+  return {
+    subject: `Review requested: ${p.documentTitle}`,
+    html: layout(
+      "A document is waiting for review",
+      `<p style="margin:0 0 16px">${p.customerName ? `<strong>${esc(p.customerName)}</strong>` : "A customer"} has paid for a lawyer review of <strong>${esc(p.documentTitle)}</strong>.</p>
+  ${button(`${ADMIN_URL()}/reviews`, "Open the review queue")}`,
     ),
   };
 }

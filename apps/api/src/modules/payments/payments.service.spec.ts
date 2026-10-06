@@ -45,11 +45,21 @@ describe("PaymentsService.refund", () => {
   };
 
   const creditNotes = { issueForRefundedOrder: jest.fn() };
-  const notifications = { send: jest.fn() };
+  const notifications = {
+    send: jest.fn(),
+    // Calls back once, as a team with one alert address would.
+    sendToStaff: jest.fn((build: (to: string) => unknown) => {
+      notifications.staffAlerts.push(build("team@example.com"));
+      return Promise.resolve();
+    }),
+    staffAlerts: [] as unknown[],
+  };
 
   const build = (order: unknown, refundImpl = jest.fn()) => {
     creditNotes.issueForRefundedOrder.mockClear();
     notifications.send.mockClear();
+    notifications.sendToStaff.mockClear();
+    notifications.staffAlerts = [];
     const tx = {
       order: { update: jest.fn() },
       auditLog: { create: jest.fn() },
@@ -279,7 +289,15 @@ describe("PaymentsService.handleWebhook", () => {
       },
     });
 
-  const notifications = { send: jest.fn() };
+  const notifications = {
+    send: jest.fn(),
+    // Calls back once, as a team with one alert address would.
+    sendToStaff: jest.fn((build: (to: string) => unknown) => {
+      notifications.staffAlerts.push(build("team@example.com"));
+      return Promise.resolve();
+    }),
+    staffAlerts: [] as unknown[],
+  };
 
   const build = (
     opts: {
@@ -322,6 +340,8 @@ describe("PaymentsService.handleWebhook", () => {
     const lms = { enroll: jest.fn() };
     const invoices = { issueForOrder: jest.fn() };
     notifications.send.mockClear();
+    notifications.sendToStaff.mockClear();
+    notifications.staffAlerts = [];
     const service = new PaymentsService(
       prisma as unknown as PrismaService,
       razorpay,
@@ -501,6 +521,50 @@ describe("PaymentsService.handleWebhook", () => {
     await again.service.handleWebhook(capturedEvent(), "sig");
 
     expect(notifications.send).not.toHaveBeenCalled();
+  });
+
+  it("tells the team about a paid order", async () => {
+    const { service, prisma } = build();
+    prisma.order.findUnique.mockResolvedValue({
+      ...pendingOrder,
+      amount: 100_000,
+      gstAmount: 18_000,
+      user: { name: "Asha", email: "asha@example.com", phone: null },
+      course: { title: "GST for Freelancers" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(notifications.staffAlerts).toEqual([
+      {
+        type: "staff-new-order",
+        to: "team@example.com",
+        payload: {
+          customerName: "Asha",
+          customerContact: "asha@example.com",
+          itemTitle: "GST for Freelancers",
+          itemKind: "course",
+          totalInPaise: 118_000,
+        },
+      },
+    ]);
+  });
+
+  // A phone-only account has no email to confirm to, but it's still a sale.
+  it("alerts the team even when the customer has no email", async () => {
+    const { service, prisma } = build();
+    prisma.order.findUnique.mockResolvedValue({
+      ...pendingOrder,
+      amount: 100_000,
+      gstAmount: 18_000,
+      user: { name: null, email: null, phone: "+919800000000" },
+      course: { title: "GST for Freelancers" },
+    });
+
+    await service.handleWebhook(capturedEvent(), "sig");
+
+    expect(notifications.send).not.toHaveBeenCalled();
+    expect(notifications.staffAlerts).toHaveLength(1);
   });
 
   it("does not invoice a failed payment", async () => {
