@@ -35,7 +35,7 @@ export default async function ContentLibraryPage() {
           "Lease",
         ]}
       />
-      <PageSection className="pb-12 pt-6">
+      <PageSection className="pb-12">
         {/* The shelf is read from the URL, which Next only allows inside a
             Suspense boundary on a statically rendered page. */}
         <Suspense

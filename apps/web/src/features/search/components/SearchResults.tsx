@@ -1,14 +1,13 @@
 "use client";
 
 import { Alert, ButtonLink, EmptyState, SkeletonCards } from "@pratikar/ui";
+import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { CourseCard } from "@/features/lms";
-import {
-  CatalogueCard,
-  CatalogueGrid,
-} from "@/shared/components/CatalogueCard";
+import { CatalogueRow } from "@/shared/components/CatalogueRow";
+import { Icon } from "@/shared/components/Icon";
 import {
   CONTENT_CATEGORY_LABELS,
   CONTENT_KIND,
@@ -17,26 +16,43 @@ import {
 
 import { useSiteSearch } from "../hooks/useSiteSearch";
 
+/** Results each group shows before "See all" leads to the full catalogue. */
+const GROUP_PREVIEW = 8;
+
 function ResultGroup({
   title,
   count,
+  seeAll,
   children,
 }: {
   title: string;
   count: number;
+  /** The catalogue page with this search applied, for the full list. */
+  seeAll?: { href: string; label: string };
   children: ReactNode;
 }) {
   return (
     <section>
-      <h2 className="flex items-center gap-2 text-lg font-semibold">
-        {title}
-        <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium tabular-nums text-ink-subtle">
-          {count}
-        </span>
-      </h2>
-      <div className="mt-5">
-        <CatalogueGrid>{children}</CatalogueGrid>
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <h2 className="flex items-center gap-2 text-lg font-semibold">
+          {title}
+          <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-xs font-medium tabular-nums text-ink-subtle">
+            {count}
+          </span>
+        </h2>
+        {seeAll && count > GROUP_PREVIEW && (
+          <Link
+            href={seeAll.href}
+            className="inline-flex items-center gap-1 text-sm font-semibold text-primary hover:underline"
+          >
+            {seeAll.label}
+            <Icon icon={ArrowRight} size="xs" />
+          </Link>
+        )}
       </div>
+      <ul className="mt-4 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+        {children}
+      </ul>
     </section>
   );
 }
@@ -80,10 +96,17 @@ export function SearchResults() {
       )}
 
       {results.templates.length > 0 && (
-        <ResultGroup title="Documents" count={results.templates.length}>
-          {results.templates.map((template) => (
+        <ResultGroup
+          title="Documents"
+          count={results.templates.length}
+          seeAll={{
+            href: `/documents?q=${encodeURIComponent(query)}`,
+            label: `See all ${results.templates.length} documents`,
+          }}
+        >
+          {results.templates.slice(0, GROUP_PREVIEW).map((template) => (
             <li key={template.id}>
-              <CatalogueCard
+              <CatalogueRow
                 href={`/documents/${template.id}`}
                 kind="document"
                 title={template.title}
@@ -100,19 +123,32 @@ export function SearchResults() {
 
       {results.courses.length > 0 && (
         <ResultGroup title="Courses" count={results.courses.length}>
-          {results.courses.map((course) => (
+          {results.courses.slice(0, GROUP_PREVIEW).map((course) => (
             <li key={course.id}>
-              <CourseCard course={course} />
+              <CatalogueRow
+                href={`/courses/${course.id}`}
+                kind="course"
+                title={course.title}
+                meta={[`${course.accessDurationDays} days' access`]}
+                priceInPaise={course.priceInPaise}
+              />
             </li>
           ))}
         </ResultGroup>
       )}
 
       {results.library.length > 0 && (
-        <ResultGroup title="Library" count={results.library.length}>
-          {results.library.map((item) => (
+        <ResultGroup
+          title="Library"
+          count={results.library.length}
+          seeAll={{
+            href: `/content-library?q=${encodeURIComponent(query)}`,
+            label: `See all ${results.library.length} in the library`,
+          }}
+        >
+          {results.library.slice(0, GROUP_PREVIEW).map((item) => (
             <li key={item.id}>
-              <CatalogueCard
+              <CatalogueRow
                 href={`/content-library/${item.id}`}
                 kind={CONTENT_KIND[item.type]}
                 title={item.title}
@@ -132,9 +168,6 @@ export function SearchResults() {
             <div className="flex flex-wrap justify-center gap-2">
               <ButtonLink href="/documents" variant="secondary">
                 Documents
-              </ButtonLink>
-              <ButtonLink href="/courses" variant="secondary">
-                Courses
               </ButtonLink>
               <ButtonLink href="/content-library" variant="secondary">
                 Library

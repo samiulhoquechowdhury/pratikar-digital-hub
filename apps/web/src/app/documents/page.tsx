@@ -31,7 +31,7 @@ export default async function DocumentsPage() {
         basePath="/documents"
         popular={["Rent agreement", "Offer letter"]}
       />
-      <PageSection className="pb-12 pt-6">
+      <PageSection className="pb-12">
         {/* Filters live in the URL, which Next only reads inside Suspense
             on a statically rendered page. */}
         <Suspense
