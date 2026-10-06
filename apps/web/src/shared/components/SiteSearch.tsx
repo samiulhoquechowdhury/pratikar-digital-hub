@@ -53,12 +53,12 @@ export function SiteSearch({
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         autoFocus={autoFocus}
-        placeholder="Search documents, courses…"
+        placeholder="Search forms, documents, courses, e-books…"
         // No `focus:outline-none` here. The border change is the aesthetic
         // treatment; the global focus-visible outline is the accessibility
         // guarantee, and a component opting out of it is how keyboard
         // navigation quietly breaks.
-        className="h-10 w-full rounded-full border border-transparent bg-surface-sunken pl-9 pr-4 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-line focus:border-line-strong focus:bg-surface"
+        className="h-11 w-full rounded-full border border-line bg-surface-sunken pl-9 pr-4 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-line focus:border-line-strong focus:bg-surface"
       />
     </form>
   );

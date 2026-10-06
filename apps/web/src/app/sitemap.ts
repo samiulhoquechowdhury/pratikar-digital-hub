@@ -1,6 +1,7 @@
 import type { ContentLibraryItem, Course, Template } from "@pratikar/types";
 import type { MetadataRoute } from "next";
 
+import { COURSES_LIVE } from "@/shared/lib/features";
 import { dataOf, serverGet } from "@/shared/lib/serverApi";
 import { absoluteUrl } from "@/shared/lib/site";
 
@@ -51,7 +52,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(dataOf(templates) ?? []).map((t) =>
       product(`/documents/${t.id}`, t.createdAt),
     ),
-    ...(dataOf(courses) ?? []).map((c) =>
+    // Course pages only once courses are on sale; until then they all say
+    // "coming soon", which isn't worth a search engine's visit.
+    ...(COURSES_LIVE ? (dataOf(courses) ?? []) : []).map((c) =>
       product(`/courses/${c.id}`, c.createdAt),
     ),
     ...(dataOf(items) ?? []).map((i) =>

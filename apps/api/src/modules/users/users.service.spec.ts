@@ -79,3 +79,57 @@ describe("UsersService.updateRole", () => {
     expect(tx.auditLog.create).toHaveBeenCalledTimes(1);
   });
 });
+
+describe("UsersService profile", () => {
+  const profile = {
+    id: "u-1",
+    name: "Asha Rao",
+    email: "asha@example.com",
+    phone: null,
+    role: Role.CUSTOMER,
+    createdAt: new Date("2026-09-01"),
+  };
+
+  const build = (found: unknown = profile) => {
+    const prisma = {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(found),
+        update: jest.fn().mockResolvedValue(found),
+      },
+    };
+    const service = new UsersService(
+      prisma as unknown as PrismaService,
+      new AuditService(prisma as unknown as PrismaService),
+    );
+    return { service, prisma };
+  };
+
+  it("returns the caller's own profile", async () => {
+    const { service, prisma } = build();
+
+    await expect(service.getProfile("u-1")).resolves.toEqual(profile);
+    expect(prisma.user.findUnique).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "u-1" } }),
+    );
+  });
+
+  it("404s for an account that no longer exists", async () => {
+    const { service } = build(null);
+
+    await expect(service.getProfile("gone")).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
+  // Email and phone sign the account in; changing them needs verification.
+  it("changes only the name", async () => {
+    const { service, prisma } = build();
+
+    await service.updateProfile("u-1", { name: "Asha R." });
+
+    expect(prisma.user.update).toHaveBeenCalledWith({
+      where: { id: "u-1" },
+      data: { name: "Asha R." },
+    });
+  });
+});

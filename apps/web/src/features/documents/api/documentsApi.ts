@@ -37,5 +37,16 @@ export const documentsApi = {
    * download — never speculatively to find out whether they could.
    */
   download: (id: string) =>
-    apiClient.post<{ fileUrl: string }>(`/documents/${id}/download`),
+    apiClient.post<{ fileUrl: string; pdfUrl: string | null }>(
+      `/documents/${id}/download`,
+    ),
+
+  /**
+   * The free, watermarked preview: links to each page as an image. `ready`
+   * is false while the document is still being generated.
+   */
+  preview: (id: string) =>
+    apiClient.get<{ ready: boolean; pages: string[] }>(
+      `/documents/${id}/preview`,
+    ),
 };

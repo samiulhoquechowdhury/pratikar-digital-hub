@@ -111,8 +111,8 @@ export const REFUND_SECTIONS: LegalSection[] = [
       <p>
         Email <Detail field="supportEmail" /> from the address on your account,
         with the order you&apos;d like refunded. You&apos;ll find your orders
-        under <Link href="/dashboard#purchases">Purchases</Link> in your
-        account.
+        under <Link href="/dashboard/orders">Orders &amp; invoices</Link> in
+        your account.
       </p>
     ),
   },

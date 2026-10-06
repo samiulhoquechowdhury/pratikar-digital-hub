@@ -5,13 +5,23 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 
 import { allocateDocumentNumber } from "./allocate-number";
-import { resolvePlaceOfSupply, splitTax } from "./gst";
+import { formatBillingAddress, resolvePlaceOfSupply, splitTax } from "./gst";
 import { InvoiceConfig } from "./invoice-config";
 import { renderInvoicePdf, type InvoiceView } from "./invoice-pdf";
 
 /** The order shape this service needs, so callers can pass a plain row. */
 const ORDER_INCLUDE = {
-  user: { select: { name: true, email: true, phone: true } },
+  user: {
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      addressLine: true,
+      city: true,
+      stateCode: true,
+      pincode: true,
+    },
+  },
   generatedDocument: { include: { template: { select: { title: true } } } },
   contentLibraryItem: { select: { title: true } },
   course: { select: { title: true } },
@@ -51,12 +61,11 @@ export class InvoiceService {
     if (!order) throw new Error(`Order ${orderId} not found`);
 
     const issuedAt = new Date();
-    // No address is collected anywhere yet, so this is null on every sale
-    // today and the statutory fallback in resolvePlaceOfSupply applies. The
-    // moment a buyer state exists it flows through without touching the split.
-    const buyerStateCode: string | null = null;
+    // The customer's state, from their account's billing address. Without
+    // one, resolvePlaceOfSupply falls back to the supplier's state — the
+    // statutory rule for an unregistered buyer with no address on record.
     const placeOfSupply = resolvePlaceOfSupply(
-      buyerStateCode,
+      order.user.stateCode,
       this.config.sellerStateCode,
     );
     const tax = splitTax(
@@ -180,6 +189,7 @@ export class InvoiceService {
         name: order.user.name,
         email: order.user.email,
         phone: order.user.phone,
+        address: formatBillingAddress(order.user),
         gstin: invoice.gstin,
       },
       description: describeOrder(order),

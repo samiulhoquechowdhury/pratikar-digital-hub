@@ -62,7 +62,7 @@ const SHORTCUTS = [
   { href: "/refunds", label: "Asking for a refund" },
   { href: "/delivery", label: "A purchase hasn't arrived" },
   { href: "/verify", label: "Checking a certificate" },
-  { href: "/dashboard#purchases", label: "Finding an invoice" },
+  { href: "/dashboard/orders", label: "Finding an invoice" },
 ];
 
 export function ContactPage() {

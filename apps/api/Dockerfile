@@ -59,9 +59,14 @@ FROM node:20-bookworm-slim AS runtime
 # -writer rather than the full suite — Writer is all the DOCX->PDF path needs,
 # and it keeps the image substantially smaller. The font packages matter too:
 # with no fonts installed LibreOffice still exits 0 but renders a garbled PDF.
+#
+# Ghostscript renders the free preview: each page of the PDF as an image with
+# the watermark burned in (see documents/preview.ts). Without it generation
+# fails at the preview step.
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         libreoffice-writer-nogui \
+        ghostscript \
         fonts-liberation \
         fonts-dejavu-core \
         openssl \

@@ -23,7 +23,7 @@ export const DELIVERY_SECTIONS: LegalSection[] = [
         <li>
           Once paid, it is ready to download as a Word file and a PDF from the
           document&apos;s page and from{" "}
-          <Link href="/dashboard#documents">My documents</Link>.
+          <Link href="/dashboard/documents">My documents</Link>.
         </li>
         <li>
           Each document can be downloaded once, so save the files somewhere safe
@@ -49,7 +49,7 @@ export const DELIVERY_SECTIONS: LegalSection[] = [
       <p>
         Access starts as soon as payment is confirmed and runs for the period
         shown on the course. Find your courses under{" "}
-        <Link href="/dashboard#courses">My courses</Link>. Your certificate is
+        <Link href="/dashboard/courses">My courses</Link>. Your certificate is
         issued in your account when you complete the course.
       </p>
     ),
@@ -70,7 +70,8 @@ export const DELIVERY_SECTIONS: LegalSection[] = [
     body: (
       <p>
         A GST invoice is issued with every purchase and can be downloaded from{" "}
-        <Link href="/dashboard#purchases">Purchases</Link> in your account.
+        <Link href="/dashboard/orders">Orders &amp; invoices</Link> in your
+        account.
       </p>
     ),
   },

@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Put, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Put,
+  UseGuards,
+} from "@nestjs/common";
 import { Role } from "@pratikar/types";
 
 import {
@@ -9,6 +17,7 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
+import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
 import { UsersService } from "./users.service";
 
@@ -21,6 +30,20 @@ export class UsersController {
   @Roles(Role.SUPPORT, Role.ADMIN, Role.SUPER_ADMIN)
   listAll() {
     return this.usersService.listAll();
+  }
+
+  /**
+   * The signed-in person's own profile. Declared before ":id" so "me" isn't
+   * read as an id; no @Roles, because every account may read itself.
+   */
+  @Get("me")
+  me(@CurrentUser() user: RequestUser) {
+    return this.usersService.getProfile(user.id);
+  }
+
+  @Patch("me")
+  updateMe(@Body() dto: UpdateProfileDto, @CurrentUser() user: RequestUser) {
+    return this.usersService.updateProfile(user.id, dto);
   }
 
   @Get(":id")

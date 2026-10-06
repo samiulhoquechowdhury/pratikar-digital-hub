@@ -14,6 +14,8 @@ import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
 import { PrismaService } from "../../prisma/prisma.service";
 import { StorageService } from "../storage/storage.service";
 
+import { previewPageKey, renderPreviewPages } from "./preview";
+
 const execFileAsync = promisify(execFile);
 
 export interface DocumentGenerationJobData {
@@ -71,12 +73,29 @@ export class DocumentGenerationProcessor extends WorkerHost {
     // persisted here would be dead by the time the customer paid — and a URL
     // long-lived enough to survive being stored would be an unrevocable
     // public link to a paid document. The URL is minted at download time.
+    // The free preview: each page as a watermarked image. Rendered from the
+    // PDF, so the customer previews exactly the layout they'll download.
+    const pages = await renderPreviewPages(pdfBuffer);
+    for (const [index, page] of pages.entries()) {
+      await this.storage.upload(
+        previewPageKey(doc.id, index + 1),
+        page,
+        "image/png",
+      );
+    }
+
     await this.prisma.generatedDocument.update({
       where: { id: doc.id },
-      data: { fileUrl: docxKey, previewFileUrl: pdfKey },
+      data: {
+        fileUrl: docxKey,
+        pdfFileUrl: pdfKey,
+        previewPageCount: pages.length,
+      },
     });
 
-    this.logger.log(`Generated document ${doc.id}: docx + pdf uploaded`);
+    this.logger.log(
+      `Generated document ${doc.id}: docx, pdf and ${pages.length} preview pages uploaded`,
+    );
   }
 
   private fillTemplate(

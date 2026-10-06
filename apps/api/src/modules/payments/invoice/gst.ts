@@ -9,49 +9,32 @@
  * References are to the CGST Rules 2017 and the IGST Act 2017.
  */
 
-/** Two-letter-ish GST state codes, as printed on an invoice. */
-export const STATE_NAMES: Readonly<Record<string, string>> = {
-  "01": "Jammu and Kashmir",
-  "02": "Himachal Pradesh",
-  "03": "Punjab",
-  "04": "Chandigarh",
-  "05": "Uttarakhand",
-  "06": "Haryana",
-  "07": "Delhi",
-  "08": "Rajasthan",
-  "09": "Uttar Pradesh",
-  "10": "Bihar",
-  "11": "Sikkim",
-  "12": "Arunachal Pradesh",
-  "13": "Nagaland",
-  "14": "Manipur",
-  "15": "Mizoram",
-  "16": "Tripura",
-  "17": "Meghalaya",
-  "18": "Assam",
-  "19": "West Bengal",
-  "20": "Jharkhand",
-  "21": "Odisha",
-  "22": "Chhattisgarh",
-  "23": "Madhya Pradesh",
-  "24": "Gujarat",
-  "26": "Dadra and Nagar Haveli and Daman and Diu",
-  "27": "Maharashtra",
-  "29": "Karnataka",
-  "30": "Goa",
-  "31": "Lakshadweep",
-  "32": "Kerala",
-  "33": "Tamil Nadu",
-  "34": "Puducherry",
-  "35": "Andaman and Nicobar Islands",
-  "36": "Telangana",
-  "37": "Andhra Pradesh",
-  "38": "Ladakh",
-  "97": "Other Territory",
-};
+import { GST_STATE_NAMES } from "@pratikar/types";
+
+/** GST state codes, shared with the website's address form. */
+export const STATE_NAMES = GST_STATE_NAMES;
 
 export const stateName = (code: string): string =>
   STATE_NAMES[code] ?? "Unknown state";
+
+/**
+ * A customer's billing address on one line, as the invoice prints it —
+ * "12 Park Street, Kolkata, West Bengal 700016". Null when nothing is set,
+ * so the invoice leaves the line out rather than printing commas.
+ */
+export function formatBillingAddress(user: {
+  addressLine: string | null;
+  city: string | null;
+  stateCode: string | null;
+  pincode: string | null;
+}): string | null {
+  const state = user.stateCode ? STATE_NAMES[user.stateCode] : undefined;
+  const statePin = [state, user.pincode].filter(Boolean).join(" ");
+  const parts = [user.addressLine, user.city, statePin].filter(
+    (part): part is string => Boolean(part),
+  );
+  return parts.length > 0 ? parts.join(", ") : null;
+}
 
 /**
  * India observes no daylight saving, so a fixed offset is exact — and simpler

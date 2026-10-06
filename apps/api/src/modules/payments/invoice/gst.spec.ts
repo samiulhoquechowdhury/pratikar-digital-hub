@@ -1,4 +1,5 @@
 import {
+  formatBillingAddress,
   financialYearOf,
   formatInvoiceNumber,
   formatRupees,
@@ -172,5 +173,35 @@ describe("formatRupees", () => {
     { paise: 1234567890, expected: "1,23,45,678.90" },
   ])("$paise paise → $expected", ({ paise, expected }) => {
     expect(formatRupees(paise)).toBe(expected);
+  });
+});
+
+describe("formatBillingAddress", () => {
+  const blank = {
+    addressLine: null,
+    city: null,
+    stateCode: null,
+    pincode: null,
+  };
+
+  it("prints the address on one line, with the state's name", () => {
+    expect(
+      formatBillingAddress({
+        addressLine: "12 Park Street",
+        city: "Kolkata",
+        stateCode: "19",
+        pincode: "700016",
+      }),
+    ).toBe("12 Park Street, Kolkata, West Bengal 700016");
+  });
+
+  it("leaves out what's missing rather than printing empty commas", () => {
+    expect(
+      formatBillingAddress({ ...blank, city: "Pune", stateCode: "27" }),
+    ).toBe("Pune, Maharashtra");
+  });
+
+  it("is null with no address at all", () => {
+    expect(formatBillingAddress(blank)).toBeNull();
   });
 });

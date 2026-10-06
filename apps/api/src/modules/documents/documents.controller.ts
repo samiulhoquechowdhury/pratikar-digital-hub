@@ -120,6 +120,11 @@ export class DocumentsController {
     return this.documentsService.listMine(user.id);
   }
 
+  @Get(":id/preview")
+  preview(@Param("id") id: string, @CurrentUser() user: RequestUser) {
+    return this.documentsService.getPreview(id, user.id, user.role);
+  }
+
   @Post(":id/download")
   download(@Param("id") id: string, @CurrentUser() user: RequestUser) {
     return this.documentsService.consumeDownload(id, user.id, user.role);

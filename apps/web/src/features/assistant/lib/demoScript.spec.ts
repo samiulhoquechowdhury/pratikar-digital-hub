@@ -79,6 +79,7 @@ describe("the script itself", () => {
       "/courses",
       "/content-library",
       "/dashboard",
+      "/dashboard/documents",
       "/verify",
       "/search",
     ];

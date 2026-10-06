@@ -5,6 +5,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import { StorageService } from "../../storage/storage.service";
 
 import { allocateDocumentNumber } from "./allocate-number";
+import { formatBillingAddress } from "./gst";
 import { InvoiceConfig } from "./invoice-config";
 import { renderInvoicePdf, type InvoiceView } from "./invoice-pdf";
 
@@ -12,7 +13,17 @@ import { renderInvoicePdf, type InvoiceView } from "./invoice-pdf";
 const CREDIT_NOTE_PREFIX = "CRN";
 
 const ORDER_INCLUDE = {
-  user: { select: { name: true, email: true, phone: true } },
+  user: {
+    select: {
+      name: true,
+      email: true,
+      phone: true,
+      addressLine: true,
+      city: true,
+      stateCode: true,
+      pincode: true,
+    },
+  },
   generatedDocument: { include: { template: { select: { title: true } } } },
   contentLibraryItem: { select: { title: true } },
   course: { select: { title: true } },
@@ -172,6 +183,7 @@ export class CreditNoteService {
         name: order.user.name,
         email: order.user.email,
         phone: order.user.phone,
+        address: formatBillingAddress(order.user),
         gstin: null,
       },
       description: describeOrder(order),

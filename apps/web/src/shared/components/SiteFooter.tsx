@@ -10,7 +10,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       heading: "Documents",
       links: [
         { href: "/documents", label: "All templates" },
-        { href: "/dashboard#documents", label: "My documents" },
+        { href: "/dashboard/documents", label: "My documents" },
       ],
     },
     {

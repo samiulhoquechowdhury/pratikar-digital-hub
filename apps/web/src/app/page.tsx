@@ -15,6 +15,7 @@ import {
   summariseCatalogue,
   TemplateShelf,
 } from "@/features/home";
+import { COURSES_LIVE } from "@/shared/lib/features";
 import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
 export const metadata: Metadata = {
@@ -40,7 +41,8 @@ export default async function HomePage() {
   ]);
   const summary = summariseCatalogue({
     templates: dataOf(templates),
-    courses: dataOf(courses),
+    // Not counted or listed while courses are coming soon.
+    courses: COURSES_LIVE ? dataOf(courses) : [],
     library: dataOf(library),
   });
 
@@ -53,7 +55,7 @@ export default async function HomePage() {
       <TemplateShelf />
       <LibraryShelf />
       <CoursesBanner />
-      <CourseShelf />
+      {COURSES_LIVE && <CourseShelf />}
       <HowItWorks />
       <Assurances />
       <ClosingBanner />

@@ -1,6 +1,7 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -28,6 +29,7 @@ import type { DocumentGenerationJobData } from "./document-generation.processor"
 import { GenerateDocumentDto } from "./dto/generate-document.dto";
 import { UpsertTemplateDto } from "./dto/upsert-template.dto";
 import { fieldsOf, validateAnswers } from "./filled-data";
+import { previewPageKey } from "./preview";
 import { applyTags, extractBlanks, suggestFieldName } from "./tagging/blanks";
 import { guessFieldType, labelFor } from "./tagging/field-type";
 
@@ -46,6 +48,12 @@ const CATALOGUE_TEMPLATE_FIELDS = {
   status: true,
   createdAt: true,
 } as const;
+
+/**
+ * Preview page links last long enough to read a long agreement through. They
+ * are watermarked images, not the document, so a longer life costs nothing.
+ */
+const PREVIEW_URL_TTL_MS = 30 * 60_000;
 
 @Injectable()
 export class DocumentsService {
@@ -261,15 +269,62 @@ export class DocumentsService {
     if (doc.status !== "PAID") {
       throw new ForbiddenException("NOT_PAID");
     }
+    // Paid before the worker finished: there's no file yet. Refusing keeps
+    // the one-time download unspent — consuming it here would sign a link
+    // to nothing and leave the customer with a paid document they can never
+    // download.
+    if (!doc.fileUrl) {
+      throw new ConflictException("NOT_READY");
+    }
 
     await this.prisma.generatedDocument.update({
       where: { id: documentId },
       data: { status: "DOWNLOADED", downloadedAt: new Date() },
     });
 
-    // Signed here rather than stored, so the link dies minutes after the
-    // entitlement check that produced it (docs/trd.md Section 8).
-    return { fileUrl: this.storage.signUrl(doc.fileUrl) };
+    // Signed here rather than stored, so the links die minutes after the
+    // entitlement check that produced them (docs/trd.md Section 8). Both
+    // files in one go: the download is spent the moment this returns.
+    return {
+      fileUrl: this.storage.signUrl(doc.fileUrl),
+      pdfUrl: doc.pdfFileUrl ? this.storage.signUrl(doc.pdfFileUrl) : null,
+    };
+  }
+
+  /**
+   * The free, watermarked preview of a generated document (docs/srs.md 3.2
+   * step 3): links to its page images, for the owner — or staff — only. A
+   * document's answers are someone's personal details.
+   *
+   * `ready` is false while the generation worker is still running, so the
+   * page can wait for it rather than show an empty preview.
+   */
+  async getPreview(
+    documentId: string,
+    requesterId: string,
+    requesterRole: Role,
+  ) {
+    const doc = await this.prisma.generatedDocument.findUnique({
+      where: { id: documentId },
+      select: {
+        id: true,
+        userId: true,
+        fileUrl: true,
+        previewPageCount: true,
+      },
+    });
+    if (!doc) throw new NotFoundException("DOCUMENT_NOT_FOUND");
+    if (doc.userId !== requesterId && requesterRole === Role.CUSTOMER) {
+      throw new ForbiddenException("NOT_YOUR_DOCUMENT");
+    }
+    if (!doc.fileUrl) return { ready: false, pages: [] as string[] };
+
+    return {
+      ready: true,
+      pages: Array.from({ length: doc.previewPageCount }, (_, i) =>
+        this.storage.signUrl(previewPageKey(doc.id, i + 1), PREVIEW_URL_TTL_MS),
+      ),
+    };
   }
 
   /** Called by PaymentsService once a document-review order is confirmed paid. */
