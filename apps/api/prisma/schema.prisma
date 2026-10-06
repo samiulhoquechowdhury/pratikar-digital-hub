@@ -230,6 +230,13 @@ model ContentLibraryItem {
   status       TemplateStatus  @default(DRAFT)
   createdAt    DateTime        @default(now())
 
+  /// The free excerpt (docs/srs.md 3.4): its first pages as watermarked
+  /// images at library-previews/<id>/page-<n>.png. 0 until rendered.
+  previewPageCount Int     @default(0)
+  /// The fileUrl the excerpt was rendered from — a replaced file differs,
+  /// and gets a fresh excerpt rather than one of the old file.
+  previewOfFile    String?
+
   orders Order[]
 
   @@index([status, category])

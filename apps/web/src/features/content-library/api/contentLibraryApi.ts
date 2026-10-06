@@ -21,6 +21,15 @@ export const contentLibraryApi = {
    * NOT_PURCHASED if there's no PAID order, so this doubles as the check for
    * whether to show a download button or a buy button.
    */
+  /**
+   * The free excerpt: links to the item's first pages as watermarked
+   * images. `ready` is false while they're being made.
+   */
+  preview: (id: string) =>
+    apiClient.get<{ ready: boolean; pages: string[] }>(
+      `/content-library/catalogue/${id}/preview`,
+    ),
+
   download: (id: string) =>
     apiClient.post<{ fileUrl: string; title: string }>(
       `/content-library/${id}/download`,

@@ -86,8 +86,11 @@ describe("public routes", () => {
     ]);
   });
 
-  it("opens only the library catalogue on ContentLibraryController", () => {
+  // The excerpt is public like the product page it sits on; it serves only
+  // watermarked page images of published items, never the file.
+  it("opens only the library catalogue and its excerpts on ContentLibraryController", () => {
     expect(publicHandlers(ContentLibraryController)).toEqual([
+      "getPreview",
       "getPublished",
       "list",
     ]);

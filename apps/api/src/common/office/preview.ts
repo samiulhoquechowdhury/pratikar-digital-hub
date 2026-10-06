@@ -47,7 +47,10 @@ const WATERMARK = `
  * preview would be the product, free. A picture of each page shows the
  * customer exactly what they will get and nothing they can lift.
  */
-export async function renderPreviewPages(pdf: Buffer): Promise<Buffer[]> {
+export async function renderPreviewPages(
+  pdf: Buffer,
+  maxPages: number = PREVIEW_MAX_PAGES,
+): Promise<Buffer[]> {
   const workDir = fs.mkdtempSync(path.join(os.tmpdir(), "pratikar-preview-"));
   try {
     const input = path.join(workDir, "document.pdf");
@@ -62,7 +65,7 @@ export async function renderPreviewPages(pdf: Buffer): Promise<Buffer[]> {
       "-dTextAlphaBits=4",
       "-dGraphicsAlphaBits=4",
       "-dFirstPage=1",
-      `-dLastPage=${PREVIEW_MAX_PAGES}`,
+      `-dLastPage=${maxPages}`,
       `-sOutputFile=${path.join(workDir, "page-%03d.png")}`,
       "-c",
       WATERMARK,
@@ -79,6 +82,10 @@ export async function renderPreviewPages(pdf: Buffer): Promise<Buffer[]> {
   }
 }
 
-/** Where page n (1-based) of a document's preview is stored. */
+/** Where page n (1-based) of a generated document's preview is stored. */
 export const previewPageKey = (documentId: string, page: number) =>
   `documents/${documentId}/preview-${page}.png`;
+
+/** Where page n (1-based) of a library item's free excerpt is stored. */
+export const libraryPreviewKey = (itemId: string, page: number) =>
+  `library-previews/${itemId}/page-${page}.png`;
