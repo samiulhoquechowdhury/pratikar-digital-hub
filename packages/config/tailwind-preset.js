@@ -97,8 +97,20 @@ const PALETTE = {
   // Feedback greens/ambers aren't in the brand sheet, which only covers brand
   // colours. Chosen to sit alongside it without competing, and never used as
   // the sole signal — components pair them with text or an icon.
-  green: { 50: "#ecfdf5", 100: "#d1fae5", 600: "#047857", 700: "#036045", 800: "#065f46" },
-  amber: { 50: "#fffbeb", 100: "#fef3c7", 600: "#b45309", 700: "#92400e", 800: "#78350f" },
+  green: {
+    50: "#ecfdf5",
+    100: "#d1fae5",
+    600: "#047857",
+    700: "#036045",
+    800: "#065f46",
+  },
+  amber: {
+    50: "#fffbeb",
+    100: "#fef3c7",
+    600: "#b45309",
+    700: "#92400e",
+    800: "#78350f",
+  },
 };
 
 /** @type {import('tailwindcss').Config} */
@@ -150,6 +162,15 @@ module.exports = {
         "gold-ink": PALETTE.gold[800],
 
         /** The navy half of the brand, for chrome and secondary emphasis. */
+        /**
+         * The logo's gold wordmark, as a top-to-bottom gradient like the
+         * client's artwork. Deeper on white so "PRATIKAR" still reads; the
+         * logo's own bright gold on navy. A logotype is exempt from text
+         * contrast rules, but it should still be legible.
+         */
+        "wordmark-light": { from: PALETTE.gold[600], to: PALETTE.gold[800] },
+        "wordmark-dark": { from: PALETTE.gold[300], to: PALETTE.gold[500] },
+
         primary: {
           DEFAULT: PALETTE.navy[800],
           hover: PALETTE.navy[700],
@@ -197,6 +218,15 @@ module.exports = {
           "Times New Roman",
           "serif",
         ],
+        // The wordmark's face, from the client's logo — a classical capital
+        // serif. Only ever "PRATIKAR" in the logo; never running text.
+        brand: [
+          "var(--font-brand)",
+          "Trajan Pro",
+          "ui-serif",
+          "Georgia",
+          "serif",
+        ],
         sans: [
           "var(--font-sans)",
           "ui-sans-serif",
@@ -232,8 +262,10 @@ module.exports = {
       // the palette instead of looking grey against it.
       boxShadow: {
         card: "0 1px 2px 0 rgb(11 31 58 / 0.05), 0 1px 3px 0 rgb(11 31 58 / 0.07)",
-        raised: "0 4px 6px -1px rgb(11 31 58 / 0.08), 0 2px 4px -2px rgb(11 31 58 / 0.06)",
-        overlay: "0 20px 25px -5px rgb(11 31 58 / 0.14), 0 8px 10px -6px rgb(11 31 58 / 0.10)",
+        raised:
+          "0 4px 6px -1px rgb(11 31 58 / 0.08), 0 2px 4px -2px rgb(11 31 58 / 0.06)",
+        overlay:
+          "0 20px 25px -5px rgb(11 31 58 / 0.14), 0 8px 10px -6px rgb(11 31 58 / 0.10)",
       },
 
       // The brand sheet's hero treatment: deep navy with a subtle warm lift.
