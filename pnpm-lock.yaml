@@ -150,6 +150,9 @@ importers:
       cookie-parser:
         specifier: ^1.4.7
         version: 1.4.7
+      docx:
+        specifier: ^9.7.1
+        version: 9.7.1
       docxtemplater:
         specifier: ^3.69.3
         version: 3.69.3
@@ -211,9 +214,6 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.0.0
         version: 8.65.0(eslint@8.57.1)(typescript@5.9.3)
-      docx:
-        specifier: ^9.7.1
-        version: 9.7.1
       eslint:
         specifier: ^8.57.0
         version: 8.57.1
