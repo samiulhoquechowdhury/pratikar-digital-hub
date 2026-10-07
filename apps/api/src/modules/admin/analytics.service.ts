@@ -99,14 +99,19 @@ export class AnalyticsService {
       }),
       this.prisma.generatedDocument.groupBy({
         by: ["templateId"],
-        where: { createdAt: inPeriod },
+        // Template documents only: a custom AI draft has no template to rank.
+        where: { createdAt: inPeriod, templateId: { not: null } },
         _count: true,
         orderBy: { _count: { templateId: "desc" } },
         take: TOP_N,
       }),
       this.prisma.generatedDocument.groupBy({
         by: ["templateId"],
-        where: { createdAt: inPeriod, status: { in: ["PAID", "DOWNLOADED"] } },
+        where: {
+          createdAt: inPeriod,
+          templateId: { not: null },
+          status: { in: ["PAID", "DOWNLOADED"] },
+        },
         _count: true,
       }),
       this.prisma.order.groupBy({
@@ -132,7 +137,13 @@ export class AnalyticsService {
 
     const [templates, items] = await Promise.all([
       this.prisma.template.findMany({
-        where: { id: { in: templateCounts.map((t) => t.templateId) } },
+        where: {
+          id: {
+            in: templateCounts.flatMap((t) =>
+              t.templateId ? [t.templateId] : [],
+            ),
+          },
+        },
         select: { id: true, title: true },
       }),
       this.prisma.contentLibraryItem.findMany({
