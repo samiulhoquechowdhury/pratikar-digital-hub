@@ -9,8 +9,10 @@ import {
   DRAFT_SYSTEM_PROMPT,
   briefBlock,
   parseDraft,
+  precedentsBlock,
   type DocumentDraft,
   type DraftBrief,
+  type Precedent,
 } from "./draft-prompt";
 
 /** Same model as the rest of the AI features; overridable without a deploy. */
@@ -67,17 +69,27 @@ export class DraftingService {
   async draft(
     brief: DraftBrief,
     revision?: { previous: DocumentDraft; instruction: string },
+    precedents: Precedent[] = [],
   ): Promise<DocumentDraft> {
     if (!this.client) {
       throw new DraftingError("unusable", "AI_NOT_CONFIGURED");
     }
 
+    // The precedents first, then the request: the same opening for a first
+    // draft and for each revision of it.
+    const request = precedents.length
+      ? `${precedentsBlock(precedents)}\n\n${briefBlock(brief)}`
+      : briefBlock(brief);
     const messages: Anthropic.Beta.BetaMessageParam[] = [
-      { role: "user", content: briefBlock(brief) },
+      { role: "user", content: request },
     ];
     if (revision) {
+      // The draft as the model wrote it — without the references the worker
+      // added, which aren't part of the model's output.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars -- named only to be left out
+      const { references: _refs, ...previous } = revision.previous;
       messages.push(
-        { role: "assistant", content: JSON.stringify(revision.previous) },
+        { role: "assistant", content: JSON.stringify(previous) },
         {
           role: "user",
           content: `Revise the draft. The customer asks:\n${revision.instruction}`,

@@ -53,6 +53,8 @@ export interface MyDocument {
   brief: DraftCustomPayload | null;
   summary: string | null;
   missingDetails: string[];
+  /** Titles of the advocate-drafted library forms the draft was modelled on. */
+  basedOn: string[];
   revisionCount: number;
   /** Why drafting or the last revision failed, in the customer's words. */
   draftError: string | null;

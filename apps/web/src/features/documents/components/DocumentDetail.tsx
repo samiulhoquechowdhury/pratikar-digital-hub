@@ -251,9 +251,26 @@ function Drafting({ revising }: { revising: boolean }) {
 
 /** The draft's summary and the blanks still to fill. */
 function DraftNotes({ doc }: { doc: MyDocument }) {
-  if (!doc.summary && doc.missingDetails.length === 0) return null;
+  if (
+    !doc.summary &&
+    doc.missingDetails.length === 0 &&
+    doc.basedOn.length === 0
+  ) {
+    return null;
+  }
   return (
     <Card className="p-5">
+      {doc.basedOn.length > 0 && (
+        // Said up front: it's the reason to trust the draft's shape.
+        <p className="mb-4 flex gap-2 rounded-control bg-primary-subtle px-3 py-2.5 text-sm text-ink">
+          <Icon icon={BadgeCheck} className="mt-0.5 shrink-0 text-primary" />
+          <span>
+            Drafted in the format of our advocate-written{" "}
+            {doc.basedOn.length === 1 ? "document" : "documents"}:{" "}
+            <strong>{doc.basedOn.join(" and ")}</strong>.
+          </span>
+        </p>
+      )}
       {doc.summary && (
         <p className="text-sm leading-relaxed text-ink">{doc.summary}</p>
       )}

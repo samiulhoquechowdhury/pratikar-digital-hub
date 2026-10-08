@@ -35,6 +35,8 @@ export interface ReviewFiles {
   /** A template document's answers. */
   filledData: Record<string, unknown> | null;
   missingDetails: string[];
+  /** The advocate-drafted library forms an AI draft was modelled on. */
+  references: { id: string; title: string; url: string }[];
   /** Short-lived signed links to the customer's document. */
   docxUrl: string | null;
   pdfUrl: string | null;

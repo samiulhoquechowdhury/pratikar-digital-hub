@@ -18,6 +18,7 @@ const doc = (patch: Partial<MyDocument> = {}): MyDocument => ({
   brief: null,
   summary: null,
   missingDetails: [],
+  basedOn: [],
   revisionCount: 0,
   draftError: null,
   review: null,

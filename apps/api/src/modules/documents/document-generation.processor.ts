@@ -18,6 +18,7 @@ import {
   DraftingError,
   DraftingService,
 } from "../ai/drafting/drafting.service";
+import { PrecedentFinder } from "../ai/drafting/precedents.service";
 import { StorageService } from "../storage/storage.service";
 
 export interface DocumentGenerationJobData {
@@ -47,6 +48,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     private readonly drafting: DraftingService,
+    private readonly precedents: PrecedentFinder,
   ) {
     super();
   }
@@ -98,6 +100,12 @@ export class DocumentGenerationProcessor extends WorkerHost {
     const instruction = job.data.instruction;
     const revising = Boolean(instruction && previous);
 
+    // The advocate-drafted forms to model it on: found for a first draft,
+    // and the same ones again for a revision of it.
+    const precedents = revising
+      ? await this.precedents.load(previous!.references ?? [])
+      : await this.precedents.find(brief);
+
     let draft: DocumentDraft;
     try {
       draft = await this.drafting.draft(
@@ -105,6 +113,7 @@ export class DocumentGenerationProcessor extends WorkerHost {
         revising
           ? { previous: previous!, instruction: instruction! }
           : undefined,
+        precedents,
       );
     } catch (error) {
       const lastAttempt = job.attemptsMade + 1 >= (job.opts.attempts ?? 1);
@@ -129,8 +138,15 @@ export class DocumentGenerationProcessor extends WorkerHost {
       return;
     }
 
+    // Recorded with the draft: what a revision reloads, and what the
+    // customer and the reviewing advocate are shown it was based on.
+    const references = precedents.map(({ id, title, fileUrl }) => ({
+      id,
+      title,
+      fileUrl,
+    }));
     await this.publish(doc.id, await draftToDocx(draft), {
-      draft: draft as object,
+      draft: { ...draft, references } as object,
       title: draft.title,
       draftError: null,
     });

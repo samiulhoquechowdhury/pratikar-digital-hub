@@ -428,6 +428,8 @@ export class DocumentsService {
         doc.template?.reviewPriceInPaise ?? customDraftReviewPrice(),
       summary: draft?.summary ?? null,
       missingDetails: draft?.missingDetails ?? [],
+      // Titles only: which library forms the draft was modelled on.
+      basedOn: (draft?.references ?? []).map((ref) => ref.title),
       review: review && {
         id: review.id,
         status: review.status,
@@ -644,6 +646,12 @@ export class DocumentsService {
       brief: doc.brief,
       filledData: doc.kind === "TEMPLATE" ? doc.filledData : null,
       missingDetails: draft?.missingDetails ?? [],
+      // The advocate-drafted forms it was modelled on, to compare against.
+      references: (draft?.references ?? []).map((ref) => ({
+        id: ref.id,
+        title: ref.title,
+        url: this.storage.signUrl(ref.fileUrl),
+      })),
       docxUrl: doc.fileUrl ? this.storage.signUrl(doc.fileUrl) : null,
       pdfUrl: doc.pdfFileUrl ? this.storage.signUrl(doc.pdfFileUrl) : null,
     };

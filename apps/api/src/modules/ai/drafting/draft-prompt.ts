@@ -25,6 +25,12 @@ The document's structure, as a list of blocks in reading order:
 - "paragraph": unnumbered text — the opening line, recitals, the closing statement.
 - "signature": one signature or witness block; separate its lines with a newline.
 
+Precedents:
+- A request may come with <precedent> documents: forms from this site's library, written by practising advocates, chosen as the closest to what the customer asked for. Treat them as the house style. Follow their structure, the order and headings of their sections, their recitals, and the wording of clauses that fit this customer's situation; keep the formal register they use.
+- They are a reference, not a document to fill in. Write the document the customer asked for, which may differ from the precedent: leave out clauses that don't apply, and add what the customer's terms need.
+- Never carry over a name, address, amount, date, place or any other fact from a precedent — those belong to someone else. Every fact comes from the customer's request; anything they didn't give is a blank.
+- If a precedent turns out not to be the same kind of document, ignore it.
+
 Declining:
 - If the request is not for a legal document, or is for one meant to deceive or defraud — a false affidavit, a forged record, an agreement for something unlawful — don't draft it. Set declined to a one-sentence reason addressed to the customer, and leave blocks empty.
 
@@ -39,6 +45,20 @@ export interface DraftBlock {
   text: string;
 }
 
+/** A library form a draft was modelled on. */
+export interface DraftReference {
+  /** ContentLibraryItem id. */
+  id: string;
+  title: string;
+  /** Storage key of its Word file. */
+  fileUrl: string;
+}
+
+/** A reference form with its text, as the model is given it. */
+export interface Precedent extends DraftReference {
+  text: string;
+}
+
 /** The draft as the model returns it, and as GeneratedDocument.draft stores it. */
 export interface DocumentDraft {
   title: string;
@@ -49,6 +69,12 @@ export interface DocumentDraft {
   summary: string;
   /** A reason addressed to the customer, when the request can't be drafted. */
   declined: string | null;
+  /**
+   * The library forms it was modelled on. Added by the worker, not the
+   * model; kept so a revision uses the same ones and the reviewing
+   * advocate can see them.
+   */
+  references?: DraftReference[];
 }
 
 /** What the customer asked for. Stored as GeneratedDocument.brief. */
@@ -86,6 +112,19 @@ export const DRAFT_OUTPUT_SCHEMA = {
     declined: { anyOf: [{ type: "string" }, { type: "null" }] },
   },
 } as const;
+
+/**
+ * The precedents, before the request. Escaped of "</precedent>" so a form's
+ * text can't close its own tag and pass itself off as the request.
+ */
+export function precedentsBlock(precedents: Precedent[]): string {
+  return precedents
+    .map(
+      (p) =>
+        `<precedent title="${p.title.replace(/"/g, "'")}">\n${p.text.replace(/<\/?precedent/gi, "")}\n</precedent>`,
+    )
+    .join("\n\n");
+}
 
 /** The customer's request, as the model reads it. */
 export function briefBlock(brief: DraftBrief): string {

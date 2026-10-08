@@ -13,6 +13,24 @@ import { VoyageEmbedder } from "./voyage-embedder.service";
  */
 export const MIN_SCORE = 0.4;
 
+/**
+ * How close a library form must be to serve as a draft's precedent. Measured
+ * on the live catalogue with voyage-4, searching by document name: the right
+ * form scores 0.54–0.68, a same-family one ("legal notice for unpaid dues" →
+ * a recovery notice) about 0.41, and an unrelated one about 0.25 — "Will",
+ * with no will in the library, tops out there and correctly finds nothing.
+ */
+export const PRECEDENT_MIN_SCORE = 0.4;
+
+/** A legal form found as a precedent for a custom draft. */
+export interface FormHit {
+  id: string;
+  title: string;
+  /** Storage key of the Word file. */
+  fileUrl: string;
+  score: number;
+}
+
 /** A search hit, as the chatbot is allowed to talk about it. */
 export interface KnowledgeHit {
   sourceType: KnowledgeSourceType;
@@ -109,6 +127,35 @@ export class KnowledgeBaseSearch {
         },
       ];
     });
+  }
+
+  /**
+   * The published legal forms closest to a description — the advocate-drafted
+   * precedents a custom draft is modelled on. Forms only (not e-books or
+   * checklists: those aren't documents to draft like), and Word files only,
+   * since their text can be read. Unlike search(), it reads the item's row
+   * in the same query, because the caller needs the file, not the price.
+   */
+  async searchForms(
+    description: string,
+    limit = 2,
+    minScore = PRECEDENT_MIN_SCORE,
+  ): Promise<FormHit[]> {
+    const vector = `[${(await this.embedder.embedQuery(description)).join(",")}]`;
+    const rows = await this.prisma.$queryRaw<FormHit[]>`
+      SELECT c."id", c."title", c."fileUrl",
+             1 - (k."embedding" <=> ${vector}::vector) AS "score"
+      FROM "KnowledgeBaseDocument" k
+      JOIN "ContentLibraryItem" c ON c."id" = k."sourceId"
+      WHERE k."sourceType" = 'content'
+        AND c."type" = 'FORM'
+        AND c."status" = 'PUBLISHED'
+        AND lower(c."fileUrl") LIKE '%.docx'
+      ORDER BY k."embedding" <=> ${vector}::vector
+      LIMIT ${limit}`;
+    return rows
+      .map((row) => ({ ...row, score: Number(row.score) }))
+      .filter((row) => row.score >= minScore);
   }
 
   /** Current title and price for each hit's row, PUBLISHED rows only. */
