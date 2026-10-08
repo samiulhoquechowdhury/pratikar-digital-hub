@@ -3,7 +3,7 @@
 import type { AuthenticatedUser, AuthSession } from "@pratikar/types";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-import { apiClient } from "../lib/apiClient";
+import { apiClient, onSessionChange, refreshSession } from "../lib/apiClient";
 import { setAccessToken } from "../lib/authToken";
 
 interface AuthContextValue {
@@ -35,24 +35,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    apiClient
-      .post<{ accessToken: string; user: AuthenticatedUser }>("/auth/refresh")
-      .then((session) => {
-        if (cancelled) return;
-        setAccessToken(session.accessToken);
-        setUser(session.user);
-      })
-      // No cookie, or an expired or revoked one. That's the ordinary state for
-      // a first-time visitor, not an error worth surfacing.
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setIsRestoring(false);
-      });
+    // No cookie, or an expired or revoked one, is the ordinary state for a
+    // first-time visitor, not an error worth surfacing.
+    void refreshSession().then((result) => {
+      if (cancelled) return;
+      if (result.kind === "session") setUser(result.session.user);
+      setIsRestoring(false);
+    });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * Any later refresh — the one apiClient makes when the 15-minute access
+   * token expires mid-visit — updates who is signed in, and a session that
+   * has ended (revoked, or signed out on another device) signs out here too
+   * instead of leaving a header that claims otherwise.
+   */
+  useEffect(
+    () =>
+      onSessionChange((session) => {
+        setUser(session ? session.user : null);
+      }),
+    [],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({

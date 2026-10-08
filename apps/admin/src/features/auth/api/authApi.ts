@@ -1,5 +1,4 @@
 import type {
-  AuthenticatedUser,
   OtpRequestPayload,
   OtpVerifyPayload,
   OtpVerifyResponse,
@@ -14,15 +13,8 @@ export const authApi = {
   verifyOtp: (payload: OtpVerifyPayload) =>
     apiClient.post<OtpVerifyResponse>("/auth/otp/verify", payload),
 
-  /**
-   * Exchanges the httpOnly refresh cookie for a fresh access token. The only
-   * way back into a session after a reload, since the access token is held in
-   * memory and deliberately never persisted.
-   */
-  refresh: () =>
-    apiClient.post<{ accessToken: string; user: AuthenticatedUser }>(
-      "/auth/refresh",
-    ),
+  // Refreshing lives in shared/lib/apiClient (refreshSession), beside the
+  // requests that need it when the access token expires.
 
   /**
    * Revokes the session row server-side. Without this, "sign out" would only
