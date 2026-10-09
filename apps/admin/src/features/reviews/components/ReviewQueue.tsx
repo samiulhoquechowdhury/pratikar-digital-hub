@@ -109,6 +109,26 @@ function CaseFile({ reviewId }: { reviewId: string }) {
         </div>
       )}
 
+      {files.references.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+            Modelled on these library forms
+          </p>
+          <ul className="mt-1 space-y-1 text-sm">
+            {files.references.map((ref) => (
+              <li key={ref.id}>
+                <a
+                  href={ref.url}
+                  className="font-semibold text-primary underline"
+                >
+                  {ref.title}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {files.missingDetails.length > 0 && (
         <div>
           <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">

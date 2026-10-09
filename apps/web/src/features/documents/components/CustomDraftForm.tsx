@@ -51,7 +51,7 @@ const STEPS = [
   {
     icon: Sparkles,
     title: "AI drafts it",
-    body: "From your description, in about a minute. Preview it free and ask for changes.",
+    body: "From your description, in the format of our advocate-written documents. Preview it free and ask for changes.",
   },
   {
     icon: BadgeCheck,
