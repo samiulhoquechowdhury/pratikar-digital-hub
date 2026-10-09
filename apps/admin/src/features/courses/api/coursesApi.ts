@@ -21,6 +21,17 @@ export interface Course {
   _count?: { modules: number; enrollments: number };
 }
 
+/** GET /courses/stats — one row per course with any enrolment or sale. */
+export interface CourseStats {
+  courseId: string;
+  enrollments: number;
+  active: number;
+  completed: number;
+  certificates: number;
+  /** Paid, GST included. */
+  revenuePaise: number;
+}
+
 export interface UpsertCoursePayload {
   title: string;
   description?: string;
@@ -31,6 +42,8 @@ export interface UpsertCoursePayload {
 
 export const coursesApi = {
   listAll: () => apiClient.get<Course[]>("/courses/all"),
+
+  stats: () => apiClient.get<CourseStats[]>("/courses/stats"),
 
   get: (id: string) => apiClient.get<Course>(`/courses/${id}`),
 

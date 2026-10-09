@@ -13,7 +13,7 @@ const asUser = (role: Role): AuthenticatedUser =>
  * list to stay right.
  */
 describe("isStaff", () => {
-  it.each([Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN])(
+  it.each([Role.SUPPORT, Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN])(
     "admits %s",
     (role) => {
       expect(isStaff(asUser(role))).toBe(true);
@@ -29,11 +29,11 @@ describe("isStaff", () => {
     expect(isStaff(asUser(Role.CUSTOMER))).toBe(false);
   });
 
-  // Not an oversight — see the note in staff.ts. Asserted so that widening
-  // access is a deliberate edit to this test, not a silent side effect.
-  it("refuses SUPPORT, which the API does grant some read access to", () => {
-    expect(isStaff(asUser(Role.SUPPORT))).toBe(false);
-    expect(STAFF_ROLES).not.toContain(Role.SUPPORT);
+  // Support was kept out until the requirements' role matrix was applied:
+  // it handles customer tickets, so it needs the accounts and orders the
+  // API already lets it read. What it may open inside is in sections.ts.
+  it("admits SUPPORT, for customer care", () => {
+    expect(STAFF_ROLES).toContain(Role.SUPPORT);
   });
 
   it("refuses nobody-signed-in", () => {

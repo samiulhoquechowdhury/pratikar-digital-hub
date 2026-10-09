@@ -7,6 +7,7 @@ describe("KnowledgeBaseIndexer", () => {
     templates = [] as { id: string }[],
     courses = [] as { id: string }[],
     items = [] as { id: string }[],
+    faqs = [] as { id: string }[],
     indexed = [] as { sourceType: string; sourceId: string }[],
   } = {}) => {
     const queue = { addBulk: jest.fn().mockResolvedValue([]) };
@@ -14,6 +15,7 @@ describe("KnowledgeBaseIndexer", () => {
       template: { findMany: jest.fn().mockResolvedValue(templates) },
       course: { findMany: jest.fn().mockResolvedValue(courses) },
       contentLibraryItem: { findMany: jest.fn().mockResolvedValue(items) },
+      faq: { findMany: jest.fn().mockResolvedValue(faqs) },
       knowledgeBaseDocument: { findMany: jest.fn().mockResolvedValue(indexed) },
     };
     const indexer = new KnowledgeBaseIndexer(
@@ -69,13 +71,15 @@ describe("KnowledgeBaseIndexer", () => {
         templates: [{ id: "t1" }],
         courses: [{ id: "c1" }],
         items: [{ id: "i1" }],
+        faqs: [{ id: "f1" }],
       });
 
-      await expect(indexer.reindexAll()).resolves.toEqual({ queued: 3 });
+      await expect(indexer.reindexAll()).resolves.toEqual({ queued: 4 });
       expect(queuedRefs(queue)).toEqual([
         { sourceType: "template", sourceId: "t1" },
         { sourceType: "course", sourceId: "c1" },
         { sourceType: "content", sourceId: "i1" },
+        { sourceType: "faq", sourceId: "f1" },
       ]);
     });
 

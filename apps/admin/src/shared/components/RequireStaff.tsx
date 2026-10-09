@@ -1,8 +1,10 @@
 "use client";
 
-import { Card } from "@pratikar/ui";
+import { ButtonLink, Card } from "@pratikar/ui";
+import { usePathname } from "next/navigation";
 
 import { StaffLoginForm } from "@/features/auth";
+import { mayOpen } from "@/shared/lib/sections";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { AdminShell } from "./AdminShell";
@@ -19,6 +21,7 @@ import { AdminShell } from "./AdminShell";
  */
 export function RequireStaff({ children }: { children: React.ReactNode }) {
   const { user, isRestoring } = useAuth();
+  const pathname = usePathname();
 
   if (isRestoring) {
     return (
@@ -87,6 +90,29 @@ export function RequireStaff({ children }: { children: React.ReactNode }) {
           </p>
         </div>
       </main>
+    );
+  }
+
+  // Signed in, but this section isn't one their role uses — say so, rather
+  // than render a page whose every request comes back 403.
+  if (!mayOpen(user.role, pathname)) {
+    return (
+      <AdminShell>
+        <div className="mx-auto max-w-xl px-6 py-16">
+          <Card className="p-6">
+            <h1 className="text-xl">Not part of your role</h1>
+            <p className="mt-2 text-sm text-ink-muted">
+              This section isn&apos;t available to your account. If you need it,
+              ask a Super Admin to check your role.
+            </p>
+            <div className="mt-5">
+              <ButtonLink href="/" size="sm" variant="secondary">
+                Back to the dashboard
+              </ButtonLink>
+            </div>
+          </Card>
+        </div>
+      </AdminShell>
     );
   }
 

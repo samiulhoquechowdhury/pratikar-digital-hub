@@ -15,6 +15,7 @@ import { PrismaService } from "../../../prisma/prisma.service";
 import {
   contentHash,
   describeContentItem,
+  describeFaq,
   describeCourse,
   describeTemplate,
   type KnowledgeSourceRef,
@@ -151,6 +152,12 @@ export class KnowledgeBaseIndexProcessor extends WorkerHost {
           where: { id: ref.sourceId },
         });
         return row?.status === "PUBLISHED" ? describeContentItem(row) : null;
+      }
+      case "faq": {
+        const row = await this.prisma.faq.findUnique({
+          where: { id: ref.sourceId },
+        });
+        return row?.published ? describeFaq(row) : null;
       }
     }
   }

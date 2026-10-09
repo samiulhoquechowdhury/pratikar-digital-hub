@@ -9,8 +9,8 @@ export default function Page() {
   return (
     <RequireStaff>
       <PageHeader
-        title="Assistant insights"
-        description="What customers ask the AI assistant — and what they looked for that the catalogue doesn't have yet."
+        title="Assistant"
+        description="The AI assistant's search index, what customers ask it, and what they looked for that the catalogue doesn't have yet."
       />
       <PageBody>
         <AssistantInsightsView />

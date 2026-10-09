@@ -17,9 +17,11 @@ import { KnowledgeBaseModule } from "./modules/ai/knowledge-base/knowledge-base.
 import { AuthModule } from "./modules/auth/auth.module";
 import { ContentLibraryModule } from "./modules/content-library/content-library.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
+import { FaqModule } from "./modules/faq/faq.module";
 import { LmsModule } from "./modules/lms/lms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
+import { SettingsModule } from "./modules/settings/settings.module";
 import { StorageModule } from "./modules/storage/storage.module";
 import { UsersModule } from "./modules/users/users.module";
 import { PrismaModule } from "./prisma/prisma.module";
@@ -49,6 +51,8 @@ import { PrismaModule } from "./prisma/prisma.module";
     ContentLibraryModule,
     LmsModule,
     PaymentsModule,
+    SettingsModule,
+    FaqModule,
     NotificationsModule,
     StorageModule,
     AdminModule,

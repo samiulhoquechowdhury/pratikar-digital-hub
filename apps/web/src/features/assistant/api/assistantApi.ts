@@ -5,7 +5,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 /** Mirrors ChatReply in apps/api/src/modules/ai/chat/chat.service.ts. */
 export interface ChatSource {
-  sourceType: "template" | "course" | "content";
+  sourceType: "template" | "course" | "content" | "faq";
   sourceId: string;
   title: string;
   href: string;

@@ -14,13 +14,11 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
-import {
-  customDraftReviewPrice,
-  documentTitle,
-} from "../documents/custom-draft";
+import { documentTitle } from "../documents/custom-draft";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
 import { NotificationSender } from "../notifications/notification-sender.service";
+import { SettingsService } from "../settings/settings.service";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CreditNoteService } from "./invoice/credit-note.service";
@@ -64,6 +62,7 @@ export class PaymentsService {
     private readonly invoices: InvoiceService,
     private readonly creditNotes: CreditNoteService,
     private readonly notifications: NotificationSender,
+    private readonly settings: SettingsService,
   ) {}
 
   async createOrder(userId: string, dto: CreateOrderDto) {
@@ -536,7 +535,10 @@ export class PaymentsService {
           (r) => r.status !== "RETURNED" || doc.kind === "CUSTOM",
         );
         if (blocking) throw new ConflictException("REVIEW_ALREADY_REQUESTED");
-        return doc.template?.reviewPriceInPaise ?? customDraftReviewPrice();
+        return (
+          doc.template?.reviewPriceInPaise ??
+          (await this.settings.customDraftReviewPrice())
+        );
       }
       case "CONTENT_ITEM": {
         const item = await this.prisma.contentLibraryItem.findUnique({

@@ -32,10 +32,10 @@ import {
 } from "../content-library/catalogue";
 import { NotificationSender } from "../notifications/notification-sender.service";
 import { UserNotifier } from "../notifications/user-notifier.service";
+import { SettingsService } from "../settings/settings.service";
 import { StorageService } from "../storage/storage.service";
 
 import {
-  customDraftReviewPrice,
   documentTitle,
   MAX_DRAFT_REVISIONS,
   MAX_DRAFTS_PER_DAY,
@@ -103,6 +103,7 @@ export class DocumentsService {
     private readonly knowledgeBase: KnowledgeBaseIndexer,
     private readonly drafting: DraftingService,
     private readonly notifier: UserNotifier,
+    private readonly settings: SettingsService,
   ) {}
 
   /**
@@ -256,10 +257,10 @@ export class DocumentsService {
   }
 
   /** What a custom draft costs: the advocate review, which unlocks it. */
-  customPricing() {
+  async customPricing() {
     return {
       available: this.drafting.isConfigured,
-      reviewPriceInPaise: customDraftReviewPrice(),
+      reviewPriceInPaise: await this.settings.customDraftReviewPrice(),
       maxRevisions: MAX_DRAFT_REVISIONS,
     };
   }
@@ -386,7 +387,10 @@ export class DocumentsService {
     if (!doc || doc.userId !== userId) {
       throw new NotFoundException("DOCUMENT_NOT_FOUND");
     }
-    return this.toCustomerView(doc);
+    return this.toCustomerView(
+      doc,
+      await this.settings.customDraftReviewPrice(),
+    );
   }
 
   /** The shape the customer's pages read: one title, one review price, no storage keys. */
@@ -413,7 +417,7 @@ export class DocumentsService {
       fileUrl: string;
       pdfFileUrl: string | null;
     },
-  >(doc: D) {
+  >(doc: D, customReviewPrice: number) {
     const draft = doc.draft as DocumentDraft | null;
     // Storage keys stay on the server; the draft is summarised below.
     // eslint-disable-next-line @typescript-eslint/no-unused-vars -- named only to be left out
@@ -424,8 +428,7 @@ export class DocumentsService {
       title: documentTitle(doc),
       ready: fileUrl !== "",
       priceInPaise: doc.template?.priceInPaise ?? null,
-      reviewPriceInPaise:
-        doc.template?.reviewPriceInPaise ?? customDraftReviewPrice(),
+      reviewPriceInPaise: doc.template?.reviewPriceInPaise ?? customReviewPrice,
       summary: draft?.summary ?? null,
       missingDetails: draft?.missingDetails ?? [],
       // Titles only: which library forms the draft was modelled on.
@@ -472,7 +475,8 @@ export class DocumentsService {
         },
       },
     });
-    return docs.map((doc) => this.toCustomerView(doc));
+    const customReviewPrice = await this.settings.customDraftReviewPrice();
+    return docs.map((doc) => this.toCustomerView(doc, customReviewPrice));
   }
 
   /** Called once the paid order for this document is confirmed (see PaymentsService). */

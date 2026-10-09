@@ -70,6 +70,7 @@ describe("DocumentsService template mutations", () => {
       knowledgeBase as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
 
   /**
@@ -206,6 +207,7 @@ describe("DocumentsService.listTaggableStorage", () => {
       { reindex: jest.fn() } as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, storage };
   };
@@ -328,6 +330,7 @@ describe("DocumentsService public catalogue", () => {
       { reindex: jest.fn() } as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, prisma };
   };
@@ -413,6 +416,7 @@ describe("DocumentsService.generate", () => {
       { reindex: jest.fn() } as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, prisma, queue };
   };
@@ -483,6 +487,7 @@ describe("DocumentsService preview and download", () => {
       { reindex: jest.fn() } as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, prisma, storage };
   };
@@ -575,6 +580,7 @@ describe("DocumentsService.queueReview", () => {
       { reindex: jest.fn() } as never,
       { isConfigured: true } as never,
       { notifyUser: jest.fn() } as never,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, notifications };
   };

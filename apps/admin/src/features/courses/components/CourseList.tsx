@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 
 import { paiseToRupees } from "@/features/templates/lib/fieldSchema";
 
-import { coursesApi, type Course } from "../api/coursesApi";
+import { coursesApi, type Course, type CourseStats } from "../api/coursesApi";
 
 /** DRAFT and ARCHIVED aren't purchasable; PUBLISHED is. Make that obvious. */
 const STATUS_TONE = {
@@ -29,15 +29,17 @@ const STATUS_TONE = {
 
 export function CourseList() {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [stats, setStats] = useState<Map<string, CourseStats>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    coursesApi
-      .listAll()
-      .then((result) => {
-        if (!cancelled) setCourses(result);
+    Promise.all([coursesApi.listAll(), coursesApi.stats().catch(() => [])])
+      .then(([result, numbers]) => {
+        if (cancelled) return;
+        setCourses(result);
+        setStats(new Map(numbers.map((row) => [row.courseId, row])));
       })
       .catch(() => {
         if (!cancelled) setError("Couldn't load courses.");
@@ -51,7 +53,7 @@ export function CourseList() {
   }, []);
 
   if (isLoading)
-    return <SkeletonTable rows={6} columns={8} label="Loading courses…" />;
+    return <SkeletonTable rows={6} columns={10} label="Loading courses…" />;
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -81,6 +83,15 @@ export function CourseList() {
           </TH>
           <TH align="right" secondary>
             Enrolled
+          </TH>
+          <TH align="right" secondary>
+            Completed
+          </TH>
+          <TH align="right" secondary>
+            Certificates
+          </TH>
+          <TH align="right" secondary>
+            Revenue
           </TH>
           <TH align="right" secondary>
             Access
@@ -119,7 +130,23 @@ export function CourseList() {
                 {modules}
               </TD>
               <TD secondary align="right" muted>
-                {course._count?.enrollments ?? 0}
+                {stats.get(course.id)?.enrollments ??
+                  course._count?.enrollments ??
+                  0}
+                {(stats.get(course.id)?.active ?? 0) > 0 && (
+                  <span className="block text-xs text-ink-subtle">
+                    {stats.get(course.id)!.active} active
+                  </span>
+                )}
+              </TD>
+              <TD secondary align="right" muted>
+                {stats.get(course.id)?.completed ?? 0}
+              </TD>
+              <TD secondary align="right" muted>
+                {stats.get(course.id)?.certificates ?? 0}
+              </TD>
+              <TD secondary align="right" muted>
+                ₹{paiseToRupees(stats.get(course.id)?.revenuePaise ?? 0)}
               </TD>
               <TD secondary align="right" muted>
                 {course.accessDurationDays}d

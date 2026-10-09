@@ -81,6 +81,7 @@ describe("PaymentsService.refund", () => {
       {} as InvoiceService,
       creditNotes as unknown as CreditNoteService,
       notifications as unknown as NotificationSender,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, prisma, tx, razorpay, creditNotes, notifications };
   };
@@ -351,6 +352,7 @@ describe("PaymentsService.handleWebhook", () => {
       invoices as unknown as InvoiceService,
       {} as CreditNoteService,
       notifications as unknown as NotificationSender,
+      { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
     );
     return { service, prisma, lms, invoices, notifications };
   };

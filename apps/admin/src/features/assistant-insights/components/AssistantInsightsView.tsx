@@ -10,6 +10,8 @@ import {
 } from "../api/insightsApi";
 import { share } from "../lib/share";
 
+import { SearchIndexPanel } from "./SearchIndexPanel";
+
 const PERIODS = [7, 30, 90] as const;
 
 const when = (iso: string) =>
@@ -66,6 +68,8 @@ export function AssistantInsightsView() {
 
   return (
     <div className="space-y-8">
+      <SearchIndexPanel />
+
       <div
         role="group"
         aria-label="Period"

@@ -52,6 +52,70 @@ export class KnowledgeBaseIndexer {
   }
 
   /**
+   * How full the index is against what's published, and whether a rebuild
+   * is still working through the queue — for the admin's index panel.
+   */
+  async status() {
+    const [indexed, templates, courses, items, faqs, counts] =
+      await Promise.all([
+        this.prisma.knowledgeBaseDocument.groupBy({
+          by: ["sourceType"],
+          _count: true,
+          _max: { updatedAt: true },
+        }),
+        this.prisma.template.count({ where: { status: "PUBLISHED" } }),
+        this.prisma.course.count({ where: { status: "PUBLISHED" } }),
+        this.prisma.contentLibraryItem.count({
+          where: { status: "PUBLISHED" },
+        }),
+        this.prisma.faq.count({ where: { published: true } }),
+        this.queue.getJobCounts("waiting", "active", "delayed", "failed"),
+      ]);
+    const indexedOf = (type: string) =>
+      indexed.find((row) => row.sourceType === type)?._count ?? 0;
+    const lastUpdated = indexed.reduce<Date | null>(
+      (latest, row) =>
+        row._max.updatedAt && (!latest || row._max.updatedAt > latest)
+          ? row._max.updatedAt
+          : latest,
+      null,
+    );
+    return {
+      sources: [
+        {
+          type: "template",
+          label: "Document templates",
+          published: templates,
+          indexed: indexedOf("template"),
+        },
+        {
+          type: "content",
+          label: "Library items",
+          published: items,
+          indexed: indexedOf("content"),
+        },
+        {
+          type: "course",
+          label: "Courses",
+          published: courses,
+          indexed: indexedOf("course"),
+        },
+        {
+          type: "faq",
+          label: "FAQ",
+          published: faqs,
+          indexed: indexedOf("faq"),
+        },
+      ],
+      /** Jobs still to run: a rebuild in progress, or edits catching up. */
+      pending:
+        (counts.waiting ?? 0) + (counts.active ?? 0) + (counts.delayed ?? 0),
+      failed: counts.failed ?? 0,
+      lastUpdated,
+    };
+  }
+
+  /**
    * Queues every source there is, plus everything already in the index.
    *
    * The second half is what makes this a repair as well as a backfill: a row
@@ -62,10 +126,11 @@ export class KnowledgeBaseIndexer {
    * it did not happen.
    */
   async reindexAll(): Promise<{ queued: number }> {
-    const [templates, courses, items, indexed] = await Promise.all([
+    const [templates, courses, items, faqs, indexed] = await Promise.all([
       this.prisma.template.findMany({ select: { id: true } }),
       this.prisma.course.findMany({ select: { id: true } }),
       this.prisma.contentLibraryItem.findMany({ select: { id: true } }),
+      this.prisma.faq.findMany({ select: { id: true } }),
       this.prisma.knowledgeBaseDocument.findMany({
         select: { sourceType: true, sourceId: true },
       }),
@@ -80,6 +145,7 @@ export class KnowledgeBaseIndexer {
     );
     courses.forEach(({ id }) => add({ sourceType: "course", sourceId: id }));
     items.forEach(({ id }) => add({ sourceType: "content", sourceId: id }));
+    faqs.forEach(({ id }) => add({ sourceType: "faq", sourceId: id }));
     indexed.forEach((row) => add(row as KnowledgeSourceRef));
 
     await this.queue.addBulk([...refs.values()].map(jobFor));
