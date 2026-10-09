@@ -10,7 +10,7 @@ import { documentsApi } from "../api/documentsApi";
 
 /**
  * What a customer can do with a document they've generated: pay for it,
- * download it once, or buy a lawyer review.
+ * download it once, or buy an advocate review.
  *
  * The download is deliberately one click with no "check first" step — asking
  * the server whether a download is available would consume it (docs/srs.md
@@ -20,29 +20,37 @@ export function GeneratedDocumentActions({
   documentId,
   template,
   initialStatus,
+  showReview = true,
 }: {
   documentId: string;
   template: Pick<Template, "title" | "priceInPaise" | "reviewPriceInPaise">;
   initialStatus: GeneratedDocumentStatus;
+  /** Off where the page shows its own review panel (the document page). */
+  showReview?: boolean;
 }) {
   const [status, setStatus] = useState<GeneratedDocumentStatus>(initialStatus);
   const [error, setError] = useState<string | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+
+  // The PDF's signed link, kept just long enough to offer it after the Word
+  // file starts: the download is spent once, and both come from that call.
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   const download = () => {
     setError(null);
     setIsDownloading(true);
     documentsApi
       .download(documentId)
-      .then(({ fileUrl }) => {
-        // Mark it spent before navigating: the server has already consumed the
-        // link by this point, so the UI must not keep offering it.
+      .then(({ fileUrl, pdfUrl: pdf }) => {
         setStatus("DOWNLOADED");
+        setPdfUrl(pdf);
         window.location.href = fileUrl;
       })
-      .catch(() => {
+      .catch((cause: unknown) => {
         setError(
-          "Couldn't start the download. If you've just paid, wait a few seconds and try again.",
+          cause instanceof Error && cause.message.includes("NOT_READY")
+            ? "Your document is still being prepared. Try again in a few seconds — your download hasn't been used."
+            : "Couldn't start the download. If you've just paid, wait a few seconds and try again.",
         );
       })
       .finally(() => setIsDownloading(false));
@@ -79,11 +87,27 @@ export function GeneratedDocumentActions({
             </div>
           )}
 
-          {status === "DOWNLOADED" && (
+          {status === "DOWNLOADED" && pdfUrl && (
+            <Alert tone="success" role="status">
+              Your Word file is downloading.{" "}
+              <a href={pdfUrl} className="font-semibold underline">
+                Download the PDF too
+              </a>{" "}
+              — this link works for the next few minutes.
+            </Alert>
+          )}
+
+          {status === "DOWNLOADED" && !pdfUrl && (
             <Alert tone="info">
               Already downloaded. Downloads are one-time, so this document
               can&apos;t be fetched again — contact support if something went
               wrong.
+            </Alert>
+          )}
+
+          {status === "REFUNDED" && (
+            <Alert tone="info">
+              This document was refunded, so it can no longer be downloaded.
             </Alert>
           )}
 
@@ -97,22 +121,24 @@ export function GeneratedDocumentActions({
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h3 className="text-base">Lawyer review</h3>
-        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
-          Have a lawyer check this document and send back comments. Bought
-          separately from the document itself, and available whether or not
-          you&apos;ve downloaded it.
-        </p>
-        <div className="mt-4">
-          <BuyButton
-            itemType="DOCUMENT_REVIEW"
-            itemId={documentId}
-            label={`Review: ${template.title}`}
-            priceInPaise={template.reviewPriceInPaise}
-          />
-        </div>
-      </Card>
+      {showReview && (
+        <Card className="p-6">
+          <h3 className="text-base">Advocate review</h3>
+          <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-muted">
+            Have an advocate check this document and send back a reviewed copy.
+            Bought separately from the document itself, and available whether or
+            not you&apos;ve downloaded it.
+          </p>
+          <div className="mt-4">
+            <BuyButton
+              itemType="DOCUMENT_REVIEW"
+              itemId={documentId}
+              label={`Review: ${template.title}`}
+              priceInPaise={template.reviewPriceInPaise}
+            />
+          </div>
+        </Card>
+      )}
     </div>
   );
 }

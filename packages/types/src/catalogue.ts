@@ -12,7 +12,8 @@ export const CONTENT_CATEGORIES = [
 ] as const;
 export type ContentCategory = (typeof CONTENT_CATEGORIES)[number];
 
-export type ContentType = "EBOOK" | "CHECKLIST";
+/** Mirrors the ContentType enum in apps/api/prisma/schema.prisma. */
+export type ContentType = "EBOOK" | "CHECKLIST" | "FORM";
 
 /**
  * An item as the catalogue exposes it. No fileUrl: that's the storage key the
@@ -67,7 +68,12 @@ export interface CustomerOrder {
   createdAt: string;
   contentLibraryItem: { id: string; title: string } | null;
   course: { id: string; title: string } | null;
-  generatedDocument: { id: string; template: { title: string } } | null;
+  generatedDocument: {
+    id: string;
+    /** A custom draft's own title; null for a template document. */
+    title: string | null;
+    template: { title: string } | null;
+  } | null;
 }
 
 export interface Enrollment {

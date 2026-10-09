@@ -1,7 +1,10 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useId, useState } from "react";
+
+import { Icon } from "./Icon";
 
 /**
  * The header search box. Submitting navigates to /search rather than filtering
@@ -21,6 +24,9 @@ export function SiteSearch({
   // Seeded from the URL so the box still shows the query after landing on
   // /search — an empty box next to a page of results reads like a bug.
   const [query, setQuery] = useState(searchParams.get("q") ?? "");
+  // The header and the mobile menu both render one, so a fixed id would
+  // appear twice and the second label would point at the first input.
+  const inputId = useId();
 
   return (
     <form
@@ -34,29 +40,25 @@ export function SiteSearch({
         onSubmitted?.();
       }}
     >
-      <label htmlFor="site-search" className="sr-only">
+      <label htmlFor={inputId} className="sr-only">
         Search documents, courses and guides
       </label>
-      <svg
-        aria-hidden
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-inverse-muted"
-      >
-        <circle cx="11" cy="11" r="7" />
-        <path d="M20 20l-3.5-3.5" />
-      </svg>
+      <Icon
+        icon={Search}
+        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
+      />
       <input
-        id="site-search"
+        id={inputId}
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         autoFocus={autoFocus}
-        placeholder="Search documents, courses, guides"
-        className="w-full rounded-full border border-line-inverse bg-surface-inverse-deep py-2 pl-10 pr-4 text-sm text-ink-inverse placeholder:text-ink-inverse-muted/70 focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand"
+        placeholder="Search forms, documents, courses, e-books…"
+        // No `focus:outline-none` here. The border change is the aesthetic
+        // treatment; the global focus-visible outline is the accessibility
+        // guarantee, and a component opting out of it is how keyboard
+        // navigation quietly breaks.
+        className="h-11 w-full rounded-full border border-line bg-surface-sunken pl-9 pr-4 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-line focus:border-line-strong focus:bg-surface"
       />
     </form>
   );

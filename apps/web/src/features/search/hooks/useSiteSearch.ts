@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { contentLibraryApi } from "@/features/content-library/api/contentLibraryApi";
 import { documentsApi } from "@/features/documents/api/documentsApi";
 import { lmsApi } from "@/features/lms/api/lmsApi";
+import { matchesWords } from "@/shared/catalogue";
+import { COURSES_LIVE } from "@/shared/lib/features";
 
 export interface SiteSearchResults {
   templates: Template[];
@@ -15,8 +17,13 @@ export interface SiteSearchResults {
 
 const EMPTY: SiteSearchResults = { templates: [], courses: [], library: [] };
 
+/**
+ * Every word of the search starts a word of the text, in any order — the
+ * same rule as the catalogue pages' search, so "deed sale" finds "Sale
+ * Deed" wherever someone types it.
+ */
 const matches = (haystack: string | null | undefined, needle: string) =>
-  (haystack ?? "").toLowerCase().includes(needle);
+  matchesWords(haystack ?? "", needle);
 
 /**
  * Site-wide search.
@@ -27,15 +34,14 @@ const matches = (haystack: string | null | undefined, needle: string) =>
  * will need a real query API before the client's 100 templates and 500
  * checklists are all loaded.
  *
- * Of the three catalogues, only /courses is public. Templates and the library
- * sit behind JwtAuthGuard, so signed-out visitors get course results and a
- * note explaining what they're not seeing — hence `restricted` rather than a
- * blanket error.
+ * All three catalogues are public, so a visitor searches the same catalogue
+ * a customer does. If one of them fails to load, the others still show and
+ * `incomplete` says so — a blank page would read as "nothing matched".
  */
 export function useSiteSearch(query: string) {
   const [results, setResults] = useState<SiteSearchResults>(EMPTY);
   const [isLoading, setIsLoading] = useState(true);
-  const [restricted, setRestricted] = useState(false);
+  const [incomplete, setIncomplete] = useState(false);
 
   useEffect(() => {
     const needle = query.trim().toLowerCase();
@@ -48,9 +54,8 @@ export function useSiteSearch(query: string) {
     let cancelled = false;
     setIsLoading(true);
 
-    // A failure in one catalogue must not blank the other two — a 401 on
-    // templates is the normal signed-out case, not an outage.
-    const failed = { templates: false, library: false };
+    // A failure in one catalogue must not blank the other two.
+    let failed = false;
     const settle = <T>(promise: Promise<T[]>, mark?: () => void) =>
       promise.catch(() => {
         mark?.();
@@ -60,23 +65,33 @@ export function useSiteSearch(query: string) {
     // `void`: every branch is already settled by `settle` above, so there is
     // no rejection left for a handler to catch.
     void Promise.all([
-      settle(documentsApi.listTemplates(), () => (failed.templates = true)),
-      settle(lmsApi.list()),
-      settle(contentLibraryApi.list(), () => (failed.library = true)),
+      settle(documentsApi.listTemplates(), () => (failed = true)),
+      settle(lmsApi.list(), () => (failed = true)),
+      settle(contentLibraryApi.list(), () => (failed = true)),
     ])
       .then(([templates, courses, library]) => {
         if (cancelled) return;
 
-        setRestricted(failed.templates && failed.library);
+        setIncomplete(failed);
         setResults({
-          templates: templates.filter(
-            (t) => matches(t.title, needle) || matches(t.category, needle),
+          templates: templates.filter((t) =>
+            matches(`${t.title} ${t.category}`, needle),
           ),
-          courses: courses.filter(
-            (c) => matches(c.title, needle) || matches(c.description, needle),
-          ),
-          library: library.filter(
-            (i) => matches(i.title, needle) || matches(i.category, needle),
+          // Not searched while courses are coming soon: a result would lead
+          // to a page that says so.
+          courses: COURSES_LIVE
+            ? courses.filter((c) =>
+                matches(`${c.title} ${c.description ?? ""}`, needle),
+              )
+            : [],
+          library: library.filter((i) =>
+            // The type too, so "checklist" or "form" finds the whole shelf.
+            matches(
+              `${i.title} ${i.category.replaceAll("_", " ")} ${
+                i.type === "EBOOK" ? "e-book ebook" : i.type
+              }`,
+              needle,
+            ),
           ),
         });
       })
@@ -92,5 +107,5 @@ export function useSiteSearch(query: string) {
   const total =
     results.templates.length + results.courses.length + results.library.length;
 
-  return { results, total, isLoading, restricted };
+  return { results, total, isLoading, incomplete };
 }

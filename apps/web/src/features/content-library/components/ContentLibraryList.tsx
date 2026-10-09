@@ -1,125 +1,130 @@
 "use client";
 
-import { CONTENT_CATEGORIES } from "@pratikar/types";
 import {
-  Alert,
-  Badge,
-  ButtonLink,
-  Card,
-  EmptyState,
-  Field,
-  Loading,
-  Select,
-} from "@pratikar/ui";
-import { formatPaise } from "@pratikar/utils";
-import Link from "next/link";
-import { useState } from "react";
+  CONTENT_CATEGORIES,
+  type ContentLibraryItem,
+  type ContentType,
+} from "@pratikar/types";
+import { useMemo } from "react";
 
-import { useAuth } from "@/shared/providers/AuthProvider";
+import {
+  CatalogueBrowser,
+  priceFacet,
+  type FacetDef,
+  type SortDef,
+} from "@/shared/catalogue";
+import { CatalogueCard } from "@/shared/components/CatalogueCard";
+import { CatalogueRow } from "@/shared/components/CatalogueRow";
+import { CONTENT_CATEGORY_LABELS, CONTENT_KIND } from "@/shared/lib/labels";
+import { categorySlug, LIBRARY_SHELVES } from "@/shared/lib/navigation";
 
 import { useContentLibrary } from "../hooks/useContentLibrary";
 
-/** SCREAMING_CASE enum values are not customer-facing copy. */
-const CATEGORY_LABELS: Record<string, string> = {
-  LEGAL_PRACTICE: "Legal practice",
-  BUSINESS_COMPLIANCE: "Business & compliance",
-  PROPERTY_DOCUMENTATION: "Property documentation",
-  DIGITAL_CAREER: "Digital career",
-  CHECKLISTS_REFERENCE: "Checklists & reference",
-};
+const shelfSlug = (type: ContentType) =>
+  LIBRARY_SHELVES.find((shelf) => shelf.type === type)?.slug ?? type;
 
-export function ContentLibraryList() {
-  const { user } = useAuth();
-  const [category, setCategory] = useState<string>("");
-  const { items, isLoading, error } = useContentLibrary(
-    category || undefined,
-    !!user,
-  );
+const shelfLabel = (type: ContentType) =>
+  LIBRARY_SHELVES.find((shelf) => shelf.type === type)?.label ?? type;
 
-  // The API requires a session to list the catalogue, so there's nothing to
-  // show a visitor — same as templates.
-  if (!user) {
-    return (
-      <EmptyState
-        title="Sign in to browse the library"
-        description="E-books and checklists are available to signed-in customers."
-        action={<ButtonLink href="/login">Sign in</ButtonLink>}
-      />
-    );
-  }
+/**
+ * Filters by what the thing is, what it's about, and what it costs. The
+ * URL parameters "shelf" and "category" are the ones links across the site
+ * already use, so those links land on the right filter.
+ */
+const FACETS: FacetDef<ContentLibraryItem>[] = [
+  {
+    id: "shelf",
+    label: "Type",
+    options: LIBRARY_SHELVES.map((shelf) => ({
+      value: shelf.slug,
+      label: shelf.label,
+    })),
+    valuesOf: (item) => [shelfSlug(item.type)],
+  },
+  {
+    id: "category",
+    label: "Topic",
+    options: CONTENT_CATEGORIES.map((category) => ({
+      value: categorySlug(category),
+      label: CONTENT_CATEGORY_LABELS[category],
+    })),
+    valuesOf: (item) => [categorySlug(item.category)],
+  },
+  priceFacet((item) => item.priceInPaise),
+];
+
+const SORTS: SortDef<ContentLibraryItem>[] = [
+  {
+    id: "title",
+    label: "Title A–Z",
+    compare: (a, b) => a.title.localeCompare(b.title),
+  },
+  {
+    id: "newest",
+    label: "Newest first",
+    compare: (a, b) => b.createdAt.localeCompare(a.createdAt),
+  },
+  {
+    id: "price-asc",
+    label: "Price: low to high",
+    compare: (a, b) => a.priceInPaise - b.priceInPaise,
+  },
+  {
+    id: "price-desc",
+    label: "Price: high to low",
+    compare: (a, b) => b.priceInPaise - a.priceInPaise,
+  },
+];
+
+/** Title, plus its topic and type, so "property" or "checklist" find things too. */
+const searchText = (item: ContentLibraryItem) =>
+  `${item.title} ${CONTENT_CATEGORY_LABELS[item.category]} ${shelfLabel(item.type)}`;
+
+/**
+ * The library: e-books, checklists and forms — several hundred of them —
+ * browsed with search, filters beside the results, and a compact list.
+ * The whole catalogue is fetched once and filtered here, which is what lets
+ * every filter show an exact count.
+ */
+export function ContentLibraryList({
+  initial,
+}: {
+  initial?: ContentLibraryItem[];
+} = {}) {
+  const { items, isLoading, error } = useContentLibrary(initial);
+  const keyOf = useMemo(() => (item: ContentLibraryItem) => item.id, []);
 
   return (
-    <div className="space-y-6">
-      <div className="max-w-xs">
-        <Field label="Category" htmlFor="category">
-          <Select
-            id="category"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-          >
-            <option value="">All categories</option>
-            {CONTENT_CATEGORIES.map((value) => (
-              <option key={value} value={value}>
-                {CATEGORY_LABELS[value] ?? value}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </div>
-
-      {isLoading && <Loading />}
-      {error && (
-        <Alert tone="danger" role="alert">
-          {error}
-        </Alert>
-      )}
-
-      {!isLoading && !error && items.length === 0 && (
-        <EmptyState
-          title="Nothing here yet"
-          description={
-            category
-              ? "No items published in this category. Try another one."
-              : "New e-books and checklists appear here as they're published."
-          }
+    <CatalogueBrowser
+      items={items}
+      isLoading={isLoading}
+      error={error}
+      facets={FACETS}
+      sorts={SORTS}
+      searchText={searchText}
+      searchPlaceholder="Search the library"
+      noun={["item", "items"]}
+      keyOf={keyOf}
+      renderRow={(item) => (
+        <CatalogueRow
+          href={`/content-library/${item.id}`}
+          kind={CONTENT_KIND[item.type]}
+          title={item.title}
+          meta={[CONTENT_CATEGORY_LABELS[item.category]]}
+          priceInPaise={item.priceInPaise}
         />
       )}
-
-      {items.length > 0 && (
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <li key={item.id}>
-              <Card className="group flex h-full flex-col p-6 transition-shadow hover:shadow-raised">
-                <div className="flex items-start justify-between gap-3">
-                  <h2 className="text-lg">
-                    {/* Navy on hover, not gold: gold on white is 2.10:1 and
-                        fails WCAG at any size (see the Tailwind preset). */}
-                    <Link
-                      href={`/content-library/${item.id}`}
-                      className="text-ink transition-colors group-hover:text-primary"
-                    >
-                      {item.title}
-                    </Link>
-                  </h2>
-                  <Badge tone="brand">
-                    {item.type === "EBOOK" ? "E-book" : "Checklist"}
-                  </Badge>
-                </div>
-
-                <p className="mt-2 flex-1 text-sm text-ink-muted">
-                  {CATEGORY_LABELS[item.category] ?? item.category}
-                </p>
-
-                <div className="mt-5 border-t border-line pt-4">
-                  <span className="text-lg font-semibold text-ink">
-                    {formatPaise(item.priceInPaise)}
-                  </span>
-                </div>
-              </Card>
-            </li>
-          ))}
-        </ul>
+      renderCard={(item) => (
+        <CatalogueCard
+          href={`/content-library/${item.id}`}
+          kind={CONTENT_KIND[item.type]}
+          title={item.title}
+          meta={[CONTENT_CATEGORY_LABELS[item.category]]}
+          priceInPaise={item.priceInPaise}
+        />
       )}
-    </div>
+      emptyTitle="The library is being stocked"
+      emptyDescription="New titles appear here as they're published."
+    />
   );
 }

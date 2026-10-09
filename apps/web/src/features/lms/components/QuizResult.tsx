@@ -2,6 +2,9 @@
 
 import type { QuizAttemptResult } from "@pratikar/types";
 import { Badge, ButtonLink } from "@pratikar/ui";
+import { Check, Minus, X } from "lucide-react";
+
+import { Icon } from "@/shared/components/Icon";
 
 /**
  * The result screen, including which answer was right.
@@ -28,25 +31,28 @@ export function QuizResult({
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="overflow-hidden rounded-card border border-line bg-surface shadow-card">
+        {/* Light, like the rest of the site: a tint that says how it went,
+            and a ring whose colour agrees with the words under it — never
+            the colour alone. */}
         <div
-          className={`px-6 py-8 text-center ${passed ? "bg-hero-navy" : "bg-surface-inverse-deep"}`}
+          className={`px-6 py-10 text-center ${passed ? "bg-success-subtle" : "bg-surface-sunken"}`}
         >
           {/* Score ring: the number is the headline, so it gets the room. */}
           <div
             aria-hidden
-            className={`mx-auto grid h-28 w-28 place-items-center rounded-full border-4 ${
-              passed ? "border-brand" : "border-ink-inverse-muted/40"
+            className={`mx-auto grid h-28 w-28 place-items-center rounded-full border-4 bg-surface ${
+              passed ? "border-success" : "border-line-strong"
             }`}
           >
-            <span className="text-3xl font-bold text-ink-inverse">
+            <span className="text-3xl font-bold tabular-nums text-ink">
               {result.scorePercent}%
             </span>
           </div>
 
-          <p className="mt-5 text-lg font-semibold text-ink-inverse">
+          <p className="mt-5 text-lg font-semibold text-ink">
             {passed ? "Well done" : "Not quite yet"}
           </p>
-          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-inverse-muted">
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-ink-muted">
             {correctCount} of {result.questions.length} correct.{" "}
             {passed
               ? `That's above the ${result.passMark}% needed overall for your certificate.`
@@ -68,7 +74,7 @@ export function QuizResult({
       </div>
 
       <section>
-        <h2 className="text-lg">Review your answers</h2>
+        <h2 className="text-lg font-semibold">Review your answers</h2>
         <ol className="mt-4 space-y-4">
           {result.questions.map((question, index) => {
             const chosen = result.answers.find(
@@ -105,10 +111,32 @@ export function QuizResult({
                               : "border-line text-ink-muted"
                         }`}
                       >
-                        <span aria-hidden>
-                          {option.isCorrect ? "✓" : isChosen ? "✕" : "·"}
+                        {/*
+                          The marker used to be the only thing saying which
+                          option was right, and it was aria-hidden — so a
+                          screen reader reviewing the test heard "your answer"
+                          but never whether it was correct. Colour alone was
+                          carrying the result. The icon stays decorative; the
+                          words below say it.
+                        */}
+                        <span className="grid w-4 shrink-0 place-items-center">
+                          {option.isCorrect ? (
+                            <Icon icon={Check} />
+                          ) : isChosen ? (
+                            <Icon icon={X} />
+                          ) : (
+                            <Icon icon={Minus} className="opacity-40" />
+                          )}
                         </span>
-                        <span>{option.text}</span>
+                        <span>
+                          {option.isCorrect && (
+                            <span className="sr-only">Correct answer: </span>
+                          )}
+                          {isChosen && !option.isCorrect && (
+                            <span className="sr-only">Incorrect: </span>
+                          )}
+                          {option.text}
+                        </span>
                         {isChosen && (
                           <span className="ml-auto shrink-0 text-xs font-medium">
                             your answer

@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Field, Input } from "@pratikar/ui";
+import { Button, Field, IconButton, Input } from "@pratikar/ui";
 import Link from "next/link";
 
 import type { CourseModule } from "../api/coursesApi";
@@ -136,36 +136,31 @@ export function ModuleEditor({ modules, problems, onChange, courseId }: Props) {
                   </div>
 
                   <div className="flex shrink-0 flex-col gap-1">
-                    <button
-                      type="button"
+                    <IconButton
+                      label="Move up"
                       onClick={() =>
                         onChange(moveModule(modules, index, index - 1))
                       }
                       disabled={index === 0}
-                      className="rounded-control border border-line-strong bg-surface px-2 py-1 text-xs text-ink-muted hover:bg-surface-sunken disabled:opacity-40"
                     >
-                      <span className="sr-only">Move up</span>
-                      <span aria-hidden>↑</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↑
+                    </IconButton>
+                    <IconButton
+                      label="Move down"
                       onClick={() =>
                         onChange(moveModule(modules, index, index + 1))
                       }
                       disabled={index === modules.length - 1}
-                      className="rounded-control border border-line-strong bg-surface px-2 py-1 text-xs text-ink-muted hover:bg-surface-sunken disabled:opacity-40"
                     >
-                      <span className="sr-only">Move down</span>
-                      <span aria-hidden>↓</span>
-                    </button>
-                    <button
-                      type="button"
+                      ↓
+                    </IconButton>
+                    <IconButton
+                      label="Remove module {index + 1}"
+                      tone="danger"
                       onClick={() => onChange(removeModule(modules, index))}
-                      className="rounded-control border border-danger-border px-2 py-1 text-xs text-danger-text hover:bg-danger-subtle"
                     >
-                      <span className="sr-only">Remove module {index + 1}</span>
-                      <span aria-hidden>×</span>
-                    </button>
+                      ×
+                    </IconButton>
                   </div>
                 </div>
               </li>

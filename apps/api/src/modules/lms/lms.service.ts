@@ -4,15 +4,18 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from "@nestjs/common";
 
 import { PrismaService } from "../../prisma/prisma.service";
+import { KnowledgeBaseIndexer } from "../ai/knowledge-base/knowledge-base-indexer.service";
 import {
   AuditAction,
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { NotificationSender } from "../notifications/notification-sender.service";
 
 import type { CourseModuleDto } from "./dto/replace-modules.dto";
 import type { UpsertCourseDto } from "./dto/upsert-course.dto";
@@ -26,9 +29,19 @@ export class LmsService {
    */
   static readonly PASS_PERCENT = 80;
 
+  /** How far ahead of expiry the reminder goes out. */
+  static readonly EXPIRY_REMINDER_DAYS = 7;
+
+  /** A ceiling per daily run; anything over waits for tomorrow's. */
+  static readonly EXPIRY_REMINDERS_PER_RUN = 500;
+
+  private readonly logger = new Logger(LmsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly knowledgeBase: KnowledgeBaseIndexer,
+    private readonly notifications: NotificationSender,
   ) {}
 
   listPublished() {
@@ -83,7 +96,7 @@ export class LmsService {
     actorUserId: string,
     courseId?: string,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const course = await this.prisma.$transaction(async (tx) => {
       if (courseId) {
         const existing = await tx.course.findUnique({
           where: { id: courseId },
@@ -127,6 +140,13 @@ export class LmsService {
 
       return created;
     });
+
+    // After the commit, so the worker reads the row as saved.
+    await this.knowledgeBase.reindex({
+      sourceType: "course",
+      sourceId: course.id,
+    });
+    return course;
   }
 
   /**
@@ -144,7 +164,7 @@ export class LmsService {
       throw new BadRequestException("DUPLICATE_MODULE_ORDER");
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    const saved = await this.prisma.$transaction(async (tx) => {
       const course = await tx.course.findUnique({ where: { id: courseId } });
       if (!course) throw new NotFoundException("COURSE_NOT_FOUND");
 
@@ -168,6 +188,13 @@ export class LmsService {
         orderBy: { order: "asc" },
       });
     });
+
+    // Lesson titles are part of what the course is indexed as.
+    await this.knowledgeBase.reindex({
+      sourceType: "course",
+      sourceId: courseId,
+    });
+    return saved;
   }
 
   /** Called by PaymentsService once a course order is confirmed paid. */
@@ -394,7 +421,7 @@ export class LmsService {
     enrollmentId: string,
     scorePercent: number | null,
   ) {
-    return this.prisma.$transaction(async (tx) => {
+    const certificate = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.enrollment.updateMany({
         where: { id: enrollmentId, completedAt: null },
         data: { completedAt: new Date() },
@@ -412,6 +439,44 @@ export class LmsService {
         },
       });
     });
+
+    // After the transaction, and only for the call that issued it: the
+    // claim above means a concurrent completion gets null and sends nothing.
+    if (certificate) await this.notifyCertificate(enrollmentId, certificate);
+    return certificate;
+  }
+
+  /** Emails the learner their certificate. Never throws — it's already issued. */
+  private async notifyCertificate(
+    enrollmentId: string,
+    certificate: { verificationCode: string },
+  ) {
+    try {
+      const enrollment = await this.prisma.enrollment.findUnique({
+        where: { id: enrollmentId },
+        select: {
+          user: { select: { name: true, email: true } },
+          course: { select: { title: true } },
+        },
+      });
+      if (!enrollment?.user.email) return;
+      await this.notifications.send({
+        type: "certificate",
+        to: enrollment.user.email,
+        payload: {
+          customerName: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          enrollmentId,
+          verificationCode: certificate.verificationCode,
+        },
+      });
+    } catch (error) {
+      this.logger.error(
+        `Certificate for ${enrollmentId} issued, but its email was not queued: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
   }
 
   private async progressSummary(enrollmentId: string, totalModules: number) {
@@ -429,6 +494,64 @@ export class LmsService {
       completedAt: enrollment?.completedAt ?? null,
       certificate: enrollment?.certificate ?? null,
     };
+  }
+
+  /**
+   * Emails each learner whose access ends within the next week and who
+   * hasn't finished, once (docs/srs.md 3.5, 3.8). Run daily.
+   *
+   * Each enrolment is claimed by setting expiryReminderSentAt before its
+   * email is queued, conditionally — so two runs at once, or a retried one,
+   * can't send the same reminder twice. A reminder that then fails to queue
+   * is lost rather than repeated; NotificationSender logs it.
+   */
+  async sendExpiryReminders(now = new Date()) {
+    const horizon = new Date(
+      now.getTime() + LmsService.EXPIRY_REMINDER_DAYS * 24 * 3600 * 1000,
+    );
+    const due = await this.prisma.enrollment.findMany({
+      where: {
+        completedAt: null,
+        expiryReminderSentAt: null,
+        expiresAt: { gt: now, lte: horizon },
+      },
+      select: {
+        id: true,
+        expiresAt: true,
+        user: { select: { name: true, email: true } },
+        course: {
+          select: { title: true, _count: { select: { modules: true } } },
+        },
+        _count: { select: { progress: true } },
+      },
+      orderBy: { expiresAt: "asc" },
+      take: LmsService.EXPIRY_REMINDERS_PER_RUN,
+    });
+
+    let sent = 0;
+    for (const enrollment of due) {
+      const claimed = await this.prisma.enrollment.updateMany({
+        where: { id: enrollment.id, expiryReminderSentAt: null },
+        data: { expiryReminderSentAt: now },
+      });
+      if (claimed.count === 0 || !enrollment.user.email) continue;
+
+      const total = enrollment.course._count.modules;
+      await this.notifications.send({
+        type: "course-expiring",
+        to: enrollment.user.email,
+        payload: {
+          customerName: enrollment.user.name,
+          courseTitle: enrollment.course.title,
+          enrollmentId: enrollment.id,
+          expiresAt: enrollment.expiresAt,
+          progress:
+            total > 0 ? { done: enrollment._count.progress, total } : null,
+        },
+      });
+      sent += 1;
+    }
+    return { due: due.length, sent };
   }
 
   /**
@@ -550,6 +673,61 @@ export class LmsService {
   }
 
   /** Public endpoint (docs/srs.md Section 7, item 5) — no auth required. */
+  /**
+   * Enrolment numbers for every course, for the admin's course list. Counted
+   * in the database rather than by loading enrolments: a popular course has
+   * thousands. Revenue is what was paid (with GST) and not refunded.
+   */
+  async courseStats(now = new Date()) {
+    const [total, active, completed, certificates, revenue] = await Promise.all(
+      [
+        this.prisma.enrollment.groupBy({ by: ["courseId"], _count: true }),
+        this.prisma.enrollment.groupBy({
+          by: ["courseId"],
+          where: { expiresAt: { gt: now } },
+          _count: true,
+        }),
+        this.prisma.enrollment.groupBy({
+          by: ["courseId"],
+          where: { completedAt: { not: null } },
+          _count: true,
+        }),
+        this.prisma.certificate.findMany({
+          select: { enrollment: { select: { courseId: true } } },
+        }),
+        this.prisma.order.groupBy({
+          by: ["courseId"],
+          where: {
+            itemType: "COURSE",
+            status: "PAID",
+            courseId: { not: null },
+          },
+          _sum: { amount: true, gstAmount: true },
+        }),
+      ],
+    );
+    const count = (rows: { courseId: string; _count: number }[], id: string) =>
+      rows.find((row) => row.courseId === id)?._count ?? 0;
+
+    const ids = new Set([
+      ...total.map((row) => row.courseId),
+      ...revenue.flatMap((row) => (row.courseId ? [row.courseId] : [])),
+    ]);
+    return [...ids].map((courseId) => {
+      const paid = revenue.find((row) => row.courseId === courseId)?._sum;
+      return {
+        courseId,
+        enrollments: count(total, courseId),
+        active: count(active, courseId),
+        completed: count(completed, courseId),
+        certificates: certificates.filter(
+          (c) => c.enrollment.courseId === courseId,
+        ).length,
+        revenuePaise: (paid?.amount ?? 0) + (paid?.gstAmount ?? 0),
+      };
+    });
+  }
+
   async verifyCertificate(verificationCode: string) {
     const certificate = await this.prisma.certificate.findUnique({
       where: { verificationCode },

@@ -2,12 +2,15 @@
 // Mirrors docs/trd.md Section 2. Keep the two in sync when either changes.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  // pgvector, for KnowledgeBaseDocument.embedding (docs/trd.md 2.5).
+  extensions = [vector]
 }
 
 // ---------------------------------------------------------------------------
@@ -23,48 +26,73 @@ enum Role {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String?
-  email     String?  @unique
-  phone     String?  @unique
-  role      Role     @default(CUSTOMER)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id    String  @id @default(uuid())
+  name  String?
+  email String? @unique
+  phone String? @unique
+  role  Role    @default(CUSTOMER)
+
+  /// Billing address, for the invoice. The state decides the GST place of
+  /// supply (IGST Act s12(2)(b)): a customer in another state is billed
+  /// IGST rather than CGST + SGST.
+  addressLine String?
+  city        String?
+  /// Two-digit GST state code, e.g. "19" for West Bengal.
+  stateCode   String?
+  pincode     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  /// Set when the customer erased their account (DPDP Act s12). The row
+  /// stays — orders and invoices must, by tax law, and they point at it —
+  /// but every personal field on it has been cleared.
+  deletedAt   DateTime?
 
   sessions           Session[]
   generatedDocuments GeneratedDocument[]
-  reviewsRequested   DocumentReview[]     @relation("ReviewRequestedBy")
-  reviewsAssigned    DocumentReview[]     @relation("ReviewAssignedTo")
+  reviewsRequested   DocumentReview[]      @relation("ReviewRequestedBy")
+  reviewsAssigned    DocumentReview[]      @relation("ReviewAssignedTo")
   orders             Order[]
   enrollments        Enrollment[]
   chatbotSessions    ChatbotConversation[]
   auditLogEntries    AuditLog[]
+  notifications      Notification[]
+  pushSubscriptions  PushSubscription[]
+  assistantTurns     AssistantTurn[]
 
   @@index([role])
 }
 
 model OtpRequest {
-  id          String    @id @default(uuid())
-  identifier  String
-  channel     String // "email" | "sms"
-  codeHash    String
-  attempts    Int       @default(0)
-  consumedAt  DateTime?
-  expiresAt   DateTime
-  createdAt   DateTime  @default(now())
+  id         String    @id @default(uuid())
+  identifier String
+  channel    String // "email" | "sms"
+  codeHash   String
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+  /// Who asked. Nullable because rows written before this existed have none,
+  /// and because a request can arrive without a usable address. Used to stop
+  /// one host bombing many identifiers — the per-identifier limit alone
+  /// cannot see that pattern.
+  ip         String?
 
   @@index([identifier, channel, consumedAt])
+  /// Serves the rate-limit windows: "requests for this identifier since X"
+  /// and "requests from this IP since X".
+  @@index([identifier, createdAt])
+  @@index([ip, createdAt])
 }
 
 model Session {
-  id                String    @id @default(uuid())
-  userId            String
-  refreshTokenHash  String    @unique
-  userAgent         String?
-  ip                String?
-  revokedAt         DateTime?
-  expiresAt         DateTime
-  createdAt         DateTime  @default(now())
+  id               String    @id @default(uuid())
+  userId           String
+  refreshTokenHash String    @unique
+  userAgent        String?
+  ip               String?
+  revokedAt        DateTime?
+  expiresAt        DateTime
+  createdAt        DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -93,6 +121,12 @@ model Template {
   // Template CRUD is what lets a Content Manager upload this; a template can
   // exist in DRAFT with a field schema before a file is attached.
   templateFileKey    String?
+  // Storage key of the *untagged* form this template was built from, when it
+  // was built by tagging one. Distinct from templateFileKey, which points at
+  // the tagged copy: the original is still sold as a plain download, so both
+  // files exist and neither replaces the other. Null for templates uploaded
+  // directly, which is every template created before tagging existed.
+  sourceKey          String?
   status             TemplateStatus @default(DRAFT)
   createdBy          String
   createdAt          DateTime       @default(now())
@@ -101,27 +135,63 @@ model Template {
   generatedDocuments GeneratedDocument[]
 
   @@index([status, category])
+  // Answers "has this form already been tagged?" for the storage picker,
+  // which asks it once per file in the bucket.
+  @@index([sourceKey])
 }
 
 enum GeneratedDocumentStatus {
   GENERATED
   PAID
   DOWNLOADED
+  /// Payment reversed. Distinct from GENERATED: the document was paid for and
+  /// then refunded, which is not the same as never having been bought, and
+  /// the download check must refuse it either way.
+  REFUNDED
+}
+
+/// Where a generated document came from.
+enum DocumentKind {
+  /// Filled in from a Template's fields — the original product.
+  TEMPLATE
+  /// Drafted by the AI from the customer's own description. There is no
+  /// template behind it, so nothing a lawyer has vetted: it can only be
+  /// downloaded after an advocate has reviewed it (see DocumentsService).
+  CUSTOM
 }
 
 model GeneratedDocument {
-  id           String                   @id @default(uuid())
-  userId       String
-  templateId   String
-  filledData   Json
-  fileUrl      String // R2 key — clean DOCX, gated behind payment (one-time download)
-  previewFileUrl String? // R2 key — watermarked PDF, free to view before payment (docs/srs.md 3.2 step 3)
-  status       GeneratedDocumentStatus  @default(GENERATED)
-  downloadedAt DateTime?
-  createdAt    DateTime                 @default(now())
+  id               String                  @id @default(uuid())
+  userId           String
+  kind             DocumentKind            @default(TEMPLATE)
+  /// Null for a CUSTOM draft, which has no template.
+  templateId       String?
+  filledData       Json
+  fileUrl          String // R2 key — clean DOCX, gated behind payment (one-time download)
+  pdfFileUrl       String? // R2 key — clean PDF, gated behind payment alongside the DOCX
+  /// Watermarked page images, free to view before payment (docs/srs.md 3.2
+  /// step 3), stored at documents/<id>/preview-<n>.png. 0 until generated.
+  previewPageCount Int                     @default(0)
+  status           GeneratedDocumentStatus @default(GENERATED)
+  downloadedAt     DateTime?
+  createdAt        DateTime                @default(now())
+
+  // CUSTOM drafts only. A template document takes its title from the
+  // template and has none of these.
+  /// The title the draft was given, e.g. "Leave and Licence Agreement".
+  title            String?
+  /// What the customer asked for: { documentType, details, state }.
+  brief            Json?
+  /// The current draft, as structured sections (see ai/drafting). Kept so a
+  /// revision builds on it rather than starting again.
+  draft            Json?
+  /// Revisions asked for so far. Capped, because each one is a paid model call.
+  revisionCount    Int                     @default(0)
+  /// Why drafting failed, in words for the customer. Cleared on a new attempt.
+  draftError       String?
 
   user     User             @relation(fields: [userId], references: [id])
-  template Template         @relation(fields: [templateId], references: [id])
+  template Template?        @relation(fields: [templateId], references: [id])
   reviews  DocumentReview[]
   orders   Order[]
 
@@ -132,19 +202,26 @@ enum DocumentReviewStatus {
   QUEUED
   IN_REVIEW
   RETURNED
+  /// The order behind this review was refunded. Kept rather than deleted so
+  /// a reviewer who already spent time on it still has the record.
+  CANCELLED
 }
 
 model DocumentReview {
-  id                  String                @id @default(uuid())
+  id                  String               @id @default(uuid())
   generatedDocumentId String
   requestedByUserId   String
   assignedToUserId    String?
-  status              DocumentReviewStatus  @default(QUEUED)
+  status              DocumentReviewStatus @default(QUEUED)
   reviewedFileUrl     String? // R2 key
+  /// PDF of the reviewed file, when there is one — the drafted PDF when the
+  /// advocate approved the draft unchanged.
+  reviewedPdfUrl      String?
   notes               String?
-  orderId             String                @unique
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  returnedAt          DateTime?
+  orderId             String               @unique
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
 
   generatedDocument GeneratedDocument @relation(fields: [generatedDocumentId], references: [id])
   requestedBy       User              @relation("ReviewRequestedBy", fields: [requestedByUserId], references: [id])
@@ -171,6 +248,13 @@ enum ContentCategory {
 enum ContentType {
   EBOOK
   CHECKLIST
+  /// A fill-in-the-blank document — affidavits, agreements, notices, court
+  /// forms. Distinct from a Template: a Template is filled in by the
+  /// generator from a field schema, whereas these are sold as-is and the
+  /// customer completes the blanks themselves. The catalogue in R2 is
+  /// overwhelmingly this kind, and calling them e-books would be a lie the
+  /// customer discovers after paying.
+  FORM
 }
 
 model ContentLibraryItem {
@@ -183,19 +267,26 @@ model ContentLibraryItem {
   status       TemplateStatus  @default(DRAFT)
   createdAt    DateTime        @default(now())
 
+  /// The free excerpt (docs/srs.md 3.4): its first pages as watermarked
+  /// images at library-previews/<id>/page-<n>.png. 0 until rendered.
+  previewPageCount Int     @default(0)
+  /// The fileUrl the excerpt was rendered from — a replaced file differs,
+  /// and gets a fresh excerpt rather than one of the old file.
+  previewOfFile    String?
+
   orders Order[]
 
   @@index([status, category])
 }
 
 model Course {
-  id                 String   @id @default(uuid())
+  id                 String         @id @default(uuid())
   title              String
   description        String?
   priceInPaise       Int
-  accessDurationDays Int      @default(180)
+  accessDurationDays Int            @default(180)
   status             TemplateStatus @default(DRAFT)
-  createdAt          DateTime @default(now())
+  createdAt          DateTime       @default(now())
 
   modules     CourseModule[]
   enrollments Enrollment[]
@@ -203,11 +294,11 @@ model Course {
 }
 
 model CourseModule {
-  id            String @id @default(uuid())
-  courseId      String
-  title         String
-  order         Int
-  videoAssetId  String // Cloudflare Stream UID
+  id           String @id @default(uuid())
+  courseId     String
+  title        String
+  order        Int
+  videoAssetId String // Cloudflare Stream UID
 
   course   Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
   progress ModuleProgress[]
@@ -237,13 +328,16 @@ model ModuleProgress {
 }
 
 model Enrollment {
-  id          String    @id @default(uuid())
-  userId      String
-  courseId    String
-  orderId     String    @unique
-  enrolledAt  DateTime  @default(now())
-  expiresAt   DateTime
-  completedAt DateTime?
+  id                   String    @id @default(uuid())
+  userId               String
+  courseId             String
+  orderId              String    @unique
+  enrolledAt           DateTime  @default(now())
+  expiresAt            DateTime
+  completedAt          DateTime?
+  /// When the "your access ends soon" email went out — set once, so the
+  /// daily reminder run never sends it twice.
+  expiryReminderSentAt DateTime?
 
   user         User             @relation(fields: [userId], references: [id])
   course       Course           @relation(fields: [courseId], references: [id])
@@ -280,9 +374,9 @@ model Certificate {
 // ---------------------------------------------------------------------------
 
 model Quiz {
-  id       String @id @default(uuid())
-  moduleId String @unique
-  title    String?
+  id               String   @id @default(uuid())
+  moduleId         String   @unique
+  title            String?
   /// The timer, in seconds. Enforced server-side: QuizAttempt.expiresAt is
   /// computed from this at start, and answers saved after it are rejected.
   timeLimitSeconds Int      @default(600)
@@ -347,9 +441,9 @@ model QuizAttempt {
 }
 
 model QuizAnswer {
-  id         String  @id @default(uuid())
-  attemptId  String
-  questionId String
+  id               String  @id @default(uuid())
+  attemptId        String
+  questionId       String
   /// Null means the learner saw the question and left it blank, which scores
   /// the same as wrong but is worth distinguishing in a review screen.
   selectedOptionId String?
@@ -392,9 +486,10 @@ model Order {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
-  user     User      @relation(fields: [userId], references: [id])
-  invoice  Invoice?
-  review   DocumentReview?
+  user       User            @relation(fields: [userId], references: [id])
+  invoice    Invoice?
+  creditNote CreditNote?
+  review     DocumentReview?
 
   // Polymorphic-by-itemType references — exactly one of these is set,
   // matching `itemType`. Enforced at the application layer, not the DB,
@@ -404,22 +499,103 @@ model Order {
   contentLibraryItemId String?
   contentLibraryItem   ContentLibraryItem? @relation(fields: [contentLibraryItemId], references: [id])
   courseId             String?
-  course                Course?            @relation(fields: [courseId], references: [id])
-  enrollment            Enrollment?
+  course               Course?             @relation(fields: [courseId], references: [id])
+  enrollment           Enrollment?
 
   @@index([userId, status])
   @@index([status, createdAt]) // for the payment-reconciliation job's pending-order sweep
 }
 
 model Invoice {
-  id            String   @id @default(uuid())
-  orderId       String   @unique
-  invoiceNumber String   @unique // sequential, GST-compliant format
+  id            String  @id @default(uuid())
+  orderId       String  @unique
+  invoiceNumber String  @unique // sequential, GST-compliant format
+  /// The financial year the serial belongs to, e.g. "2026-27". Rule 46(b)
+  /// requires the series to be consecutive and unique *within* a financial
+  /// year, so the counter resets every April and the year is part of the
+  /// identity of the number.
+  financialYear String
+  /// The buyer's GSTIN, when they have one and want input credit. Null for
+  /// B2C, which is every sale today — nothing collects it yet.
   gstin         String?
-  pdfUrl        String
-  createdAt     DateTime @default(now())
 
-  order Order @relation(fields: [orderId], references: [id])
+  // Money, in paise, snapshotted at issue time rather than derived from the
+  // Order on read. An invoice is a statement about what was charged on a
+  // date; recomputing it later would silently rewrite history the day the
+  // rate or the place-of-supply rules change.
+  taxableAmount  Int
+  cgstAmount     Int
+  sgstAmount     Int
+  igstAmount     Int
+  totalAmount    Int
+  /// The rate that produced the amounts above, e.g. 18.
+  taxRatePercent Int
+  /// Two-letter state code the supply was made to. This is what decides
+  /// CGST+SGST (intra-state) versus IGST (inter-state), so it is recorded
+  /// rather than recalculated.
+  placeOfSupply  String
+
+  /// Storage key, never a URL — same rule as GeneratedDocument.fileUrl: a
+  /// signed URL expires, so one persisted here would be dead on arrival.
+  /// Null until the PDF has been rendered. The row is the invoice; the PDF is
+  /// a rendering of it, and the row has to exist even if rendering fails.
+  pdfKey    String?
+  createdAt DateTime @default(now())
+
+  order      Order       @relation(fields: [orderId], references: [id])
+  creditNote CreditNote?
+}
+
+/// The document that reverses an invoice (CGST s34).
+///
+/// A refund does not delete or amend the invoice — the supply happened and the
+/// invoice is a true record of what was charged on that date. Cancelling it is
+/// a separate numbered document, in its own series, that the buyer and the
+/// supplier both report.
+model CreditNote {
+  id            String @id @default(uuid())
+  orderId       String @unique
+  invoiceId     String @unique
+  noteNumber    String @unique
+  financialYear String
+
+  // Mirrors the invoice being reversed, snapshotted for the same reason: this
+  // states what was actually credited, not what today's rate would compute.
+  taxableAmount  Int
+  cgstAmount     Int
+  sgstAmount     Int
+  igstAmount     Int
+  totalAmount    Int
+  taxRatePercent Int
+  placeOfSupply  String
+
+  /// Why the supply was reversed. Printed on the note.
+  reason    String?
+  /// Storage key, never a URL — same rule as Invoice.pdfKey.
+  pdfKey    String?
+  createdAt DateTime @default(now())
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+}
+
+/// One row per (series, financial year) holding the last serial issued.
+///
+/// Exists because GST wants *consecutive* series: allocating numbers with
+/// `count() + 1`, or reading-then-writing this row, both hand the same number
+/// to two concurrent webhooks. allocate-number.ts increments it in a single
+/// atomic statement instead — see the comment there.
+///
+/// Keyed by series as well as year because a credit note may not continue the
+/// invoice numbering (Rule 53) — it runs its own sequence, and the two must
+/// not be able to collide on a shared counter.
+model DocumentCounter {
+  series        String
+  financialYear String
+  lastSequence  Int      @default(0)
+  updatedAt     DateTime @updatedAt
+
+  @@id([series, financialYear])
 }
 
 // ---------------------------------------------------------------------------
@@ -437,17 +613,127 @@ model ChatbotConversation {
   @@index([userId])
 }
 
-model KnowledgeBaseDocument {
-  id         String   @id @default(uuid())
-  sourceType String // "faq" | "template" | "course" | "policy"
-  sourceId   String
-  content    String
-  // embedding stored via pgvector — Prisma has no native vector type yet;
-  // managed through a raw migration adding a `vector` column, referenced
-  // via $queryRaw for similarity search rather than the Prisma Client API.
-  updatedAt  DateTime @updatedAt
+/// One question to the site assistant and its answer. Kept to learn what
+/// customers ask — above all what they ask for that the catalogue doesn't
+/// have — and deleted after 90 days (AssistantLogRetentionProcessor).
+model AssistantTurn {
+  id             String   @id @default(uuid())
+  /// Chosen by the browser for one chat, so a conversation reads as one.
+  conversationId String
+  /// Null for a visitor who isn't signed in.
+  userId         String?
+  question       String
+  answer         String
+  /// Catalogue items found for the question, and how many the answer used.
+  hitCount       Int
+  citedCount     Int
+  /// Titles of the items the answer recommended.
+  cited          Json
+  /// The answer offered custom drafting — nothing in the catalogue fitted.
+  suggestedDraft Boolean  @default(false)
+  refused        Boolean  @default(false)
+  model          String?
+  createdAt      DateTime @default(now())
 
-  @@index([sourceType, sourceId])
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([conversationId])
+  @@index([userId])
+}
+
+model KnowledgeBaseDocument {
+  id             String                      @id @default(uuid())
+  // "template" | "course" | "content", and later "faq" | "policy". The row a
+  // hit came from is looked up again at answer time — prices and status are
+  // read live from there, never from this copy.
+  sourceType     String
+  sourceId       String
+  // The text that was embedded, kept so a retrieval can be read back and
+  // argued about without re-deriving it.
+  content        String
+  // sha256 of model + content. The worker compares it before calling the
+  // embedding API, so re-saving an unchanged template costs nothing.
+  contentHash    String
+  embeddingModel String
+  // Unsupported because Prisma has no vector type: written and searched with
+  // raw SQL only. The dimension is pinned in KNOWLEDGE_BASE_DIMENSIONS.
+  embedding      Unsupported("vector(1024)")
+  updatedAt      DateTime                    @updatedAt
+
+  @@unique([sourceType, sourceId])
+}
+
+// ---------------------------------------------------------------------------
+// Notifications
+// ---------------------------------------------------------------------------
+
+/// One entry in a customer's in-app inbox — the bell in the site header.
+/// Every other channel (push, email, SMS) is a way of telling them one of
+/// these exists, so this row is written first and always.
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  /// Where clicking it goes, a path on the website, e.g. /dashboard/documents/<id>.
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+/// A browser that agreed to receive push notifications (the Web Push API).
+/// One per browser per device; a customer may have several.
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  /// The push service URL. Unique: the same browser subscribing again is
+  /// the same subscription, possibly now signed in as someone else.
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Site content and settings
+// ---------------------------------------------------------------------------
+
+/// One question on the public FAQ page. Published entries are also in the
+/// assistant's knowledge base, so it answers "how do downloads work?" from
+/// the same words the page shows.
+model Faq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  /// A heading on the FAQ page, e.g. "Documents", "Payments".
+  category  String
+  /// Position within its category, lowest first.
+  order     Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, category, order])
+}
+
+/// Settings staff change in the admin panel rather than by redeploying:
+/// the certificate's wording, the custom-draft review price. One row per
+/// setting; the value's shape is defined in SettingsService.
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------
@@ -455,13 +741,13 @@ model KnowledgeBaseDocument {
 // ---------------------------------------------------------------------------
 
 model AuditLog {
-  id         String   @id @default(uuid())
+  id          String   @id @default(uuid())
   actorUserId String
-  action     String
-  targetType String
-  targetId   String
-  metadata   Json?
-  createdAt  DateTime @default(now())
+  action      String
+  targetType  String
+  targetId    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
 
   actor User @relation(fields: [actorUserId], references: [id])
 

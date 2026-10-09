@@ -13,8 +13,13 @@ import { lmsApi } from "../api/lmsApi";
  * video access (docs/srs.md Section 7, item 2). "Enrolled" and "can watch" are
  * therefore separate answers.
  */
-export function useCourse(courseId: string, hasSession: boolean) {
-  const [course, setCourse] = useState<Course | null>(null);
+export function useCourse(
+  courseId: string,
+  hasSession: boolean,
+  /** The course as the page fetched it on the server, when it could. */
+  initialCourse?: Course,
+) {
+  const [course, setCourse] = useState<Course | null>(initialCourse ?? null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -28,7 +33,12 @@ export function useCourse(courseId: string, hasSession: boolean) {
   useEffect(() => {
     let cancelled = false;
 
-    Promise.all([lmsApi.get(courseId), loadEnrollment()])
+    // With the course already rendered on the server, only the enrolment —
+    // which is the visitor's own and can't be — is still to fetch.
+    Promise.all([
+      initialCourse ? Promise.resolve(initialCourse) : lmsApi.get(courseId),
+      loadEnrollment(),
+    ])
       .then(([fetchedCourse, fetchedEnrollment]) => {
         if (cancelled) return;
         setCourse(fetchedCourse);
@@ -44,6 +54,8 @@ export function useCourse(courseId: string, hasSession: boolean) {
     return () => {
       cancelled = true;
     };
+    // initialCourse is fixed for the page's life; courseId stands for it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId, loadEnrollment]);
 
   const refreshEnrollment = useCallback(() => {

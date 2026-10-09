@@ -42,17 +42,118 @@ const BUTTON_SIZES: Record<ButtonSize, string> = {
 const buttonClass = (variant: ButtonVariant, size: ButtonSize, extra = "") =>
   `${BUTTON_BASE} ${BUTTON_VARIANTS[variant]} ${BUTTON_SIZES[size]} ${extra}`.trim();
 
+/**
+ * Spinner shown while a button is working. `currentColor` so it inherits the
+ * variant's foreground and needs no per-variant styling.
+ */
+function Spinner() {
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 16 16"
+      className="h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none"
+    >
+      <circle
+        cx="8"
+        cy="8"
+        r="6.5"
+        fill="none"
+        stroke="currentColor"
+        strokeOpacity="0.25"
+        strokeWidth="2.5"
+      />
+      <path
+        d="M8 1.5A6.5 6.5 0 0 1 14.5 8"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+/**
+ * `loading` replaces the hand-written `{busy ? "Saving…" : "Save"}` that had
+ * grown into eleven copies. Three things it gets right that the string swap
+ * did not:
+ *
+ *   the button keeps its own label, so it doesn't change width mid-click and
+ *   shift whatever sits beside it;
+ *   it is disabled while loading, so a double click can't fire twice;
+ *   `aria-busy` plus a live message says what is happening, where a changed
+ *   label only says it to people who can see it.
+ *
+ * Pass `loadingLabel` when the work has a name worth announcing ("Saving…").
+ */
 export function Button({
   variant = "primary",
   size = "md",
   className = "",
+  loading = false,
+  loadingLabel,
+  disabled,
+  children,
   ...props
 }: ComponentPropsWithoutRef<"button"> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  loading?: boolean;
+  loadingLabel?: string;
 }) {
   return (
-    <button className={buttonClass(variant, size, className)} {...props} />
+    <button
+      className={buttonClass(variant, size, className)}
+      aria-busy={loading || undefined}
+      disabled={disabled ?? loading}
+      {...props}
+    >
+      {loading && <Spinner />}
+      {children}
+      {loading && loadingLabel && (
+        <span role="status" className="sr-only">
+          {loadingLabel}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/* ------------------------------------------------------------- icon button */
+
+/**
+ * The small square control for reorder arrows and row removal.
+ *
+ * Promoted from a copy-pasted `ICON_BUTTON` class string that had drifted
+ * between the quiz editor and the field-schema editor. `label` is required and
+ * becomes the accessible name — these buttons render a bare glyph, so without
+ * it a screen reader announces "button" and nothing else.
+ */
+export function IconButton({
+  label,
+  tone = "neutral",
+  className = "",
+  children,
+  ...props
+}: ComponentPropsWithoutRef<"button"> & {
+  label: string;
+  tone?: "neutral" | "danger";
+}) {
+  const tones = {
+    neutral:
+      "border-line-strong bg-surface text-ink-muted hover:bg-surface-sunken",
+    danger:
+      "border-danger-border bg-surface text-danger-text hover:bg-danger-subtle",
+  };
+  return (
+    <button
+      type="button"
+      className={`inline-flex h-7 w-7 items-center justify-center rounded-control border text-xs transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${tones[tone]} ${className}`}
+      {...props}
+    >
+      <span className="sr-only">{label}</span>
+      <span aria-hidden>{children}</span>
+    </button>
   );
 }
 

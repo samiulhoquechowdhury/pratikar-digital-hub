@@ -1,21 +1,42 @@
 "use client";
 
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
-import { PRIMARY_NAV } from "../lib/navigation";
+import { NotificationBell } from "@/features/notifications";
+
+import { COURSES_LIVE } from "../lib/features";
 import { useAuth } from "../providers/AuthProvider";
 
 import { AccountMenu } from "./AccountMenu";
 import { AiButton } from "./AiButton";
-import { ExploreMenu } from "./ExploreMenu";
+import { ExploreMenu, OFFERINGS, TOPICS } from "./ExploreMenu";
+import { Icon } from "./Icon";
+import { SiteLogo } from "./SiteLogo";
 import { SiteSearch } from "./SiteSearch";
 
+/** The category bar under the header — the catalogue's sections, Udemy-style. */
+const CATEGORY_BAR = [
+  { href: "/documents", label: "Document generator" },
+  { href: "/documents/custom", label: "AI drafting" },
+  { href: "/content-library?shelf=forms", label: "Legal forms" },
+  { href: "/content-library?shelf=checklists", label: "Checklists" },
+  { href: "/content-library?shelf=ebooks", label: "E-books" },
+  { href: "/courses", label: COURSES_LIVE ? "Courses" : "Courses (soon)" },
+  { href: "/assistant", label: "AI assistant" },
+  { href: "/verify", label: "Verify a certificate" },
+];
+
 /**
- * Primary navigation, laid out the way the big learning platforms do it:
- * brand, one catalogue-wide Explore menu, a search field that takes most of
- * the width, then the account controls on the right.
+ * The site header, laid out the way Coursera and Udemy lay theirs out: the
+ * brand, an Explore menu holding the whole catalogue, a wide search — the
+ * main way people arrive at a legal form — and the account. A slim bar
+ * beneath lists the catalogue's sections on wide screens.
+ *
+ * Gold is spent on one thing only, "Sign up", so the action that matters
+ * most is the one thing in the header with colour.
  *
  * A client component because it reflects sign-in state; the rest of the shell
  * stays server-rendered.
@@ -28,64 +49,20 @@ export function SiteHeader() {
   // Without this the drawer stays open behind the page you just navigated to.
   useEffect(() => setMenuOpen(false), [pathname]);
 
-  // Marks the section, not just the exact page, so a detail route keeps its
-  // parent tab highlighted.
-  const isActive = (href: string) =>
-    pathname === href || pathname.startsWith(`${href}/`);
-
   return (
-    <header className="sticky top-0 z-40 border-b border-line-inverse bg-surface-inverse">
-      <div className="mx-auto flex h-16 max-w-shell items-center gap-2 px-4 sm:gap-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="flex shrink-0 items-center gap-2.5 rounded-control text-ink-inverse"
-        >
-          {/* Placeholder mark until the brand assets arrive. */}
-          <span
-            aria-hidden
-            className="grid h-9 w-9 place-items-center rounded-control bg-brand text-base font-bold text-on-brand"
-          >
-            P
-          </span>
-          <span className="hidden flex-col leading-none sm:flex">
-            <span className="text-base font-bold tracking-wide">PRATIKAR</span>
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-brand">
-              Digital Hub
-            </span>
-          </span>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-md supports-[backdrop-filter]:bg-surface/85">
+      <div className="mx-auto flex h-16 max-w-shell items-center gap-3 px-4 sm:px-6 lg:gap-5 lg:px-8">
+        <SiteLogo />
 
         <div className="hidden lg:block">
           <ExploreMenu />
         </div>
 
-        {/* Search takes the slack in the row rather than a fixed width, which
-            is what keeps the bar from collapsing awkwardly between breakpoints. */}
         <Suspense fallback={<div className="hidden flex-1 md:block" />}>
-          <SiteSearch className="hidden max-w-xl flex-1 md:block" />
+          <SiteSearch className="hidden flex-1 md:block" />
         </Suspense>
 
-        <nav aria-label="Main" className="hidden xl:block">
-          <ul className="flex items-center gap-0.5">
-            {PRIMARY_NAV.slice(0, 3).map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={isActive(item.href) ? "page" : undefined}
-                  className={`rounded-control px-2.5 py-2 text-sm font-medium transition-colors ${
-                    isActive(item.href)
-                      ? "bg-surface-inverse-raised text-brand"
-                      : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-2 md:ml-0">
           <AiButton className="hidden sm:inline-flex" />
 
           {isRestoring ? (
@@ -95,23 +72,32 @@ export function SiteHeader() {
             // then swapping it out under their cursor.
             <div
               aria-hidden
-              className="h-9 w-24 rounded-control bg-surface-inverse-raised"
+              className="h-9 w-24 rounded-control bg-surface-sunken"
             />
           ) : user ? (
-            <AccountMenu user={user} onLogout={logout} />
+            <>
+              <Link
+                href="/dashboard"
+                className="hidden whitespace-nowrap rounded-control px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:inline-block"
+              >
+                My account
+              </Link>
+              <NotificationBell />
+              <AccountMenu user={user} onLogout={() => void logout()} />
+            </>
           ) : (
             <>
-              {/* Two buttons, not one. "Sign in" alone reads as a members-only
+              {/* Two buttons, not one. "Log in" alone reads as a members-only
                   site; the pair is what signals you can join. */}
               <Link
                 href="/login"
-                className="hidden rounded-control border border-line-inverse px-4 py-2 text-sm font-semibold text-ink-inverse transition-colors hover:bg-surface-inverse-raised sm:inline-block"
+                className="hidden whitespace-nowrap rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:inline-block"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
+                className="whitespace-nowrap rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
               >
                 Sign up
               </Link>
@@ -123,36 +109,30 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="rounded-control p-2 text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse lg:hidden"
+            className="-mr-2 grid h-11 w-11 place-items-center rounded-control text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink lg:hidden"
           >
-            <span className="sr-only">
-              {menuOpen ? "Close menu" : "Open menu"}
-            </span>
-            <svg
-              aria-hidden
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              className="h-5 w-5"
-            >
-              {menuOpen ? (
-                <path d="M6 6l12 12M18 6L6 18" />
-              ) : (
-                <path d="M4 7h16M4 12h16M4 17h16" />
-              )}
-            </svg>
+            <Icon
+              icon={menuOpen ? X : Menu}
+              size="md"
+              label={menuOpen ? "Close menu" : "Open menu"}
+            />
           </button>
         </div>
       </div>
 
+      {/* The bar reads the shelf from the query string, which Next only
+          allows inside a Suspense boundary; the fallback is the same bar
+          with nothing marked, so the header never shifts. */}
+      <Suspense fallback={<CategoryBar shelf={null} pathname={pathname} />}>
+        <CategoryBarWithShelf pathname={pathname} />
+      </Suspense>
+
       {menuOpen && (
         <div
           id="mobile-nav"
-          className="border-t border-line-inverse bg-surface-inverse lg:hidden"
+          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-line bg-surface shadow-raised lg:hidden"
         >
-          <div className="mx-auto max-w-shell space-y-4 px-4 py-4 sm:px-6">
+          <div className="mx-auto max-w-shell space-y-5 px-4 py-4 sm:px-6">
             <Suspense fallback={null}>
               <SiteSearch
                 className="md:hidden"
@@ -161,36 +141,59 @@ export function SiteHeader() {
             </Suspense>
 
             <nav aria-label="Main">
-              <ul className="space-y-1">
-                {PRIMARY_NAV.map((item) => (
+              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+                What we offer
+              </p>
+              <ul className="space-y-0.5">
+                {OFFERINGS.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      aria-current={isActive(item.href) ? "page" : undefined}
-                      className={`block rounded-control px-3 py-2 ${
-                        isActive(item.href)
-                          ? "bg-surface-inverse-raised text-brand"
-                          : "text-ink-inverse-muted hover:bg-surface-inverse-raised hover:text-ink-inverse"
-                      }`}
+                      className="flex items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-surface-sunken"
                     >
-                      <span className="block text-sm font-medium">
-                        {item.label}
+                      <Icon icon={item.icon} className="text-primary" />
+                      <span>
+                        <span className="block text-base font-medium text-ink">
+                          {item.label}
+                        </span>
+                        <span className="block text-sm text-ink-muted">
+                          {item.hint}
+                        </span>
                       </span>
-                      <span className="mt-0.5 block text-xs text-ink-inverse-muted/70">
-                        {item.hint}
-                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-4 px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+                Browse by topic
+              </p>
+              <ul className="flex flex-wrap gap-2 px-3">
+                {TOPICS.map((topic) => (
+                  <li key={topic.href}>
+                    <Link
+                      href={topic.href}
+                      className="inline-block rounded-full border border-line px-3 py-1.5 text-sm text-ink hover:border-line-strong"
+                    >
+                      {topic.label}
                     </Link>
                   </li>
                 ))}
               </ul>
             </nav>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-line-inverse pt-4">
-              <AiButton className="sm:hidden" />
+            <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
+              {user && (
+                <Link
+                  href="/dashboard"
+                  className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink"
+                >
+                  My account
+                </Link>
+              )}
               {!user && !isRestoring && (
                 <Link
                   href="/login"
-                  className="rounded-control border border-line-inverse px-4 py-2 text-sm font-semibold text-ink-inverse sm:hidden"
+                  className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink sm:hidden"
                 >
                   Log in
                 </Link>
@@ -200,5 +203,70 @@ export function SiteHeader() {
         </div>
       )}
     </header>
+  );
+}
+
+function CategoryBarWithShelf({ pathname }: { pathname: string }) {
+  const shelf = useSearchParams().get("shelf");
+  return <CategoryBar shelf={shelf} pathname={pathname} />;
+}
+
+function CategoryBar({
+  shelf,
+  pathname,
+}: {
+  shelf: string | null;
+  pathname: string;
+}) {
+  const pathOf = (href: string) => href.split("?")[0]!;
+  const under = (path: string) =>
+    pathname === path || pathname.startsWith(`${path}/`);
+
+  /**
+   * Current when its path — and its shelf, if it names one — match, and no
+   * longer item matches better: /documents/custom is "AI drafting", not
+   * also "Document generator".
+   */
+  const isCurrent = (href: string) => {
+    const [path, query] = [pathOf(href), href.split("?")[1]];
+    if (!under(path)) return false;
+    const deeper = CATEGORY_BAR.some(
+      (item) =>
+        pathOf(item.href).length > path.length && under(pathOf(item.href)),
+    );
+    if (deeper) return false;
+    const wanted = new URLSearchParams(query ?? "").get("shelf");
+    return wanted ? shelf === wanted : true;
+  };
+
+  return (
+    <nav aria-label="Sections" className="hidden border-t border-line lg:block">
+      <ul className="mx-auto flex h-11 max-w-shell items-center gap-1 px-4 sm:px-6 lg:px-8">
+        {CATEGORY_BAR.map((item) => {
+          const current = isCurrent(item.href);
+          return (
+            <li key={item.href} className="h-full">
+              <Link
+                href={item.href}
+                aria-current={current ? "page" : undefined}
+                className={`relative inline-flex h-full items-center whitespace-nowrap px-3 text-sm transition-colors ${
+                  current
+                    ? "font-semibold text-ink"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                {item.label}
+                {current && (
+                  <span
+                    aria-hidden
+                    className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
+                  />
+                )}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }

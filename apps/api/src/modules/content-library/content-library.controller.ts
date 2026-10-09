@@ -14,11 +14,13 @@ import {
   CurrentUser,
   type RequestUser,
 } from "../../common/decorators/current-user.decorator";
+import { Public } from "../../common/decorators/public.decorator";
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
 import { ContentLibraryService } from "./content-library.service";
+import { ImportContentItemsDto } from "./dto/import-content-items.dto";
 import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 
 @Controller("content-library")
@@ -26,7 +28,10 @@ import { UpsertContentItemDto } from "./dto/upsert-content-item.dto";
 export class ContentLibraryController {
   constructor(private readonly contentLibraryService: ContentLibraryService) {}
 
+  // Public, like the course catalogue: CATALOGUE_FIELDS already leaves out the
+  // storage key, which is the thing actually being sold.
   @Get()
+  @Public()
   list(@Query("category") category?: string) {
     return this.contentLibraryService.listPublished(category);
   }
@@ -39,9 +44,49 @@ export class ContentLibraryController {
     return this.contentLibraryService.listAll();
   }
 
+  /**
+   * What is in object storage, with a catalogued flag per file.
+   *
+   * Declared above ":id" for the same reason "all" is — Nest matches routes
+   * in declaration order, and "storage" would otherwise be read as an id.
+   */
+  @Get("storage")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  listStorage(@Query("prefix") prefix?: string) {
+    return this.contentLibraryService.listStorageObjects(prefix);
+  }
+
+  /** Publishes a batch of already-stored files as catalogue items. */
+  @Post("import")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  importFromStorage(
+    @Body() dto: ImportContentItemsDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    return this.contentLibraryService.importFromStorage(dto, user.id);
+  }
+
+  /**
+   * The free excerpt: an item's first pages as watermarked images, or
+   * `ready: false` while they're made. Public, like the item's own page.
+   */
+  @Get("catalogue/:id/preview")
+  @Public()
+  getPreview(@Param("id") id: string) {
+    return this.contentLibraryService.getPreview(id);
+  }
+
+  /** Queues an excerpt for every published item that hasn't got a current one. */
+  @Post("previews/backfill")
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  backfillPreviews() {
+    return this.contentLibraryService.backfillPreviews();
+  }
+
   // Customer-facing detail view. Separate from the admin ":id" route below,
   // which returns every status and includes the storage key.
   @Get("catalogue/:id")
+  @Public()
   getPublished(@Param("id") id: string) {
     return this.contentLibraryService.getPublished(id);
   }

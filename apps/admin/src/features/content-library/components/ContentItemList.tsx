@@ -5,7 +5,7 @@ import {
   Badge,
   ButtonLink,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -59,7 +59,14 @@ export function ContentItemList() {
     };
   }, []);
 
-  if (isLoading) return <Loading label="Loading content library…" />;
+  if (isLoading)
+    return (
+      <SkeletonTable
+        rows={6}
+        columns={7}
+        label="Loading the content library…"
+      />
+    );
   if (error) {
     return (
       <Alert tone="danger" role="alert">
@@ -81,12 +88,12 @@ export function ContentItemList() {
   }
 
   return (
-    <Table>
+    <Table label="Content library">
       <THead>
         <TR>
           <TH>Title</TH>
-          <TH>Category</TH>
-          <TH>Type</TH>
+          <TH secondary>Category</TH>
+          <TH secondary>Type</TH>
           <TH align="right">Price</TH>
           <TH>Status</TH>
           <TH align="right">
@@ -105,8 +112,12 @@ export function ContentItemList() {
                 {item.title}
               </Link>
             </TD>
-            <TD muted>{CATEGORY_LABELS[item.category] ?? item.category}</TD>
-            <TD muted>{item.type === "EBOOK" ? "E-book" : "Checklist"}</TD>
+            <TD secondary muted>
+              {CATEGORY_LABELS[item.category] ?? item.category}
+            </TD>
+            <TD secondary muted>
+              {item.type === "EBOOK" ? "E-book" : "Checklist"}
+            </TD>
             <TD align="right">₹{paiseToRupees(item.priceInPaise)}</TD>
             <TD>
               <Badge tone={STATUS_TONE[item.status]}>{item.status}</Badge>

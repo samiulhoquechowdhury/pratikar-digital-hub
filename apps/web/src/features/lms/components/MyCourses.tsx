@@ -1,20 +1,11 @@
 "use client";
 
 import type { Enrollment } from "@pratikar/types";
-import {
-  Alert,
-  Badge,
-  ButtonLink,
-  Card,
-  EmptyState,
-  Loading,
-} from "@pratikar/ui";
+import { Badge, ButtonLink, Card, EmptyState } from "@pratikar/ui";
+import { Award } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 
-import { useAuth } from "@/shared/providers/AuthProvider";
-
-import { lmsApi } from "../api/lmsApi";
+import { Icon } from "@/shared/components/Icon";
 
 const formatDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en-IN", {
@@ -23,49 +14,13 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
-export function MyCourses() {
-  const { user } = useAuth();
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [isLoading, setIsLoading] = useState(!!user);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!user) return;
-    let cancelled = false;
-
-    lmsApi
-      .listMyEnrollments()
-      .then((result) => {
-        if (!cancelled) setEnrollments(result);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Couldn't load your courses.");
-      })
-      .finally(() => {
-        if (!cancelled) setIsLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [user]);
-
-  if (!user) {
-    return (
-      <EmptyState
-        title="Sign in to see your courses"
-        action={<ButtonLink href="/login?next=/dashboard">Sign in</ButtonLink>}
-      />
-    );
-  }
-  if (isLoading) return <Loading label="Loading your courses…" />;
-  if (error) {
-    return (
-      <Alert tone="danger" role="alert">
-        {error}
-      </Alert>
-    );
-  }
+/**
+ * Courses the customer already owns, so every link goes to the classroom
+ * rather than back to the sales page.
+ *
+ * Presentational — the account is loaded once by useDashboardData.
+ */
+export function MyCourses({ enrollments }: { enrollments: Enrollment[] }) {
   if (enrollments.length === 0) {
     return (
       <EmptyState
@@ -84,14 +39,13 @@ export function MyCourses() {
         const expired = new Date(enrollment.expiresAt) <= new Date();
         const done = enrollment.progress?.length ?? 0;
         const total = enrollment.course._count?.modules ?? 0;
+        const percent = total > 0 ? Math.round((done / total) * 100) : 0;
 
         return (
           <li key={enrollment.id}>
             <Card className="group flex h-full flex-col p-6">
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-base">
-                  {/* Straight into the classroom, not the sales page — this
-                      list is for courses you already own. */}
                   <Link
                     href={`/learn/${enrollment.id}`}
                     className="text-ink transition-colors group-hover:text-primary"
@@ -106,16 +60,26 @@ export function MyCourses() {
 
               {total > 0 && (
                 <div className="mt-4">
-                  <p className="text-sm text-ink-muted">
-                    {done} of {total} lessons completed
-                  </p>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <p className="text-sm text-ink-muted">
+                      {done} of {total} lessons
+                    </p>
+                    <p className="text-sm font-semibold tabular-nums text-ink">
+                      {percent}%
+                    </p>
+                  </div>
+                  {/*
+                    The bar is decorative — the sentence above already states
+                    the progress, so a screen reader announcing a second,
+                    wordless progressbar would only repeat it.
+                  */}
                   <div
                     aria-hidden
                     className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface-sunken"
                   >
                     <div
-                      className="h-full rounded-full bg-brand"
-                      style={{ width: `${(done / total) * 100}%` }}
+                      className="h-full rounded-full bg-brand transition-[width] duration-500 motion-reduce:transition-none"
+                      style={{ width: `${percent}%` }}
                     />
                   </div>
                 </div>
@@ -130,9 +94,9 @@ export function MyCourses() {
               {enrollment.certificate && (
                 <Link
                   href={`/learn/${enrollment.id}/certificate`}
-                  className="mt-4 inline-block border-t border-line pt-4 text-sm font-semibold text-primary hover:text-primary-hover"
+                  className="mt-4 inline-flex items-center gap-2 border-t border-line pt-4 text-sm font-semibold text-primary hover:text-primary-hover"
                 >
-                  Certificate issued — view it
+                  <Icon icon={Award} /> Certificate issued — view it
                 </Link>
               )}
             </Card>

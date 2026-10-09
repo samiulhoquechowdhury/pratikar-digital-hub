@@ -58,7 +58,7 @@ Nothing has actually run yet. That's the first gap to close — not more design,
 3. Certificate display + the public verification page (`/certificates/verify/:code` already exists on the backend — this is purely a frontend page, no auth).
 4. Customer Dashboard: My Documents, My Purchases, My Courses, order history/invoices — the aggregation screen tying Milestones 1–3 together.
 
-**Blocker worth resolving here:** GST invoice format/GSTIN handling needs a real answer before `Invoice` generation is more than a stub — this is an accounting question, not an engineering one, and shouldn't be guessed at.
+**Blocker worth resolving here:** ~~GST invoice format/GSTIN handling needs a real answer before `Invoice` generation is more than a stub~~ — **built 2026-08-01.** Invoices are now numbered, taxed, rendered and downloadable; what remains is data, not engineering. Set `COMPANY_LEGAL_NAME`, `COMPANY_GSTIN`, `COMPANY_ADDRESS` and `COMPANY_STATE_CODE` and the PROFORMA watermark comes off. Until they are set, sales are still recorded and numbered correctly — they just are not valid tax invoices.
 
 ---
 
@@ -66,9 +66,9 @@ Nothing has actually run yet. That's the first gap to close — not more design,
 
 **Goal:** the AI Document Generator and RAG chatbot, which is the riskiest engineering work in the product (per the PRD's risk section) — deliberately sequenced after the manual paths work, so there's a working fallback and a clear behavioral spec to build the AI against.
 
-1. Knowledge base ingestion pipeline (`KnowledgeBaseDocument` + `pgvector`) — index templates, courses, content items, FAQ.
-2. RAG chatbot: retrieval + generation over that knowledge base, site-wide widget.
-3. AI Document Generator: conversational field collection feeding into the same `generate()` pipeline built in Milestone 1 — this is why Milestone 1's field-schema design matters, it has to serve both the manual form and this conversational flow without a rewrite.
+1. Knowledge base ingestion pipeline (`KnowledgeBaseDocument` + `pgvector`) — index templates, courses, content items, FAQ. — **built 2026-09-26** for templates, courses and content items (Voyage AI embeddings, `knowledge-base-index` queue, `POST /ai/knowledge-base/reindex`). FAQ waits on the client supplying FAQ content; nothing exists to index yet. Needs `VOYAGE_API_KEY` and a pgvector-capable Postgres on Railway before it does anything in production.
+2. RAG chatbot: retrieval + generation over that knowledge base, site-wide widget. — **built 2026-10-01**: `POST /ai/chat` (Claude over the knowledge base, sources cited, live prices), wired into the existing chat panel with a fallback to the scripted preview until `ANTHROPIC_API_KEY` is set. Conversations are not stored yet.
+3. AI Document Generator: conversational field collection feeding into the same `generate()` pipeline built in Milestone 1 — this is why Milestone 1's field-schema design matters, it has to serve both the manual form and this conversational flow without a rewrite. — **built 2026-10-01**: an "Answer by chat" tab on each template page. The AI collects answers into the template's fields (schema-constrained, validated server-side) and hands them to the form for the customer to check; `generate()` now validates every answer, whichever way it was collected. Needs `ANTHROPIC_API_KEY`; without it the page offers the form only.
 
 **Recommendation:** budget real QA time here specifically — a wrong field collected by the AI produces a legally deficient document, the single worst failure mode this product has.
 
@@ -104,7 +104,7 @@ Pulled from across SRS/TRD so they're in one place instead of scattered:
 2. Refund policy specifics, especially for one-time-download documents
 3. Master document-template taxonomy (100 templates)
 4. Reviewer role granularity (Content Manager vs. a distinct Reviewer permission)
-5. GST invoice format/GSTIN requirements
+5. GST invoice format/GSTIN requirements — _engineering done 2026-08-01; now just needs the company's registration details and a CA's sign-off on the four SAC codes_
 6. Affiliate & Franchise requirements (full scoping pass needed)
 7. Content-library re-download policy (one-time like documents, or unlimited?)
 

@@ -1,9 +1,18 @@
 "use client";
 
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import {
+  Alert,
+  BrandMark,
+  Button,
+  ButtonLink,
+  SkeletonText,
+} from "@pratikar/ui";
+import { ArrowLeft } from "lucide-react";
 import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
+import { Icon } from "@/shared/components/Icon";
+import { apiClient } from "@/shared/lib/apiClient";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { useCourseOutline } from "../hooks/useCourseOutline";
@@ -16,6 +25,24 @@ const formatDate = (iso: string) =>
     year: "numeric",
   });
 
+/** The certificate's wording, edited in Admin → Settings. */
+interface CertificateDesign {
+  title: string;
+  issuerName: string;
+  signatoryName: string;
+  signatoryTitle: string;
+  footerNote: string;
+}
+
+/** What prints if the settings can't be loaded — the wording before they existed. */
+const DEFAULT_DESIGN: CertificateDesign = {
+  title: "Certificate of Completion",
+  issuerName: "Pratikar Digital Hub",
+  signatoryName: "",
+  signatoryTitle: "",
+  footerNote: "",
+};
+
 /**
  * The certificate, built to be printed.
  *
@@ -27,6 +54,22 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
   const { outline, isLoading, error } = useCourseOutline(enrollmentId);
   const { user } = useAuth();
   const [qr, setQr] = useState<string | null>(null);
+  const [design, setDesign] = useState<CertificateDesign>(DEFAULT_DESIGN);
+
+  useEffect(() => {
+    let cancelled = false;
+    apiClient
+      .get<CertificateDesign>("/settings/certificate")
+      .then((loaded) => {
+        if (!cancelled) setDesign(loaded);
+      })
+      .catch(() => {
+        // The default wording is a complete certificate; nothing to say.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const code = outline?.certificate?.verificationCode;
 
@@ -57,7 +100,8 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
     };
   }, [code]);
 
-  if (isLoading) return <Loading label="Loading your certificate…" />;
+  if (isLoading)
+    return <SkeletonText lines={5} label="Loading your certificate…" />;
   if (error || !outline) {
     return (
       <Alert tone="danger" role="alert">
@@ -94,7 +138,7 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
           certificate and nothing else. */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <ButtonLink href={`/learn/${enrollmentId}`} variant="secondary">
-          <span aria-hidden>←</span> Back to the course
+          <Icon icon={ArrowLeft} /> Back to the course
         </ButtonLink>
         <Button type="button" onClick={() => window.print()}>
           Print or save as PDF
@@ -102,25 +146,20 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
       </div>
 
       <article className="relative overflow-hidden rounded-card border-4 border-double border-brand bg-surface p-8 text-center shadow-raised sm:p-12 print:border-2 print:shadow-none">
-        <div className="flex items-center justify-center gap-2.5">
-          <span
-            aria-hidden
-            className="grid h-10 w-10 place-items-center rounded-control bg-brand text-lg font-bold text-on-brand"
-          >
-            P
-          </span>
+        <div className="flex items-center justify-center gap-3">
+          <BrandMark className="h-11 w-auto text-primary" />
           <span className="flex flex-col items-start leading-none">
-            <span className="text-base font-bold tracking-wide text-ink">
+            <span className="bg-gradient-to-b from-wordmark-light-from to-wordmark-light-to bg-clip-text font-brand text-lg font-semibold tracking-[0.04em] text-transparent">
               PRATIKAR
             </span>
-            <span className="text-[0.65rem] font-medium uppercase tracking-[0.18em] text-gold-ink">
+            <span className="mt-1 text-[0.65rem] font-medium uppercase tracking-[0.24em] text-ink-muted">
               Digital Hub
             </span>
           </span>
         </div>
 
         <p className="mt-10 text-xs font-semibold uppercase tracking-[0.3em] text-gold-ink">
-          Certificate of Completion
+          {design.title}
         </p>
 
         <p className="mt-8 text-sm text-ink-muted">This certifies that</p>
@@ -144,6 +183,23 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
               {certificate.scorePercent}%
             </span>
           </p>
+        )}
+
+        <p className="mt-4 text-sm text-ink-muted">
+          issued by{" "}
+          <span className="font-medium text-ink">{design.issuerName}</span>
+        </p>
+
+        {design.signatoryName && (
+          <div className="mx-auto mt-10 w-56">
+            <div aria-hidden className="h-px bg-ink/40" />
+            <p className="mt-2 text-sm font-semibold text-ink">
+              {design.signatoryName}
+            </p>
+            {design.signatoryTitle && (
+              <p className="text-xs text-ink-muted">{design.signatoryTitle}</p>
+            )}
+          </div>
         )}
 
         <div
@@ -188,6 +244,11 @@ export function CertificateView({ enrollmentId }: { enrollmentId: string }) {
             </p>
           </div>
         </div>
+        {design.footerNote && (
+          <p className="mt-8 text-xs leading-relaxed text-ink-subtle">
+            {design.footerNote}
+          </p>
+        )}
       </article>
 
       <p className="text-center text-xs leading-relaxed text-ink-subtle">

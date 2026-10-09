@@ -1,7 +1,10 @@
 "use client";
 
 import type { CourseOutline } from "@pratikar/types";
+import { Check, CircleDot, Lock } from "lucide-react";
 import Link from "next/link";
+
+import { Icon } from "@/shared/components/Icon";
 
 /**
  * The syllabus rail: where you are, what's behind you, what's still locked.
@@ -110,11 +113,23 @@ export function LessonSidebar({
                           : "bg-surface-sunken text-ink-subtle"
                     }`}
                   >
-                    {finished ? "✓" : lesson.unlocked ? index + 1 : "🔒"}
+                    {finished ? (
+                      <Icon icon={Check} size="xs" />
+                    ) : lesson.unlocked ? (
+                      index + 1
+                    ) : (
+                      <Icon icon={Lock} size="xs" />
+                    )}
                   </span>
 
                   <span className="min-w-0 flex-1">
                     <span className="block text-sm font-medium text-ink">
+                      {/* The marker bubble is aria-hidden, so without this
+                          a lesson's state was carried by colour alone. */}
+                      {finished && <span className="sr-only">Completed: </span>}
+                      {!finished && !lesson.unlocked && (
+                        <span className="sr-only">Locked: </span>
+                      )}
                       {lesson.title}
                     </span>
 
@@ -122,16 +137,16 @@ export function LessonSidebar({
                       <span className="mt-1 flex items-center gap-1.5 text-xs text-ink-subtle">
                         {lesson.quiz.bestScorePercent !== null ? (
                           <>
-                            <span aria-hidden>✓</span> Test{" "}
+                            <Icon icon={Check} size="xs" /> Test{" "}
                             {lesson.quiz.bestScorePercent}%
                           </>
                         ) : lesson.quiz.unlocked ? (
                           <>
-                            <span aria-hidden>●</span> Test ready
+                            <Icon icon={CircleDot} size="xs" /> Test ready
                           </>
                         ) : (
                           <>
-                            <span aria-hidden>🔒</span> Test locked
+                            <Icon icon={Lock} size="xs" /> Test locked
                           </>
                         )}
                       </span>

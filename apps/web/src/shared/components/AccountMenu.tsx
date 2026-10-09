@@ -7,9 +7,11 @@ import { useDismissable } from "../hooks/useDismissable";
 
 const ACCOUNT_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/dashboard#documents", label: "My documents" },
-  { href: "/dashboard#courses", label: "My courses" },
-  { href: "/dashboard#purchases", label: "Purchases" },
+  { href: "/dashboard/documents", label: "My documents" },
+  { href: "/dashboard/courses", label: "My courses" },
+  { href: "/dashboard/library", label: "My library" },
+  { href: "/dashboard/orders", label: "Orders & invoices" },
+  { href: "/dashboard/settings", label: "Account settings" },
 ];
 
 /** First letter of the name, or of the role — never an empty circle. */
@@ -33,12 +35,12 @@ export function AccountMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex items-center gap-2 rounded-full p-0.5 pr-2 text-ink-inverse-muted transition-colors hover:text-ink-inverse"
+        className="flex items-center gap-1.5 rounded-full p-0.5 pr-2 text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
       >
         <span className="sr-only">Account menu</span>
         <span
           aria-hidden
-          className="grid h-8 w-8 place-items-center rounded-full bg-brand text-sm font-bold text-on-brand"
+          className="grid h-8 w-8 place-items-center rounded-full bg-primary text-sm font-semibold text-ink-inverse"
         >
           {initial(user)}
         </span>
@@ -56,7 +58,7 @@ export function AccountMenu({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-card border border-line bg-surface py-2 shadow-overlay">
+        <div className="absolute right-0 top-full z-50 mt-2 w-60 rounded-card border border-line bg-surface py-2 shadow-overlay">
           <div className="border-b border-line px-4 pb-2">
             <p className="truncate text-sm font-semibold text-ink">
               {user.name ?? "Your account"}

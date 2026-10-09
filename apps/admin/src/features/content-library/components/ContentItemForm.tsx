@@ -209,7 +209,7 @@ export function ContentItemForm({ existing }: { existing?: ContentItem }) {
 
       <FormActions>
         <Button type="submit" disabled={isSaving}>
-          {isSaving ? "Saving…" : existing ? "Save changes" : "Create item"}
+          {existing ? "Save changes" : "Create item"}
         </Button>
         <Link
           href="/content-library"

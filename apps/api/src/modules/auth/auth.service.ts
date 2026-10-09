@@ -16,6 +16,7 @@ import { UsersService } from "../users/users.service";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
 import { GoogleAuthService } from "./google-auth.service";
+import { checkOtpRateLimit, OTP_RATE_LIMITED_MESSAGE } from "./otp-rate-limit";
 import { OtpService } from "./otp.service";
 import { SessionService } from "./session.service";
 
@@ -33,7 +34,12 @@ export class AuthService {
     private readonly googleAuthService: GoogleAuthService,
   ) {}
 
-  async requestOtp(dto: OtpRequestDto): Promise<void> {
+  async requestOtp(dto: OtpRequestDto, ip?: string): Promise<void> {
+    // Before anything is written or sent. Every send costs money and lands in
+    // someone's inbox, so the limit has to come first — a row created and
+    // then rejected would still have consumed a slot in the window.
+    await this.enforceOtpRateLimit(dto.identifier, ip);
+
     const code = this.otpService.generateCode();
     const codeHash = this.otpService.hash(code, dto.identifier);
 
@@ -43,11 +49,9 @@ export class AuthService {
         channel: dto.channel,
         codeHash,
         expiresAt: new Date(Date.now() + this.otpService.ttlMs),
+        ip: ip ?? null,
       },
     });
-
-    // TODO: rate limit per-identifier and per-IP here (route-level @Throttle is
-    // only a coarse backstop, per auth.controller.ts).
 
     await this.sendOtp(dto.channel, dto.identifier, code);
   }
@@ -170,6 +174,63 @@ export class AuthService {
     });
 
     return { accessToken, refreshToken, user };
+  }
+
+  /**
+   * Refuses a send that would exceed the limits in otp-rate-limit.ts.
+   *
+   * Counts rows rather than keeping a counter in Redis: OtpRequest already
+   * records every request, the table is indexed for exactly these two
+   * windows, and Postgres is shared across instances — where the in-memory
+   * route throttle is not. OTP volume is low by nature, so a query here costs
+   * nothing worth optimising.
+   *
+   * The identifier is rate limited whether or not an account exists for it.
+   * Anything else would turn this endpoint into an account-existence oracle.
+   */
+  private async enforceOtpRateLimit(
+    identifier: string,
+    ip?: string,
+  ): Promise<void> {
+    const since = new Date(Date.now() - 3_600_000);
+
+    const [forIdentifier, forIp] = await Promise.all([
+      this.prisma.otpRequest.findMany({
+        where: { identifier, createdAt: { gte: since } },
+        select: { createdAt: true },
+      }),
+      ip
+        ? this.prisma.otpRequest.findMany({
+            where: { ip, createdAt: { gte: since } },
+            select: { createdAt: true },
+          })
+        : Promise.resolve([]),
+    ]);
+
+    const decision = checkOtpRateLimit(
+      {
+        identifierTimestamps: forIdentifier.map((r) => r.createdAt),
+        ipTimestamps: forIp.map((r) => r.createdAt),
+      },
+      new Date(),
+    );
+    if (decision.allowed) return;
+
+    // Logged with the reason, which the caller is deliberately not told —
+    // an operator investigating abuse needs to know which limit fired.
+    this.logger.warn(
+      `OTP rate limit hit (${decision.reason}) for ${identifier}` +
+        (ip ? ` from ${ip}` : ""),
+    );
+
+    throw new HttpException(
+      {
+        statusCode: HttpStatus.TOO_MANY_REQUESTS,
+        message: OTP_RATE_LIMITED_MESSAGE,
+        retryAfterSeconds: decision.retryAfterSeconds,
+      },
+      HttpStatus.TOO_MANY_REQUESTS,
+    );
   }
 
   private async sendOtp(

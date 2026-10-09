@@ -41,7 +41,10 @@ describe("GeneratedDocumentActions", () => {
     );
 
   beforeEach(() => {
-    mockedApi.download.mockResolvedValue({ fileUrl: "https://signed/url" });
+    mockedApi.download.mockResolvedValue({
+      fileUrl: "https://signed/url",
+      pdfUrl: "https://signed/pdf",
+    });
     // jsdom has no navigation; replace location so assigning href is inert.
     Object.defineProperty(window, "location", {
       writable: true,
@@ -93,7 +96,7 @@ describe("GeneratedDocumentActions", () => {
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: /^download$/i })).toBeNull(),
     );
-    expect(screen.getByText(/already downloaded/i)).toBeDefined();
+    expect(screen.getByText(/word file is downloading/i)).toBeDefined();
   });
 
   it("explains rather than offers a retry when already downloaded", () => {
@@ -119,5 +122,27 @@ describe("GeneratedDocumentActions", () => {
     renderAt("DOWNLOADED");
 
     expect(screen.getByText("buy:DOCUMENT_REVIEW")).toBeDefined();
+  });
+
+  it("offers the PDF once the Word file starts downloading", async () => {
+    renderAt("PAID");
+
+    fireEvent.click(screen.getByRole("button", { name: /^download$/i }));
+
+    const link = await screen.findByRole("link", { name: /download the pdf/i });
+    expect(link.getAttribute("href")).toBe("https://signed/pdf");
+  });
+
+  // Paid before the file existed: the server keeps the download unspent.
+  it("says the document is still being prepared, not that it failed", async () => {
+    mockedApi.download.mockRejectedValue(
+      new Error('API error 409: {"message":"NOT_READY"}'),
+    );
+    renderAt("PAID");
+
+    fireEvent.click(screen.getByRole("button", { name: /^download$/i }));
+
+    expect(await screen.findByText(/still being prepared/i)).toBeDefined();
+    expect(screen.getByRole("button", { name: /^download$/i })).toBeDefined();
   });
 });

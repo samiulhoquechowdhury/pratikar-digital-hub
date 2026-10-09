@@ -1,6 +1,6 @@
 "use client";
 
-import { Alert, Button, ButtonLink, Loading } from "@pratikar/ui";
+import { Alert, Button, ButtonLink, SkeletonForm } from "@pratikar/ui";
 import Link from "next/link";
 import { useState } from "react";
 
@@ -44,7 +44,8 @@ export function QuizRunner({
   const [index, setIndex] = useState(0);
   const [confirming, setConfirming] = useState(false);
 
-  if (phase === "loading") return <Loading label="Preparing your test…" />;
+  if (phase === "loading")
+    return <SkeletonForm fields={3} label="Preparing your test…" />;
 
   if (phase === "error") {
     return (

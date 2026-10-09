@@ -8,6 +8,8 @@ import {
   AuditTargetType,
 } from "../audit/audit.service";
 
+import type { UpdateProfileDto } from "./dto/update-profile.dto";
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -81,6 +83,25 @@ export class UsersService {
     });
   }
 
+  /** The fields an account page shows its owner. */
+  async getProfile(id: string) {
+    const user = await this.getById(id);
+    // A valid token for a deleted account: not this caller's to see as a 500.
+    if (!user) throw new NotFoundException("USER_NOT_FOUND");
+    return user;
+  }
+
+  async updateProfile(id: string, changes: UpdateProfileDto) {
+    // Only what the form sent: a field left out is left alone, and null
+    // (an emptied box) clears it. Email, phone and role are not in the DTO.
+    const { name, addressLine, city, stateCode, pincode } = changes;
+    await this.prisma.user.update({
+      where: { id },
+      data: { name, addressLine, city, stateCode, pincode },
+    });
+    return this.getProfile(id);
+  }
+
   getById(id: string) {
     return this.prisma.user.findUnique({
       where: { id },
@@ -91,6 +112,10 @@ export class UsersService {
         phone: true,
         role: true,
         createdAt: true,
+        addressLine: true,
+        city: true,
+        stateCode: true,
+        pincode: true,
       },
     });
   }

@@ -2,7 +2,11 @@ version: "3.8"
 
 services:
   postgres:
-    image: postgres:16
+    # pgvector build of the same Postgres 16 — the knowledge base stores its
+    # embeddings in a vector column (docs/trd.md 2.5). Same data directory
+    # format, and trixie matches the glibc (collation) of the official image
+    # the volume was created under, so the existing data carries over.
+    image: pgvector/pgvector:pg16-trixie
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres

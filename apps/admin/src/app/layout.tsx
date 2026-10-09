@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Cinzel, Inter } from "next/font/google";
 
 import { AuthProvider } from "@/shared/providers/AuthProvider";
 
@@ -9,6 +9,14 @@ const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
+});
+
+/** The logo's wordmark face — "PRATIKAR" only. */
+const brandFont = Cinzel({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["600"],
+  variable: "--font-brand",
 });
 
 export const metadata: Metadata = {
@@ -26,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${brandFont.variable}`}>
       <body className="font-sans">
         <AuthProvider>{children}</AuthProvider>
       </body>

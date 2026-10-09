@@ -10,7 +10,7 @@ import {
   Select,
   Textarea,
 } from "@pratikar/ui";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export type FilledData = Record<string, string | number>;
 
@@ -21,6 +21,10 @@ interface DynamicTemplateFormProps {
   onSubmit: (filledData: FilledData) => void | Promise<void>;
   isSubmitting: boolean;
   error?: string | null;
+  /** Answers to start from — those collected by the AI conversation. */
+  initialValues?: FilledData;
+  /** Shown above the fields, e.g. to ask for AI-collected answers to be checked. */
+  notice?: ReactNode;
 }
 
 const isBlank = (value: string | number | undefined) =>
@@ -42,14 +46,19 @@ export function DynamicTemplateForm({
   onSubmit,
   isSubmitting,
   error,
+  initialValues,
+  notice,
 }: DynamicTemplateFormProps) {
-  const [values, setValues] = useState<FilledData>({});
+  const [values, setValues] = useState<FilledData>(initialValues ?? {});
   const [missingKeys, setMissingKeys] = useState<string[]>([]);
 
   const setValue = (field: TemplateField, raw: string) => {
     setValues((prev) => ({
       ...prev,
-      [field.key]: field.type === "number" ? Number(raw) : raw,
+      // An emptied number box stays empty. Number("") is 0, which used to
+      // count as an answer — so a cleared "monthly rent" was accepted and
+      // printed as 0 in the document.
+      [field.key]: field.type === "number" && raw !== "" ? Number(raw) : raw,
     }));
 
     // Clear this field's error as soon as it's filled. Leaving it up while the
@@ -86,7 +95,7 @@ export function DynamicTemplateForm({
     <form onSubmit={handleSubmit} noValidate>
       <Card className="p-6 sm:p-8">
         <div className="border-b border-line pb-5">
-          <h2 className="text-xl">{template.title}</h2>
+          <h2 className="text-xl font-semibold">Your details</h2>
           <p className="mt-1 text-sm text-ink-muted">
             {required.length > 0
               ? `${answered.length} of ${required.length} required ${
@@ -108,6 +117,8 @@ export function DynamicTemplateForm({
             </div>
           )}
         </div>
+
+        {notice && <div className="mt-6 max-w-prose">{notice}</div>}
 
         <div className="mt-6 max-w-prose space-y-5">
           {template.fieldSchema.map((field) => (
@@ -140,8 +151,12 @@ export function DynamicTemplateForm({
         )}
 
         <div className="mt-8 flex flex-wrap items-center gap-4 border-t border-line pt-6">
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Generating…" : "Generate document"}
+          <Button
+            type="submit"
+            loading={isSubmitting}
+            loadingLabel="Generating your document…"
+          >
+            Generate document
           </Button>
           {/* Says it before the click, not after: generating is free and the
               charge comes later, which is not what people expect from a form

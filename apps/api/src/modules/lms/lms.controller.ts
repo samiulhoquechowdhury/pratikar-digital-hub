@@ -145,6 +145,18 @@ export class LmsController {
     return this.lmsService.listAll();
   }
 
+  /**
+   * Per course: enrolments (total and still active), completions,
+   * certificates issued and revenue — docs/srs.md 3.5's enrolment
+   * analytics. Declared before ":id".
+   */
+  @Get("stats")
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)
+  courseStats() {
+    return this.lmsService.courseStats();
+  }
+
   @Get(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.CONTENT_MANAGER, Role.ADMIN, Role.SUPER_ADMIN)

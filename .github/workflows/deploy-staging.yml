@@ -27,6 +27,7 @@ jobs:
           docker run --rm pratikar-api:${{ github.sha }} \
             node -e "const {PrismaClient}=require('@prisma/client'); new PrismaClient(); console.log('prisma client ok')"
           docker run --rm pratikar-api:${{ github.sha }} soffice --headless --version
+          docker run --rm pratikar-api:${{ github.sha }} gs --version
 
       - name: Check for Railway credentials
         id: creds

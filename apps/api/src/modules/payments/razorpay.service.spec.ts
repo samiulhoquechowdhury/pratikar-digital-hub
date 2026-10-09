@@ -186,4 +186,49 @@ describe("RazorpayService", () => {
       expect(JSON.parse(init.body as string)).toEqual({ amount: 23482 });
     });
   });
+
+  describe("fetchOrderPayments", () => {
+    it("reads every attempt on the order with a GET and no body", async () => {
+      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            entity: "collection",
+            count: 2,
+            items: [
+              { id: "pay_1", status: "failed", amount: 100, email: "x@y.z" },
+              { id: "pay_2", status: "captured", amount: 100 },
+            ],
+          }),
+          { status: 200 },
+        ),
+      );
+      const service = build();
+
+      const payments = await service.fetchOrderPayments("order_rzp_1");
+
+      // Only what reconciliation needs — nothing personal is carried on.
+      expect(payments).toEqual([
+        { id: "pay_1", status: "failed" },
+        { id: "pay_2", status: "captured" },
+      ]);
+      const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+      expect(url).toBe(
+        "https://api.razorpay.com/v1/orders/order_rzp_1/payments",
+      );
+      expect(init.method).toBe("GET");
+      expect(init.body).toBeUndefined();
+    });
+
+    it("treats an order with no attempts as an empty list", async () => {
+      jest
+        .spyOn(globalThis, "fetch")
+        .mockResolvedValue(
+          new Response(JSON.stringify({ count: 0 }), { status: 200 }),
+        );
+
+      await expect(build().fetchOrderPayments("order_rzp_1")).resolves.toEqual(
+        [],
+      );
+    });
+  });
 });

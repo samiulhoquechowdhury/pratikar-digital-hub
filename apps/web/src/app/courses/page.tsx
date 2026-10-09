@@ -1,19 +1,31 @@
-import { PageBody, PageHeader } from "@pratikar/ui";
+import type { Course } from "@pratikar/types";
+import type { Metadata } from "next";
 
-import { CourseList } from "@/features/lms";
+import { CourseList, CoursesComingSoon } from "@/features/lms";
+import { PageIntro, PageSection } from "@/shared/components/PageIntro";
+import { COURSES_LIVE } from "@/shared/lib/features";
+import { dataOf, serverGet } from "@/shared/lib/serverApi";
 
-export const metadata = { title: "Courses" };
+export const metadata: Metadata = {
+  title: "Legal and compliance courses",
+  description:
+    "Short video courses on GST, property and running a business in India, each with a certificate anyone can verify.",
+  alternates: { canonical: "/courses" },
+};
 
-export default function CoursesPage() {
+export default async function CoursesPage() {
+  if (!COURSES_LIVE) return <CoursesComingSoon />;
+  const courses = dataOf(await serverGet<Course[]>("/courses"));
   return (
     <>
-      <PageHeader
-        title="Courses"
-        description="Video courses with a certificate on completion. Access runs for a fixed period from the day you enrol."
+      <PageIntro
+        eyebrow="Courses"
+        title="Learn it properly, prove it"
+        description="Short video courses on the law you actually run into. Finish one and get a certificate with a code anyone can verify."
       />
-      <PageBody>
-        <CourseList />
-      </PageBody>
+      <PageSection className="pb-8">
+        <CourseList initial={courses} />
+      </PageSection>
     </>
   );
 }

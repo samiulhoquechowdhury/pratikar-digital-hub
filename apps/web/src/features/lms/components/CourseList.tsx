@@ -1,15 +1,18 @@
 "use client";
 
-import { Alert, EmptyState, Loading } from "@pratikar/ui";
+import type { Course } from "@pratikar/types";
+import { Alert, EmptyState, SkeletonCards } from "@pratikar/ui";
+
+import { CatalogueGrid } from "@/shared/components/CatalogueCard";
 
 import { useCourses } from "../hooks/useCourses";
 
 import { CourseCard } from "./CourseCard";
 
-export function CourseList() {
-  const { courses, isLoading, error } = useCourses();
+export function CourseList({ initial }: { initial?: Course[] } = {}) {
+  const { courses, isLoading, error } = useCourses(initial);
 
-  if (isLoading) return <Loading label="Loading courses…" />;
+  if (isLoading) return <SkeletonCards label="Loading courses…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">
@@ -26,12 +29,12 @@ export function CourseList() {
   }
 
   return (
-    <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <CatalogueGrid>
       {courses.map((course) => (
         <li key={course.id}>
           <CourseCard course={course} />
         </li>
       ))}
-    </ul>
+    </CatalogueGrid>
   );
 }

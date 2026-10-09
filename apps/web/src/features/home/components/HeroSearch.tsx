@@ -1,7 +1,10 @@
 "use client";
 
+import { Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+
+import { Icon } from "@/shared/components/Icon";
 
 /** Real examples, not placeholder nouns — they teach what the site can do. */
 const SUGGESTIONS = [
@@ -14,11 +17,18 @@ const SUGGESTIONS = [
 /**
  * The hero search box.
  *
- * Larger and lighter than the one in the header, because on the home page it
- * is the primary action rather than a utility — the same reason Coursera and
- * Udemy repeat their search field in the hero instead of relying on the bar.
+ * Larger than the one in the header, because on the home page it is the
+ * primary action rather than a utility — the same reason Coursera and Udemy
+ * repeat their search field in the hero instead of relying on the bar. Its
+ * Search button is the page's one gold element above the fold.
  */
-export function HeroSearch() {
+export function HeroSearch({
+  tone = "light",
+}: {
+  /** "dark" on the navy hero banner: the field stays white, the chips invert. */
+  tone?: "light" | "dark";
+} = {}) {
+  const dark = tone === "dark";
   const router = useRouter();
   const [query, setQuery] = useState("");
 
@@ -29,13 +39,18 @@ export function HeroSearch() {
     <div>
       <form
         role="search"
-        className="flex w-full max-w-xl gap-2"
+        className={`flex w-full max-w-2xl items-center gap-2 rounded-full border bg-surface p-1.5 pl-5 shadow-raised transition-colors ${
+          dark
+            ? "border-transparent focus-within:border-brand"
+            : "border-line-strong focus-within:border-primary"
+        }`}
         onSubmit={(event) => {
           event.preventDefault();
           const trimmed = query.trim();
           if (trimmed) go(trimmed);
         }}
       >
+        <Icon icon={Search} size="md" className="text-ink-subtle" />
         <label htmlFor="hero-search" className="sr-only">
           Search documents, courses and guides
         </label>
@@ -45,26 +60,34 @@ export function HeroSearch() {
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="What do you need? e.g. rent agreement"
-          className="min-w-0 flex-1 rounded-control border border-transparent bg-surface px-4 py-3 text-base text-ink placeholder:text-ink-subtle focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/40"
+          // No focus:outline-none — the global focus-visible outline stays;
+          // see the note in SiteSearch.
+          className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-ink-subtle"
         />
         <button
           type="submit"
-          className="shrink-0 rounded-control bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
+          className="h-11 shrink-0 rounded-full bg-brand px-6 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
         >
           Search
         </button>
       </form>
 
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wider text-ink-inverse-muted">
-          Popular
+      <div className="mt-5 flex flex-wrap items-center gap-2">
+        <span
+          className={`text-sm ${dark ? "text-ink-inverse-muted" : "text-ink-subtle"}`}
+        >
+          Popular:
         </span>
         {SUGGESTIONS.map((suggestion) => (
           <button
             key={suggestion}
             type="button"
             onClick={() => go(suggestion)}
-            className="rounded-full border border-ink-inverse-muted/30 px-3 py-1 text-xs font-medium text-ink-inverse-muted transition-colors hover:border-brand hover:text-brand"
+            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+              dark
+                ? "border-line-inverse text-ink-inverse-muted hover:border-ink-inverse-muted hover:text-ink-inverse"
+                : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
+            }`}
           >
             {suggestion}
           </button>

@@ -6,7 +6,7 @@ import {
   Badge,
   Button,
   EmptyState,
-  Loading,
+  SkeletonTable,
   TBody,
   TD,
   TH,
@@ -86,7 +86,8 @@ export function OrderList() {
     }
   };
 
-  if (isLoading) return <Loading label="Loading orders…" />;
+  if (isLoading)
+    return <SkeletonTable rows={6} columns={6} label="Loading orders…" />;
   if (error)
     return (
       <Alert tone="danger" role="alert">
@@ -110,12 +111,12 @@ export function OrderList() {
         </Alert>
       )}
 
-      <Table>
+      <Table label="Orders">
         <THead>
           <TR>
-            <TH>Placed</TH>
+            <TH secondary>Placed</TH>
             <TH>Customer</TH>
-            <TH>Item</TH>
+            <TH secondary>Item</TH>
             <TH align="right">Total</TH>
             <TH>Status</TH>
             <TH align="right">
@@ -126,11 +127,13 @@ export function OrderList() {
         <TBody>
           {orders.map((order) => (
             <TR key={order.id}>
-              <TD muted>
+              <TD secondary muted>
                 {new Date(order.createdAt).toLocaleDateString("en-IN")}
               </TD>
               <TD>{order.user.email ?? order.user.phone ?? order.userId}</TD>
-              <TD muted>{order.itemType}</TD>
+              <TD secondary muted>
+                {order.itemType}
+              </TD>
               {/* GST included — this is what actually left the customer. */}
               <TD align="right">
                 ₹{paiseToRupees(order.amount + order.gstAmount)}
@@ -139,23 +142,66 @@ export function OrderList() {
                 <Badge tone={STATUS_TONE[order.status]}>{order.status}</Badge>
               </TD>
               <TD align="right">
-                {order.status === "PAID" && canRefund(user?.role) && (
-                  // Brand red, reserved for the irreversible action on the
-                  // screen. Nothing else here is destructive.
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => void refund(order)}
-                    disabled={busyId === order.id}
-                  >
-                    {busyId === order.id ? "Refunding…" : "Refund"}
-                  </Button>
-                )}
+                <div className="flex items-center justify-end gap-3">
+                  {/* A refund doesn't remove the invoice — the sale happened.
+                      Reversing it is a credit note, which we don't issue yet. */}
+                  {(order.status === "PAID" || order.status === "REFUNDED") && (
+                    <InvoiceLink orderId={order.id} />
+                  )}
+                  {order.status === "PAID" && canRefund(user?.role) && (
+                    // Brand red, reserved for the irreversible action on the
+                    // screen. Nothing else here is destructive.
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={() => void refund(order)}
+                      loading={busyId === order.id}
+                      loadingLabel="Refunding…"
+                    >
+                      Refund
+                    </Button>
+                  )}
+                </div>
               </TD>
             </TR>
           ))}
         </TBody>
       </Table>
     </div>
+  );
+}
+
+/** Opens one order's invoice PDF, fetching its signed URL on click. */
+function InvoiceLink({ orderId }: { orderId: string }) {
+  const [state, setState] = useState<"idle" | "loading" | "error">("idle");
+
+  const open = async () => {
+    setState("loading");
+    try {
+      const invoice = await ordersApi.invoice(orderId);
+      window.open(invoice.downloadUrl, "_blank", "noopener,noreferrer");
+      setState("idle");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "error") {
+    return (
+      <span className="text-xs text-danger-text" role="alert">
+        No invoice
+      </span>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => void open()}
+      disabled={state === "loading"}
+      className="text-sm font-semibold text-primary hover:text-primary-hover disabled:opacity-50"
+    >
+      {state === "loading" ? "Opening…" : "Invoice"}
+    </button>
   );
 }

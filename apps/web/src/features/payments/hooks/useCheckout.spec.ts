@@ -42,6 +42,7 @@ describe("useCheckout", () => {
     jest.useFakeTimers();
     mockedApi.createOrder.mockResolvedValue(ORDER);
     mockedApi.listMine.mockResolvedValue(orderWithStatus("PENDING"));
+    mockedApi.confirm.mockResolvedValue({ id: "ord-1", status: "PENDING" });
     mockedOpenCheckout.mockImplementation((params) => {
       widget = params;
       return Promise.resolve();
@@ -118,15 +119,51 @@ describe("useCheckout", () => {
     expect(onPaid).toHaveBeenCalledTimes(1);
   });
 
-  it("reports failure when the server says the payment failed", async () => {
+  /**
+   * Checkout lets a customer retry after a declined card, on the same order.
+   * The declined attempt marks the order FAILED; the widget's success
+   * callback means the retry went through. Reading FAILED then as "your
+   * payment failed" would tell someone who has just paid that they haven't.
+   */
+  it("keeps waiting through a FAILED left by an earlier declined attempt", async () => {
     const view = await startPurchase();
 
     act(() => widget.onSuccess());
     mockedApi.listMine.mockResolvedValue(orderWithStatus("FAILED"));
     await tick(2000);
+    expect(view.result.current.status).toBe("confirming");
 
-    await waitFor(() => expect(view.result.current.status).toBe("failed"));
-    expect(view.result.current.error).toMatch(/didn't go through/i);
+    mockedApi.listMine.mockResolvedValue(orderWithStatus("PAID"));
+    await tick(2000);
+    await waitFor(() => expect(view.result.current.status).toBe("paid"));
+  });
+
+  // A lost webhook would otherwise leave the customer waiting for the
+  // ten-minute background sweep.
+  it("asks the server to check with Razorpay when confirmation is slow", async () => {
+    mockedApi.confirm.mockResolvedValue({ id: "ord-1", status: "PENDING" });
+    const view = await startPurchase();
+
+    act(() => widget.onSuccess());
+    await tick(8000);
+    expect(mockedApi.confirm).not.toHaveBeenCalled();
+
+    mockedApi.confirm.mockResolvedValue({ id: "ord-1", status: "PAID" });
+    await tick(4000);
+
+    expect(mockedApi.confirm).toHaveBeenCalledWith("ord-1");
+    await waitFor(() => expect(view.result.current.status).toBe("paid"));
+  });
+
+  it("asks Razorpay a few times, not on every poll", async () => {
+    mockedApi.confirm.mockResolvedValue({ id: "ord-1", status: "PENDING" });
+    await startPurchase();
+
+    act(() => widget.onSuccess());
+    for (let i = 0; i < 31; i++) await tick(2000);
+
+    // 10s, 30s and 50s into a 60s wait.
+    expect(mockedApi.confirm).toHaveBeenCalledTimes(3);
   });
 
   /**
