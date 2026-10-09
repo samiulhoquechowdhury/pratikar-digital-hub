@@ -60,6 +60,17 @@ export function cleanAnswer(text: string): string {
     .trim();
 }
 
+/** A random id for one chat. randomUUID needs a secure context; fall back. */
+function newConversationId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  const hex = Array.from({ length: 32 }, () =>
+    Math.floor(Math.random() * 16).toString(16),
+  ).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-4${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`;
+}
+
 /** The conversation as the API wants it: plain text, oldest first. */
 const toTurns = (messages: Message[], question: string): ChatTurn[] => [
   ...messages
@@ -102,6 +113,9 @@ export function AssistantChat({
   const logRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  // One id per chat, new on "Start over", so the questions in it read as one
+  // conversation in the assistant log. Made up here; says nothing about who.
+  const conversationRef = useRef<string>(newConversationId());
 
   useEffect(() => {
     if (autoFocus) inputRef.current?.focus();
@@ -195,6 +209,7 @@ export function AssistantChat({
           }
         },
         abort.signal,
+        conversationRef.current,
       )
       .catch((error: unknown) => {
         const reason = error instanceof ChatError ? error.reason : "failed";
@@ -219,6 +234,7 @@ export function AssistantChat({
   const startOver = () => {
     stop();
     setMessages([]);
+    conversationRef.current = newConversationId();
   };
 
   const started = messages.length > 0;

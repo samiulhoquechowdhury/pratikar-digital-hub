@@ -16,6 +16,7 @@ import { VoyageRateLimitedError } from "../knowledge-base/voyage-embedder.servic
 import { servedText } from "../served-text";
 
 import { ANTHROPIC_CLIENT } from "./anthropic.provider";
+import { AssistantLog } from "./assistant-log.service";
 import { SYSTEM_PROMPT, catalogueBlock, citedHits } from "./chat.prompt";
 import type { ChatTurnDto } from "./dto/chat.dto";
 
@@ -28,6 +29,14 @@ const DEFAULT_MODEL = "claude-opus-5-5";
  * can cost if someone asks for an essay.
  */
 const MAX_TOKENS = 4096;
+
+/** Who is asking, for the assistant log. Both optional: the chat is public. */
+export interface ChatContext {
+  /** The browser's id for this chat; nothing is logged without one. */
+  conversationId?: string;
+  /** Set when the visitor is signed in. */
+  userId?: string | null;
+}
 
 export interface ChatSource {
   sourceType: KnowledgeHit["sourceType"];
@@ -87,6 +96,7 @@ export class ChatService {
   constructor(
     @Inject(ANTHROPIC_CLIENT) private readonly client: Anthropic | null,
     private readonly search: KnowledgeBaseSearch,
+    private readonly log: AssistantLog,
   ) {}
 
   get isConfigured(): boolean {
@@ -98,7 +108,10 @@ export class ChatService {
    * one response. The site streams instead (streamAnswer); this stays for
    * callers that want the whole answer at once.
    */
-  async answer(turns: ChatTurnDto[]): Promise<ChatReply> {
+  async answer(
+    turns: ChatTurnDto[],
+    context: ChatContext = {},
+  ): Promise<ChatReply> {
     const { client, hits, params } = await this.prepare(turns);
 
     let response: Anthropic.Beta.BetaMessage;
@@ -107,7 +120,7 @@ export class ChatService {
     } catch (error) {
       throw toServiceError(error, this.logger);
     }
-    return this.finish(response, hits);
+    return this.finish(response, hits, turns, context);
   }
 
   /**
@@ -120,6 +133,7 @@ export class ChatService {
     turns: ChatTurnDto[],
     emit: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
+    context: ChatContext = {},
   ): Promise<void> {
     const { client, hits, params } = await this.prepare(turns);
 
@@ -153,7 +167,7 @@ export class ChatService {
       return;
     }
 
-    const reply = this.finish(response, hits);
+    const reply = this.finish(response, hits, turns, context);
     if (response.stop_reason === "refusal") emit({ type: "reset" });
     emit({ type: "done", ...reply });
   }
@@ -214,31 +228,50 @@ export class ChatService {
   private finish(
     response: Anthropic.Beta.BetaMessage,
     hits: KnowledgeHit[],
+    turns: ChatTurnDto[],
+    context: ChatContext,
   ): ChatReply {
     this.logger.log(
       `Answered with ${response.model}: ${response.usage.input_tokens} in, ${response.usage.output_tokens} out, ${hits.length} hits`,
     );
 
-    if (response.stop_reason === "refusal") {
-      return { answer: REFUSAL_ANSWER, sources: [], suggestDraft: false };
+    const refused = response.stop_reason === "refusal";
+    let reply: ChatReply;
+    if (refused) {
+      reply = { answer: REFUSAL_ANSWER, sources: [], suggestDraft: false };
+    } else {
+      const raw = servedText(response.content).trim();
+      const answer = raw.replace(DRAFT_MARKER, " ").trim();
+      reply = {
+        answer: answer || EMPTY_ANSWER,
+        suggestDraft: /\[draft\]/i.test(raw),
+        sources: citedHits(answer, hits).map((hit) => ({
+          sourceType: hit.sourceType,
+          sourceId: hit.sourceId,
+          title: hit.title,
+          href: hit.href,
+          priceInPaise: hit.priceInPaise,
+          kind: hit.kind,
+        })),
+      };
     }
 
-    const raw = servedText(response.content).trim();
-    const suggestDraft = /\[draft\]/i.test(raw);
-    const answer = raw.replace(DRAFT_MARKER, " ").trim();
-
-    return {
-      answer: answer || EMPTY_ANSWER,
-      suggestDraft,
-      sources: citedHits(answer, hits).map((hit) => ({
-        sourceType: hit.sourceType,
-        sourceId: hit.sourceId,
-        title: hit.title,
-        href: hit.href,
-        priceInPaise: hit.priceInPaise,
-        kind: hit.kind,
-      })),
-    };
+    // Kept only when the browser names the conversation; never awaited —
+    // the customer's answer doesn't wait on the log.
+    if (context.conversationId) {
+      void this.log.record({
+        conversationId: context.conversationId,
+        userId: context.userId ?? null,
+        question: turns.at(-1)!.content,
+        answer: reply.answer,
+        hitCount: hits.length,
+        cited: reply.sources.map((source) => source.title),
+        suggestedDraft: reply.suggestDraft,
+        refused,
+        model: response.model,
+      });
+    }
+    return reply;
   }
 }
 

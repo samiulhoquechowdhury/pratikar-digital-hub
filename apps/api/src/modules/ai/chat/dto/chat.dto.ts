@@ -5,6 +5,8 @@ import {
   IsArray,
   IsIn,
   IsNotEmpty,
+  IsOptional,
+  IsUUID,
   IsString,
   MaxLength,
   ValidateNested,
@@ -40,4 +42,13 @@ export class ChatRequestDto {
   @ValidateNested({ each: true })
   @Type(() => ChatTurnDto)
   messages!: ChatTurnDto[];
+
+  /**
+   * The browser's id for this chat, so its questions read as one
+   * conversation in the assistant log. A UUID it made up — nothing about
+   * the visitor. Left out, nothing is logged.
+   */
+  @IsOptional()
+  @IsUUID()
+  conversationId?: string;
 }

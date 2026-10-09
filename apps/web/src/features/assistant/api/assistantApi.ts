@@ -106,6 +106,8 @@ export const assistantApi = {
     turns: ChatTurn[],
     onEvent: (event: ChatStreamEvent) => void,
     signal?: AbortSignal,
+    /** This chat's id, so its questions read as one conversation in the log. */
+    conversationId?: string,
   ): Promise<void> => {
     const token = getAccessToken();
     let res: Response;
@@ -119,7 +121,10 @@ export const assistantApi = {
           Accept: "text/event-stream",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ messages: turns.slice(-CHAT_LIMITS.maxTurns) }),
+        body: JSON.stringify({
+          messages: turns.slice(-CHAT_LIMITS.maxTurns),
+          conversationId,
+        }),
       });
     } catch {
       if (signal?.aborted) return;

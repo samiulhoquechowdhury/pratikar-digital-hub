@@ -149,8 +149,10 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
       <p>
         We keep your account data while your account is open. Invoices and
         payment records are kept for as long as tax law requires, even if you
-        close your account. Other data is deleted or anonymised when it is no
-        longer needed for the purpose it was collected for.
+        close your account. Questions you ask the assistant are kept for 90
+        days, so we can see what people look for and add what is missing, then
+        deleted. Other data is deleted or anonymised when it is no longer needed
+        for the purpose it was collected for.
       </p>
     ),
   },

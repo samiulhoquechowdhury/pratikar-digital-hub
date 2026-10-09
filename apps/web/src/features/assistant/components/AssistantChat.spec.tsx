@@ -134,6 +134,34 @@ describe("AssistantChat", () => {
     ]);
   });
 
+  // One id per chat, so the assistant log can group its questions.
+  it("keeps one conversation id per chat, and starts a new one on Start over", async () => {
+    const done = {
+      type: "done" as const,
+      answer: "Ok.",
+      sources: [],
+      suggestDraft: false,
+    };
+    streams(done);
+    render(<AssistantChat />);
+    typeAndSend("one");
+    await screen.findByText("Ok.");
+    streams(done);
+    typeAndSend("two");
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(2));
+
+    const idOf = (call: number) => stream.mock.calls[call]![3];
+    expect(idOf(0)).toMatch(/^[0-9a-f-]{36}$/);
+    expect(idOf(1)).toBe(idOf(0));
+
+    await screen.findAllByText("Ok.");
+    fireEvent.click(screen.getByRole("button", { name: /Start over/ }));
+    streams(done);
+    typeAndSend("three");
+    await waitFor(() => expect(stream).toHaveBeenCalledTimes(3));
+    expect(idOf(2)).not.toBe(idOf(0));
+  });
+
   it("clears text a fallback replaced", async () => {
     streams(
       { type: "delta", text: "Half an ans" },
