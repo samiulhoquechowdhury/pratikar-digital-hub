@@ -56,6 +56,7 @@ function build({
     pushSubscription: { deleteMany: jest.fn() },
     notification: { deleteMany: jest.fn() },
     chatbotConversation: { deleteMany: jest.fn() },
+    assistantTurn: { deleteMany: jest.fn() },
     otpRequest: { deleteMany: jest.fn() },
     auditLog: { create: jest.fn() },
   };
@@ -100,6 +101,9 @@ describe("AccountPrivacyService.deleteAccount", () => {
     });
     expect(data.deletedAt).toBeInstanceOf(Date);
     expect(prisma.session.deleteMany).toHaveBeenCalledWith({
+      where: { userId: "u1" },
+    });
+    expect(prisma.assistantTurn.deleteMany).toHaveBeenCalledWith({
       where: { userId: "u1" },
     });
     expect(prisma.otpRequest.deleteMany).toHaveBeenCalledWith({

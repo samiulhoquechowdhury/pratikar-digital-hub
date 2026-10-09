@@ -82,6 +82,7 @@ export class AccountPrivacyService {
       enrollments,
       notifications,
       pushDevices,
+      assistantQuestions,
     ] = await Promise.all([
       this.prisma.session.findMany({
         where: { userId },
@@ -157,6 +158,11 @@ export class AccountPrivacyService {
         where: { userId },
         select: { userAgent: true, createdAt: true },
       }),
+      this.prisma.assistantTurn.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        select: { question: true, answer: true, createdAt: true },
+      }),
     ]);
 
     return {
@@ -174,6 +180,7 @@ export class AccountPrivacyService {
       })),
       notifications,
       notificationDevices: pushDevices,
+      assistantQuestions,
     };
   }
 
@@ -183,7 +190,7 @@ export class AccountPrivacyService {
    *   cleared   name, email, phone, billing address; every document's
    *             answers, brief and draft, and its files; advocates' notes
    *             and reviewed files; notifications, push devices, sessions,
-   *             sign-in codes, assistant conversations
+   *             sign-in codes, questions asked to the assistant
    *   kept      orders, invoices, credit notes (tax law), and course
    *             progress and certificates — no longer linked to a name
    *
@@ -269,6 +276,7 @@ export class AccountPrivacyService {
       await tx.pushSubscription.deleteMany({ where: { userId } });
       await tx.notification.deleteMany({ where: { userId } });
       await tx.chatbotConversation.deleteMany({ where: { userId } });
+      await tx.assistantTurn.deleteMany({ where: { userId } });
       if (identifiers.length > 0) {
         await tx.otpRequest.deleteMany({
           where: { identifier: { in: identifiers } },

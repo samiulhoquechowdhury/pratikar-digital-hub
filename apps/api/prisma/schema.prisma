@@ -57,6 +57,7 @@ model User {
   auditLogEntries    AuditLog[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
+  assistantTurns     AssistantTurn[]
 
   @@index([role])
 }
@@ -609,6 +610,35 @@ model ChatbotConversation {
 
   user User? @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+}
+
+/// One question to the site assistant and its answer. Kept to learn what
+/// customers ask — above all what they ask for that the catalogue doesn't
+/// have — and deleted after 90 days (AssistantLogRetentionProcessor).
+model AssistantTurn {
+  id             String   @id @default(uuid())
+  /// Chosen by the browser for one chat, so a conversation reads as one.
+  conversationId String
+  /// Null for a visitor who isn't signed in.
+  userId         String?
+  question       String
+  answer         String
+  /// Catalogue items found for the question, and how many the answer used.
+  hitCount       Int
+  citedCount     Int
+  /// Titles of the items the answer recommended.
+  cited          Json
+  /// The answer offered custom drafting — nothing in the catalogue fitted.
+  suggestedDraft Boolean  @default(false)
+  refused        Boolean  @default(false)
+  model          String?
+  createdAt      DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([conversationId])
   @@index([userId])
 }
 

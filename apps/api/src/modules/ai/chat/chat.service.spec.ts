@@ -64,14 +64,16 @@ describe("ChatService", () => {
       isConfigured: searchConfigured,
       search: jest.fn().mockResolvedValue(hits),
     };
+    const log = { record: jest.fn(() => Promise.resolve()) };
     const service = new ChatService(
       client as Anthropic | null,
       search as unknown as KnowledgeBaseSearch,
+      log as never,
     );
     const create = (
       client as { beta: { messages: { create: CreateMock } } } | null
     )?.beta.messages.create;
-    return { service, search, create };
+    return { service, search, create, log };
   };
 
   const ask = (content: string) => [{ role: "user" as const, content }];
@@ -163,6 +165,55 @@ describe("ChatService", () => {
         kind: "Document template",
       },
     ]);
+  });
+
+  describe("the assistant log", () => {
+    type Logged = {
+      question: string;
+      cited: string[];
+      suggestedDraft: boolean;
+      refused: boolean;
+      userId: string | null;
+    };
+    const logged = (log: { record: jest.Mock }) =>
+      (log.record.mock.calls[0] as [Logged])[0];
+
+    it("records the question, what was found and what was recommended", async () => {
+      const { service, create, log } = build();
+      create!.mockResolvedValue(reply("Try [1]."));
+
+      await service.answer(ask("rent agreement"), {
+        conversationId: "c1",
+        userId: "u1",
+      });
+
+      expect(logged(log)).toMatchObject({
+        question: "rent agreement",
+        cited: ["Rent Agreement"],
+        suggestedDraft: false,
+        refused: false,
+        userId: "u1",
+      });
+    });
+
+    it("records a refusal as one", async () => {
+      const { service, create, log } = build();
+      create!.mockResolvedValue(reply("", "refusal"));
+
+      await service.answer(ask("x"), { conversationId: "c1" });
+
+      expect(logged(log).refused).toBe(true);
+    });
+
+    // A caller that doesn't name the conversation isn't logged.
+    it("records nothing without a conversation id", async () => {
+      const { service, create, log } = build();
+      create!.mockResolvedValue(reply("Try [1]."));
+
+      await service.answer(ask("rent"));
+
+      expect(log.record).not.toHaveBeenCalled();
+    });
   });
 
   it("turns the [draft] marker into the custom-draft offer", async () => {

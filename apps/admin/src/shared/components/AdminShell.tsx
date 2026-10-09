@@ -25,6 +25,11 @@ const NAV: { href: string; label: string; hint: string }[] = [
     label: "Review queue",
     hint: "Documents awaiting review",
   },
+  {
+    href: "/assistant",
+    label: "Assistant insights",
+    hint: "What customers ask",
+  },
   { href: "/orders", label: "Orders", hint: "Payments and refunds" },
   { href: "/users", label: "Users", hint: "Accounts and roles" },
 ];
