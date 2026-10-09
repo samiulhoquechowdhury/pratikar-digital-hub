@@ -175,7 +175,9 @@ export const PRIVACY_SECTIONS: LegalSection[] = [
           </li>
         </ul>
         <p>
-          To use any of these rights, write to our Grievance Officer (below).
+          You can download a copy of your data, or delete your account, at any
+          time from Account settings. For anything else, write to our Grievance
+          Officer (below).
         </p>
       </>
     ),

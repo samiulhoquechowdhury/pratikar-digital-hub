@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
@@ -93,6 +94,20 @@ export class StorageService {
     const filePath = path.join(this.localDir, key);
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, body);
+  }
+
+  /**
+   * Deletes one object. Deleting one that isn't there is not an error, in
+   * either backend — the caller wanted it gone, and it is.
+   */
+  async remove(key: string): Promise<void> {
+    if (this.r2) {
+      await this.r2.send(
+        new DeleteObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      return;
+    }
+    fs.rmSync(path.join(this.localDir, key), { force: true });
   }
 
   /**

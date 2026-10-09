@@ -42,6 +42,10 @@ model User {
   pincode     String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  /// Set when the customer erased their account (DPDP Act s12). The row
+  /// stays — orders and invoices must, by tax law, and they point at it —
+  /// but every personal field on it has been cleared.
+  deletedAt   DateTime?
 
   sessions           Session[]
   generatedDocuments GeneratedDocument[]

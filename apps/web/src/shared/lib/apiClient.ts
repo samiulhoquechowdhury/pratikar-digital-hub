@@ -49,4 +49,11 @@ export const apiClient = {
       method: "PUT",
       body: body ? JSON.stringify(body) : undefined,
     }),
+  // `del` rather than `delete`, a reserved word. Takes a body: erasing an
+  // account carries its typed confirmation.
+  del: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: "DELETE",
+      body: body ? JSON.stringify(body) : undefined,
+    }),
 };
