@@ -5,6 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 import { authApi } from "@/features/auth/api/authApi";
 
+import { onSessionChange, refreshSession } from "../lib/apiClient";
 import { setAccessToken } from "../lib/authToken";
 import { isStaff } from "../lib/staff";
 
@@ -46,29 +47,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false;
 
-    authApi
-      .refresh()
-      .then((session) => {
-        if (cancelled) return;
-        // The same staff check `login` applies. A CUSTOMER can hold a
-        // perfectly valid refresh cookie from the storefront — same auth
-        // system, same cookie domain in development — and restoring it here
-        // would drop them into a shell where every request 403s.
-        if (!isStaff(session.user)) return;
-        setAccessToken(session.accessToken);
-        setUser(session.user);
-      })
-      // No cookie, or an expired or revoked one. That is the ordinary state
-      // for anyone arriving at the sign-in screen, not an error to surface.
-      .catch(() => undefined)
-      .finally(() => {
-        if (!cancelled) setIsRestoring(false);
-      });
+    // No cookie, or an expired or revoked one, is the ordinary state for
+    // anyone arriving at the sign-in screen, not an error to surface.
+    void refreshSession().then((result) => {
+      if (cancelled) return;
+      // The same staff check `login` applies. A CUSTOMER can hold a
+      // perfectly valid refresh cookie from the storefront — same auth
+      // system, same cookie domain in development — and restoring it here
+      // would drop them into a shell where every request 403s.
+      if (result.kind === "session" && isStaff(result.session.user)) {
+        setUser(result.session.user);
+      } else if (result.kind === "session") {
+        setAccessToken(null);
+      }
+      setIsRestoring(false);
+    });
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  /**
+   * Later refreshes — apiClient renews the 15-minute access token when it
+   * expires mid-review — keep the panel in step: a session that has ended
+   * signs out here, and so does an account that is no longer staff, since
+   * the role is re-read from the database on every refresh.
+   */
+  useEffect(
+    () =>
+      onSessionChange((session) => {
+        if (session && isStaff(session.user)) {
+          setUser(session.user);
+          return;
+        }
+        setAccessToken(null);
+        setUser(null);
+      }),
+    [],
+  );
 
   const value = useMemo<AuthContextValue>(
     () => ({
