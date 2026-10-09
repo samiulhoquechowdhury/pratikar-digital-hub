@@ -34,6 +34,26 @@ pnpm dev
 - Admin: http://localhost:3001
 - API: http://localhost:4000
 
+## Going live
+
+1. Set the API's environment on the host (every variable is described in
+   `apps/api/.env.example`). In production the API refuses to start while
+   `JWT_ACCESS_SECRET`, `OTP_HMAC_SECRET` or `STORAGE_URL_SECRET` is missing
+   or left at the development value, and says which.
+2. Deploy. Railway checks `GET /health` (database and Redis) before routing
+   traffic.
+3. Open **Admin → Launch checklist**: every service tried for real and every
+   setting checked, with what to do about anything that isn't right. Fix
+   everything marked "Must fix".
+4. From any machine:
+
+   ```sh
+   pnpm smoke https://<api-address> https://<site-address>
+   # add ADMIN_TOKEN=<an admin's access token> to include the checklist
+   ```
+
+   It exits non-zero if anything a customer depends on is broken.
+
 ## Stack
 
 Next.js · NestJS (modular monolith) · PostgreSQL · Redis + BullMQ ·

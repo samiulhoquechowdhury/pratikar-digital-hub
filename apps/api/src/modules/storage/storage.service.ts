@@ -97,6 +97,20 @@ export class StorageService {
   }
 
   /**
+   * Whether files can be stored where they'll last: "r2" when the bucket
+   * answers, "local" when there's no R2 and they go to this server's disk
+   * (gone on the next deploy). Throws when R2 is configured but unreachable.
+   * Asks for one key, not a listing — the bucket holds thousands.
+   */
+  async probe(): Promise<"r2" | "local"> {
+    if (!this.r2) return "local";
+    await this.r2.send(
+      new ListObjectsV2Command({ Bucket: this.bucket, MaxKeys: 1 }),
+    );
+    return "r2";
+  }
+
+  /**
    * Deletes one object. Deleting one that isn't there is not an error, in
    * either backend — the caller wanted it gone, and it is.
    */

@@ -32,6 +32,7 @@ const NAV: { href: string; label: string; hint: string }[] = [
   },
   { href: "/orders", label: "Orders", hint: "Payments and refunds" },
   { href: "/users", label: "Users", hint: "Accounts and roles" },
+  { href: "/launch", label: "Launch checklist", hint: "Is the site ready?" },
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
