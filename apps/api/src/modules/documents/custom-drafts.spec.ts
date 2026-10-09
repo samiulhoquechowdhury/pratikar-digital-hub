@@ -10,7 +10,7 @@ import { Role } from "@pratikar/types";
 import type { PrismaService } from "../../prisma/prisma.service";
 import { AuditService } from "../audit/audit.service";
 
-import { customDraftReviewPrice, documentTitle } from "./custom-draft";
+import { documentTitle } from "./custom-draft";
 import { DocumentsService } from "./documents.service";
 
 /**
@@ -46,6 +46,7 @@ function build(prisma: Record<string, unknown>, aiConfigured = true) {
     { reindex: jest.fn() } as never,
     { isConfigured: aiConfigured } as never,
     notifier as never,
+    { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
   );
   return { service, queue, storage, notifier, db };
 }
@@ -306,13 +307,6 @@ describe("the reviewed download", () => {
 });
 
 describe("custom draft helpers", () => {
-  it("prices the review from the environment, never at zero", () => {
-    expect(customDraftReviewPrice("79900")).toBe(79_900);
-    expect(customDraftReviewPrice("0")).toBe(49_900);
-    expect(customDraftReviewPrice("abc")).toBe(49_900);
-    expect(customDraftReviewPrice(undefined)).toBe(49_900);
-  });
-
   it("titles a document from its template, else its draft", () => {
     expect(documentTitle({ template: { title: "Rent" }, title: null })).toBe(
       "Rent",

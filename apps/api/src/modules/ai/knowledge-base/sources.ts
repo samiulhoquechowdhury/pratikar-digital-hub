@@ -16,8 +16,8 @@ import type { ContentCategory, ContentType } from "@prisma/client";
  * says.
  */
 
-/** docs/trd.md's faq and policy join this once there is content for them. */
-export type KnowledgeSourceType = "template" | "course" | "content";
+/** docs/trd.md's "policy" joins this once there is content for it. */
+export type KnowledgeSourceType = "template" | "course" | "content" | "faq";
 
 export interface KnowledgeSourceRef {
   sourceType: KnowledgeSourceType;
@@ -108,6 +108,23 @@ export function describeContentItem(item: {
     item.title,
     CONTENT_TYPE[item.type],
     `Content library section: ${humanize(item.category)}.`,
+  ].join("\n");
+}
+
+/**
+ * A published FAQ entry. The answer is the point — it's what the assistant
+ * repeats when asked how downloads, GST or reviews work — so it goes in
+ * whole, under its question and the topic it's filed under.
+ */
+export function describeFaq(faq: {
+  question: string;
+  answer: string;
+  category: string;
+}): string {
+  return [
+    faq.question,
+    `A question from the site's FAQ, about ${faq.category.toLowerCase()}.`,
+    faq.answer,
   ].join("\n");
 }
 

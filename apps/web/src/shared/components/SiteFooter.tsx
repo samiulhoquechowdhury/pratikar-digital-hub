@@ -34,6 +34,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
     {
       heading: "Help",
       links: [
+        { href: "/faq", label: "FAQ" },
         { href: "/assistant", label: "Ask the AI assistant" },
         { href: "/verify", label: "Verify a certificate" },
         { href: "/contact", label: "Contact us" },

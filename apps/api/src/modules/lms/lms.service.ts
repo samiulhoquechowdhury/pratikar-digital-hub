@@ -673,6 +673,61 @@ export class LmsService {
   }
 
   /** Public endpoint (docs/srs.md Section 7, item 5) — no auth required. */
+  /**
+   * Enrolment numbers for every course, for the admin's course list. Counted
+   * in the database rather than by loading enrolments: a popular course has
+   * thousands. Revenue is what was paid (with GST) and not refunded.
+   */
+  async courseStats(now = new Date()) {
+    const [total, active, completed, certificates, revenue] = await Promise.all(
+      [
+        this.prisma.enrollment.groupBy({ by: ["courseId"], _count: true }),
+        this.prisma.enrollment.groupBy({
+          by: ["courseId"],
+          where: { expiresAt: { gt: now } },
+          _count: true,
+        }),
+        this.prisma.enrollment.groupBy({
+          by: ["courseId"],
+          where: { completedAt: { not: null } },
+          _count: true,
+        }),
+        this.prisma.certificate.findMany({
+          select: { enrollment: { select: { courseId: true } } },
+        }),
+        this.prisma.order.groupBy({
+          by: ["courseId"],
+          where: {
+            itemType: "COURSE",
+            status: "PAID",
+            courseId: { not: null },
+          },
+          _sum: { amount: true, gstAmount: true },
+        }),
+      ],
+    );
+    const count = (rows: { courseId: string; _count: number }[], id: string) =>
+      rows.find((row) => row.courseId === id)?._count ?? 0;
+
+    const ids = new Set([
+      ...total.map((row) => row.courseId),
+      ...revenue.flatMap((row) => (row.courseId ? [row.courseId] : [])),
+    ]);
+    return [...ids].map((courseId) => {
+      const paid = revenue.find((row) => row.courseId === courseId)?._sum;
+      return {
+        courseId,
+        enrollments: count(total, courseId),
+        active: count(active, courseId),
+        completed: count(completed, courseId),
+        certificates: certificates.filter(
+          (c) => c.enrollment.courseId === courseId,
+        ).length,
+        revenuePaise: (paid?.amount ?? 0) + (paid?.gstAmount ?? 0),
+      };
+    });
+  }
+
   async verifyCertificate(verificationCode: string) {
     const certificate = await this.prisma.certificate.findUnique({
       where: { verificationCode },

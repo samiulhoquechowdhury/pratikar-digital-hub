@@ -5,39 +5,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
+import { sectionsFor } from "@/shared/lib/sections";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
-/**
- * Sidebar rather than the customer site's top bar. Staff move between sections
- * constantly and the section list is long enough that a horizontal nav would
- * either wrap or hide things behind a menu.
+/*
+ * Sidebar rather than the customer site's top bar. Staff move between
+ * sections constantly and the section list is long enough that a horizontal
+ * nav would either wrap or hide things behind a menu. Each role sees only
+ * the sections it may use (shared/lib/sections.ts).
  */
-const NAV: { href: string; label: string; hint: string }[] = [
-  { href: "/templates", label: "Templates", hint: "Document templates" },
-  {
-    href: "/content-library",
-    label: "Content library",
-    hint: "E-books, checklists",
-  },
-  { href: "/courses", label: "Courses", hint: "Courses and modules" },
-  {
-    href: "/reviews",
-    label: "Review queue",
-    hint: "Documents awaiting review",
-  },
-  {
-    href: "/assistant",
-    label: "Assistant insights",
-    hint: "What customers ask",
-  },
-  { href: "/orders", label: "Orders", hint: "Payments and refunds" },
-  { href: "/users", label: "Users", hint: "Accounts and roles" },
-  { href: "/launch", label: "Launch checklist", hint: "Is the site ready?" },
-];
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
+  const NAV = sectionsFor(user?.role);
 
   const isActive = (href: string) =>
     pathname === href || pathname.startsWith(`${href}/`);

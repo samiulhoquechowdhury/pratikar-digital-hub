@@ -16,6 +16,7 @@ Your job is to understand what they need and point them to the right things on t
 How to answer:
 - Each question arrives with a <catalogue> block listing the items that best match it, numbered [1], [2] and so on, each with its kind (course, document template, legal form, checklist, e-book). Recommend only items from that block, and cite each one you mention with its number, like [2]. Never mention an item that is not in the block — the site cannot sell it, and a customer who goes looking for it will not find it.
 - When several kinds fit, suggest them in this order: a course that teaches the subject, then a document template or legal form that does the job, then an e-book or checklist for reading up. Suggest only what genuinely fits; two good items beat five loose ones.
+- Entries marked "FAQ answer" are this site's own answers to common questions about how it works — downloads, payments, GST, reviews, accounts. When a question is about how the site works, answer from them and cite them like any item; they are free to read and have no price.
 - Quote a price only from the block. Prices there exclude 18% GST; say so if you give one. Prices change, and the block is the current one.
 - If the customer needs a document and nothing in the block is that document, offer the custom drafting service: say that it can draft the document from their description and an advocate reviews it before download, and end your answer with the marker [draft] on its own. Use the marker only for that offer.
 - If nothing fits at all, say so plainly and suggest browsing or rephrasing. A wrong recommendation costs the customer money; "we don't have that" costs them nothing.
@@ -28,9 +29,10 @@ export function catalogueBlock(hits: KnowledgeHit[]): string {
   if (hits.length === 0) {
     return "<catalogue>\nNo items matched this question.\n</catalogue>";
   }
-  const entries = hits.map(
-    (hit, index) =>
-      `[${index + 1}] ${hit.title} (${hit.kind}) — ₹${(hit.priceInPaise / 100).toFixed(2)} + GST\n${hit.content}`,
+  const entries = hits.map((hit, index) =>
+    hit.sourceType === "faq"
+      ? `[${index + 1}] ${hit.title} (FAQ answer)\n${hit.content}`
+      : `[${index + 1}] ${hit.title} (${hit.kind}) — ₹${(hit.priceInPaise / 100).toFixed(2)} + GST\n${hit.content}`,
   );
   return `<catalogue>\n${entries.join("\n\n")}\n</catalogue>`;
 }

@@ -489,22 +489,27 @@ function SourceCard({ source }: { source: ChatSource }) {
       >
         {source.title}
       </Link>
-      <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
-        <span className="font-semibold tabular-nums text-ink">
-          {formatPaise(grossPaise(source.priceInPaise))}
-        </span>
-        <span className="text-ink-subtle">incl. GST</span>
-        {source.sourceType === "template" && (
-          // A template can be filled in by conversation too: straight into
-          // that tab, so the conversation carries on where it started.
-          <Link
-            href={`${source.href}?fill=chat`}
-            className="font-medium text-primary hover:underline"
-          >
-            Fill in by chat
-          </Link>
-        )}
-      </p>
+      {source.sourceType === "faq" ? (
+        // An FAQ answer is free to read; it has no price to show.
+        <p className="mt-1.5 text-xs text-ink-subtle">From our FAQ</p>
+      ) : (
+        <p className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <span className="font-semibold tabular-nums text-ink">
+            {formatPaise(grossPaise(source.priceInPaise))}
+          </span>
+          <span className="text-ink-subtle">incl. GST</span>
+          {source.sourceType === "template" && (
+            // A template can be filled in by conversation too: straight into
+            // that tab, so the conversation carries on where it started.
+            <Link
+              href={`${source.href}?fill=chat`}
+              className="font-medium text-primary hover:underline"
+            >
+              Fill in by chat
+            </Link>
+          )}
+        </p>
+      )}
     </div>
   );
 }

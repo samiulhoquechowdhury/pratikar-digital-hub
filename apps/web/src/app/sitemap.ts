@@ -17,6 +17,7 @@ const STATIC_PATHS = [
   "/content-library",
   "/verify",
   "/assistant",
+  "/faq",
   "/terms",
   "/privacy",
   "/refunds",

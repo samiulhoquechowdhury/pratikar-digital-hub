@@ -5,52 +5,8 @@ import Link from "next/link";
 
 import { AnalyticsDashboard } from "@/features/analytics";
 import { RequireStaff } from "@/shared/components/RequireStaff";
+import { sectionsFor } from "@/shared/lib/sections";
 import { useAuth } from "@/shared/providers/AuthProvider";
-
-/**
- * Which sections a role can actually use. This mirrors the @Roles decorators
- * on the API controllers — it is presentation only and the API re-checks every
- * call, but showing a Content Manager a Users card that 403s is a worse
- * experience than not showing it.
- */
-const SECTIONS = [
-  {
-    href: "/templates",
-    title: "Templates",
-    body: "Create and edit document templates, including the field schema customers fill in.",
-    roles: ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    href: "/content-library",
-    title: "Content library",
-    body: "Publish e-books and checklists, and set their prices.",
-    roles: ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    href: "/courses",
-    title: "Courses",
-    body: "Manage courses, module order, and access duration.",
-    roles: ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    href: "/reviews",
-    title: "Review queue",
-    body: "Claim documents awaiting a lawyer review and return them with comments.",
-    roles: ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    href: "/orders",
-    title: "Orders",
-    body: "Every order placed, with refunds for Admins and above.",
-    roles: ["SUPPORT", "ADMIN", "SUPER_ADMIN"],
-  },
-  {
-    href: "/users",
-    title: "Users",
-    body: "Accounts and role changes.",
-    roles: ["SUPPORT", "ADMIN", "SUPER_ADMIN"],
-  },
-];
 
 /** Mirrors @Roles on GET /admin/analytics. */
 const ANALYTICS_ROLES = ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"];
@@ -58,7 +14,7 @@ const ANALYTICS_ROLES = ["CONTENT_MANAGER", "ADMIN", "SUPER_ADMIN"];
 function AdminHome() {
   const { user } = useAuth();
   const role = user?.role ?? "";
-  const available = SECTIONS.filter((section) => section.roles.includes(role));
+  const available = sectionsFor(user?.role);
 
   return (
     <>
@@ -82,7 +38,7 @@ function AdminHome() {
                     href={section.href}
                     className="text-ink hover:text-primary"
                   >
-                    {section.title}
+                    {section.label}
                   </Link>
                 </h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">

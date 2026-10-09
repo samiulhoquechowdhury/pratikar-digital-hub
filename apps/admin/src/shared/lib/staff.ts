@@ -14,14 +14,13 @@ import { Role } from "@pratikar/types";
  * role-guarded on the API, which rejects a non-staff token no matter what the
  * browser chooses to render.
  *
- * NOTE: Role.SUPPORT is deliberately absent, matching the behaviour that was
- * here before. It is worth questioning — the API grants SUPPORT read access to
- * orders and users (see PaymentsController and UsersController), so a support
- * agent can be authorised for data they have no screen to view. Widening this
- * is an access-control decision, not a cleanup, so it is flagged rather than
- * taken: docs/TECH_DEBT.md.
+ * Support is in: the requirements give Support staff the customer accounts
+ * and orders, to answer tickets (docs/srs.md 2 and 6), and the API has
+ * granted it read access to both all along. What each role may open once
+ * inside is decided per section — see sections.ts.
  */
 export const STAFF_ROLES: readonly Role[] = [
+  Role.SUPPORT,
   Role.CONTENT_MANAGER,
   Role.ADMIN,
   Role.SUPER_ADMIN,

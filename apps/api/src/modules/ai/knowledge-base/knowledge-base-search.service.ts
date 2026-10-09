@@ -64,6 +64,7 @@ const CONTENT_KIND: Record<string, string> = {
 function kindOf(sourceType: KnowledgeSourceType, contentType?: string): string {
   if (sourceType === "template") return "Document template";
   if (sourceType === "course") return "Course";
+  if (sourceType === "faq") return "FAQ";
   return (contentType && CONTENT_KIND[contentType]) ?? "Library item";
 }
 
@@ -71,6 +72,7 @@ const HREF: Record<KnowledgeSourceType, (id: string) => string> = {
   template: (id) => `/documents/${id}`,
   course: (id) => `/courses/${id}`,
   content: (id) => `/content-library/${id}`,
+  faq: (id) => `/faq#${id}`,
 };
 
 /**
@@ -168,7 +170,7 @@ export class KnowledgeBaseSearch {
     });
     const select = { id: true, title: true, priceInPaise: true } as const;
 
-    const [templates, courses, items] = await Promise.all([
+    const [templates, courses, items, faqs] = await Promise.all([
       ids("template").length
         ? this.prisma.template.findMany({ where: where("template"), select })
         : [],
@@ -181,6 +183,12 @@ export class KnowledgeBaseSearch {
             select: { ...select, type: true },
           })
         : [],
+      ids("faq").length
+        ? this.prisma.faq.findMany({
+            where: { id: { in: ids("faq") }, published: true },
+            select: { id: true, question: true },
+          })
+        : [],
     ]);
 
     const rows = new Map<
@@ -190,6 +198,10 @@ export class KnowledgeBaseSearch {
     templates.forEach((r) => rows.set(`template:${r.id}`, r));
     courses.forEach((r) => rows.set(`course:${r.id}`, r));
     items.forEach((r) => rows.set(`content:${r.id}`, r));
+    // An FAQ entry is free to read: its "title" is the question, price 0.
+    faqs.forEach((r) =>
+      rows.set(`faq:${r.id}`, { title: r.question, priceInPaise: 0 }),
+    );
     return rows;
   }
 }

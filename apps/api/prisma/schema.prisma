@@ -705,6 +705,38 @@ model PushSubscription {
 }
 
 // ---------------------------------------------------------------------------
+// Site content and settings
+// ---------------------------------------------------------------------------
+
+/// One question on the public FAQ page. Published entries are also in the
+/// assistant's knowledge base, so it answers "how do downloads work?" from
+/// the same words the page shows.
+model Faq {
+  id        String   @id @default(uuid())
+  question  String
+  answer    String
+  /// A heading on the FAQ page, e.g. "Documents", "Payments".
+  category  String
+  /// Position within its category, lowest first.
+  order     Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([published, category, order])
+}
+
+/// Settings staff change in the admin panel rather than by redeploying:
+/// the certificate's wording, the custom-draft review price. One row per
+/// setting; the value's shape is defined in SettingsService.
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
 // Admin / Audit
 // ---------------------------------------------------------------------------
 

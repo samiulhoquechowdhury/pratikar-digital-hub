@@ -23,6 +23,10 @@ export const AuditAction = {
   COURSE_MODULES_REPLACED: "COURSE_MODULES_REPLACED",
   /** A customer erased their own account (DPDP Act s12). */
   ACCOUNT_DELETED: "ACCOUNT_DELETED",
+  SETTINGS_UPDATED: "SETTINGS_UPDATED",
+  FAQ_CREATED: "FAQ_CREATED",
+  FAQ_UPDATED: "FAQ_UPDATED",
+  FAQ_DELETED: "FAQ_DELETED",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -34,6 +38,8 @@ export const AuditTargetType = {
   DOCUMENT_REVIEW: "DOCUMENT_REVIEW",
   CONTENT_ITEM: "CONTENT_ITEM",
   COURSE: "COURSE",
+  SETTING: "SETTING",
+  FAQ: "FAQ",
 } as const;
 
 export type AuditTargetType =
