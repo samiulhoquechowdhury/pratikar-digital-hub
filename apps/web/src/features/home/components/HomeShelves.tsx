@@ -30,6 +30,7 @@ const SHELF_SIZE = 4;
  * and the section's own page says what went wrong if someone goes looking.
  */
 function Shelf({
+  eyebrow,
   title,
   description,
   href,
@@ -38,6 +39,7 @@ function Shelf({
   isEmpty,
   children,
 }: {
+  eyebrow: string;
   title: string;
   description: string;
   href: string;
@@ -52,12 +54,18 @@ function Shelf({
     <section className="mx-auto max-w-shell px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-2xl">
-          <h2 className="text-2xl font-semibold">{title}</h2>
+          <p className="inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.18em] text-gold-ink">
+            <span aria-hidden className="h-px w-8 bg-current" />
+            {eyebrow}
+          </p>
+          <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-ink">
+            {title}
+          </h2>
           <p className="mt-2 text-base text-ink-muted">{description}</p>
         </div>
         <Link
           href={href}
-          className="group inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-hover"
+          className="group inline-flex items-center gap-1.5 rounded-xl border border-line-strong bg-surface px-4 py-2.5 text-sm font-semibold text-primary shadow-card transition-colors hover:border-primary"
         >
           {linkLabel}
           <Icon
@@ -85,6 +93,7 @@ export function TemplateShelf() {
   const { templates, isLoading, error } = useTemplates();
   return (
     <Shelf
+      eyebrow="Ready templates"
       title="Popular documents"
       description="Answer a few questions, then pay and download."
       href="/documents"
@@ -114,6 +123,7 @@ export function CourseShelf() {
   const { courses, isLoading, error } = useCourses();
   return (
     <Shelf
+      eyebrow="Courses"
       title="Courses with a certificate"
       description="Video courses that end in a certificate with a code anyone can check — an employer, a client, or a registrar."
       href="/courses"
@@ -134,6 +144,7 @@ export function LibraryShelf() {
   const { items, isLoading, error } = useContentLibrary();
   return (
     <Shelf
+      eyebrow="The library"
       title="From the library"
       description="E-books, checklists and forms. Buy once and download whenever you need it."
       href="/content-library"

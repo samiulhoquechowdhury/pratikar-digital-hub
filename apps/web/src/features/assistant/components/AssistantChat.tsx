@@ -101,9 +101,16 @@ export function AssistantChat({
    */
   className = "h-[min(70vh,44rem)] rounded-card border border-line shadow-card",
   autoFocus = false,
+  initialQuestion,
 }: {
   className?: string;
   autoFocus?: boolean;
+  /**
+   * A question to ask straight away — the home page's "Ask a question"
+   * search arrives here as /assistant?q=…. Asked once the assistant is
+   * known to be live; otherwise left in the box.
+   */
+  initialQuestion?: string;
 } = {}) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
@@ -128,15 +135,24 @@ export function AssistantChat({
     assistantApi
       .status()
       .then(({ assistant }) => {
-        if (!cancelled && !assistant) setOffline(true);
+        if (cancelled) return;
+        if (!assistant) {
+          setOffline(true);
+          if (initialQuestion) setDraft(initialQuestion);
+        } else if (initialQuestion) {
+          send(initialQuestion);
+        }
       })
       .catch(() => {
-        // Unknown: let the first question find out.
+        // Unknown: let the first question find out — so leave theirs ready.
+        if (!cancelled && initialQuestion) setDraft(initialQuestion);
       });
     return () => {
       cancelled = true;
       abortRef.current?.abort();
     };
+    // Once, on mount: the question in the address is asked a single time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Keep the newest message in view, but never fight someone who has scrolled

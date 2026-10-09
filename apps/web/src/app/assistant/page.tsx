@@ -30,7 +30,13 @@ const LIMITS = [
   },
 ];
 
-export default function AssistantPage() {
+export default async function AssistantPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  // From the home page's "Ask a question": asked as soon as the chat opens.
+  const question = (await searchParams).q?.trim().slice(0, 2000) || undefined;
   return (
     <>
       <PageIntro
@@ -41,7 +47,7 @@ export default function AssistantPage() {
 
       <section className="mx-auto max-w-shell px-4 pb-12 sm:px-6 lg:px-8">
         <div className="max-w-4xl">
-          <AssistantChat />
+          <AssistantChat initialQuestion={question} />
         </div>
       </section>
 

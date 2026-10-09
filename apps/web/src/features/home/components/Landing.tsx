@@ -2,11 +2,8 @@ import type { ContentCategory } from "@pratikar/types";
 import {
   ArrowRight,
   BadgeCheck,
-  BookOpen,
   Briefcase,
-  FileSignature,
   FileText,
-  GraduationCap,
   House,
   IndianRupee,
   KeyRound,
@@ -22,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Icon } from "@/shared/components/Icon";
 import { COURSES_LIVE } from "@/shared/lib/features";
@@ -30,331 +28,298 @@ import { categoryHref, shelfHref } from "@/shared/lib/navigation";
 
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
-import { HeroSearch } from "./HeroSearch";
-import { HeroVisual } from "./HeroVisual";
+import {
+  ChecklistArt,
+  CourseArt,
+  DraftingArt,
+  FormArt,
+  LibraryArt,
+  PhoneChatArt,
+  Seal,
+  ShieldEmblem,
+  StampArt,
+} from "./illustrations";
 
 /** The page's horizontal frame — every section lines up on it. */
-const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
+export const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
-/** The one gold button style, used for each band's primary action. */
 const GOLD_BUTTON =
-  "inline-flex items-center gap-2 rounded-control bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover";
+  "inline-flex items-center gap-2 rounded-xl bg-brand px-6 py-3.5 text-sm font-semibold text-on-brand shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-brand-hover motion-reduce:transform-none";
 
-/** A secondary action on navy: outlined, so it never competes with the gold. */
-const INVERSE_BUTTON =
-  "inline-flex items-center gap-2 rounded-control border border-line-inverse px-5 py-3 text-sm font-semibold text-ink-inverse transition-colors hover:bg-surface-inverse-raised";
+const NAVY_BUTTON =
+  "inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-sm font-semibold text-ink-inverse shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-primary-hover motion-reduce:transform-none";
 
-function SectionHeading({
+const GHOST_INVERSE_BUTTON =
+  "inline-flex items-center gap-2 rounded-xl border border-white/20 px-6 py-3.5 text-sm font-semibold text-ink-inverse transition-colors hover:bg-white/10";
+
+/**
+ * A section's heading: a short gold-ruled eyebrow, a serif title, one
+ * sentence of why. Centred for sections that stand alone; left-aligned
+ * where it sits beside its content.
+ */
+export function SectionHeading({
   eyebrow,
   title,
   description,
   id,
+  align = "left",
+  tone = "light",
 }: {
   eyebrow: string;
-  title: string;
-  description: string;
+  title: ReactNode;
+  description?: string;
   id: string;
+  align?: "left" | "center";
+  tone?: "light" | "dark";
 }) {
+  const dark = tone === "dark";
   return (
-    <div className="max-w-2xl">
-      <p className="text-sm font-semibold text-gold-ink">{eyebrow}</p>
+    <div
+      className={
+        align === "center" ? "mx-auto max-w-2xl text-center" : "max-w-2xl"
+      }
+    >
+      <p
+        className={`inline-flex items-center gap-3 text-sm font-semibold uppercase tracking-[0.18em] ${dark ? "text-brand" : "text-gold-ink"}`}
+      >
+        <span aria-hidden className="h-px w-8 bg-current" />
+        {eyebrow}
+      </p>
       <h2
         id={id}
-        className="mt-2 font-display text-3xl font-semibold sm:text-4xl"
+        className={`mt-4 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-[2.6rem] sm:leading-[1.12] ${dark ? "text-ink-inverse" : "text-ink"}`}
       >
         {title}
       </h2>
-      <p className="mt-4 text-lg leading-relaxed text-ink-muted">
-        {description}
-      </p>
+      {description && (
+        <p
+          className={`mt-4 text-lg leading-relaxed ${dark ? "text-ink-inverse-muted" : "text-ink-muted"}`}
+        >
+          {description}
+        </p>
+      )}
     </div>
   );
 }
 
-/* ───────────────────────────────────────────────────────────────── hero */
-
-/**
- * The opening banner: navy, full width, and in one screen it has to answer
- * "what is this site?" — the headline names the three things it sells, the
- * stats say how much of each, and the search lets someone skip straight to
- * the thing they came for.
- */
-export function LandingHero({ summary }: { summary: CatalogueSummary }) {
-  const stats = [
-    { value: summary.library.FORM.count, label: "Legal forms" },
-    { value: summary.library.CHECKLIST.count, label: "Checklists" },
-    { value: summary.library.EBOOK.count, label: "E-books" },
-    { value: summary.courses.count, label: "Courses" },
-  ].filter((stat) => stat.value > 0);
-
+/** "Browse →", with the arrow nudging on hover. */
+function MoreLink({
+  children,
+  tone = "light",
+}: {
+  children: ReactNode;
+  tone?: "light" | "dark";
+}) {
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative overflow-hidden bg-surface-inverse"
+    <span
+      className={`inline-flex items-center gap-1.5 text-sm font-semibold ${tone === "dark" ? "text-brand" : "text-primary"}`}
     >
-      {/* Light falling from the upper right, and a faint grid beneath it —
-          depth without a photograph that would go stale. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(60rem_32rem_at_85%_-10%,theme(colors.navy.600),transparent_70%)]"
+      {children}
+      <Icon
+        icon={ArrowRight}
+        size="xs"
+        className="transition-transform group-hover:translate-x-1 motion-reduce:transform-none"
       />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[linear-gradient(theme(colors.navy.700)_1px,transparent_1px),linear-gradient(90deg,theme(colors.navy.700)_1px,transparent_1px)] [background-size:56px_56px] opacity-40 [mask-image:radial-gradient(70%_60%_at_30%_40%,black,transparent)]"
-      />
-
-      <div
-        className={`${FRAME} relative grid grid-cols-[minmax(0,1fr)] items-center gap-14 pb-20 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)] lg:gap-12 lg:pb-24`}
-      >
-        <div>
-          {/* The client's line, kept in its own words. Gold reads on navy. */}
-          <p className="inline-flex items-center gap-2 rounded-full border border-line-inverse bg-surface-inverse-raised/60 px-3 py-1 text-sm font-medium text-brand">
-            <Icon icon={Scale} size="xs" />
-            Har Ghar Mein Kanooni Gyaan
-          </p>
-          <h1
-            id="hero-title"
-            className="mt-6 text-[2.5rem] leading-[1.08] text-ink-inverse sm:text-6xl sm:leading-[1.04]"
-          >
-            Legal documents, guides and courses —{" "}
-            <span className="text-brand">all in one place.</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-inverse-muted sm:text-xl">
-            Generate a rent agreement or offer letter from a few answers,
-            download ready-to-use forms and checklists, read plain-language
-            e-books, and earn certificates — written for people who aren&apos;t
-            lawyers.
-          </p>
-
-          <div className="mt-9">
-            <HeroSearch tone="dark" />
-          </div>
-
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/documents" className={GOLD_BUTTON}>
-              Create a document
-              <Icon icon={ArrowRight} />
-            </Link>
-            <Link href="/content-library" className={INVERSE_BUTTON}>
-              Browse the library
-            </Link>
-          </div>
-
-          {stats.length > 0 && (
-            <dl className="mt-12 grid max-w-xl grid-cols-2 gap-x-6 gap-y-6 border-t border-line-inverse pt-8 sm:grid-cols-4">
-              {stats.map((stat) => (
-                <div key={stat.label} className="flex flex-col">
-                  <dt className="text-sm text-ink-inverse-muted">
-                    {stat.label}
-                  </dt>
-                  <dd className="order-first font-display text-3xl font-semibold tabular-nums text-ink-inverse">
-                    {countLabel(stat.value)}
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          )}
-        </div>
-
-        {/* Hidden on phones: a screen of scrolling before the content, and
-            the headline already says what it shows. */}
-        <div className="hidden md:block">
-          <HeroVisual />
-        </div>
-      </div>
-    </section>
+    </span>
   );
 }
 
 /* ─────────────────────────────────────────────────────────── offerings */
 
-interface OfferingCard {
-  href: string;
-  title: string;
-  icon: LucideIcon;
-  description: string;
-  count: number;
-  unit: string;
-  examples: string[];
-  cta: string;
-  /** Not on sale yet: shown with a "Coming soon" tag instead of a count. */
-  soon?: boolean;
-}
-
 /**
- * "What's here", one card per thing the site sells, each with how many there
- * are and a few real titles — the titles do more to explain a form library
- * than any description of one.
+ * What the site offers, as a bento grid: AI drafting leads, because it's
+ * the one thing no stationery shop or template site can do; then the ways
+ * to get a ready document; then learning and the assistant. Each tile has
+ * its own illustration and real counts.
  */
 export function Offerings({ summary }: { summary: CatalogueSummary }) {
-  const cards: OfferingCard[] = [
-    {
-      href: shelfHref("FORM"),
-      title: "Legal forms",
-      icon: FileSignature,
-      description:
-        "Agreements, affidavits, notices, bail applications and court formats — ready to fill in and use.",
-      count: summary.library.FORM.count,
-      unit: "forms",
-      examples: summary.library.FORM.examples,
-      cta: "Browse forms",
-    },
-    {
-      href: shelfHref("CHECKLIST"),
-      title: "Checklists",
-      icon: ListChecks,
-      description:
-        "What to check before you sign, file or register — so nothing is missed.",
-      count: summary.library.CHECKLIST.count,
-      unit: "checklists",
-      examples: summary.library.CHECKLIST.examples,
-      cta: "Browse checklists",
-    },
-    {
-      href: shelfHref("EBOOK"),
-      title: "E-books",
-      icon: BookOpen,
-      description:
-        "Plain-language handbooks on property, business compliance, courts and careers.",
-      count: summary.library.EBOOK.count,
-      unit: "e-books",
-      examples: summary.library.EBOOK.examples,
-      cta: "Browse e-books",
-    },
-    {
-      href: "/courses",
-      title: "Courses",
-      icon: GraduationCap,
-      description:
-        "Short video courses that end in a certificate anyone can verify.",
-      count: summary.courses.count,
-      unit: "courses",
-      examples: summary.courses.examples,
-      cta: COURSES_LIVE ? "Explore courses" : "See what's coming",
-      soon: !COURSES_LIVE,
-    },
-  ].filter((card) => card.count > 0 || card.soon);
+  const forms = summary.library.FORM.count;
+  const checklists = summary.library.CHECKLIST.count;
+  const ebooks = summary.library.EBOOK.count;
 
   return (
-    <section aria-labelledby="offerings-title" className={`${FRAME} py-20`}>
+    <section aria-labelledby="offerings-title" className={`${FRAME} py-24`}>
       <SectionHeading
         id="offerings-title"
+        align="center"
         eyebrow="What you'll find here"
         title="Everything for the paperwork in your life"
-        description="Whether you are renting a flat, hiring your first employee or going to court, start with the document — then understand what it means."
+        description="Renting a flat, hiring your first employee, going to court — start with the right document, then understand what it means."
       />
 
-      <div className="mt-12 grid gap-5 lg:grid-cols-3">
-        {/* The generator leads: it's the one thing here no stationery shop
-            can do — a finished document from your own answers. */}
+      <div className="mt-14 grid gap-5 lg:grid-cols-6">
+        {/* AI drafting — the flagship */}
         <Link
-          href="/documents"
-          className="group relative flex flex-col overflow-hidden rounded-card bg-primary p-8 text-ink-inverse transition-shadow hover:shadow-overlay lg:row-span-2"
+          href="/documents/custom"
+          className="group relative flex flex-col overflow-hidden rounded-3xl bg-hero-navy p-8 text-ink-inverse shadow-overlay transition-transform hover:-translate-y-1 motion-reduce:transform-none sm:p-10 lg:col-span-4"
         >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 bg-[radial-gradient(30rem_20rem_at_100%_0%,theme(colors.navy.500),transparent_70%)]"
-          />
-          <span className="relative grid h-12 w-12 place-items-center rounded-control bg-brand text-on-brand">
-            <Icon icon={FileText} size="lg" />
-          </span>
-          <h3 className="relative mt-6 text-2xl font-semibold text-ink-inverse">
-            Document generator
-          </h3>
-          <p className="relative mt-3 text-base leading-relaxed text-ink-inverse-muted">
-            Answer a few plain questions and get a finished, ready-to-sign
-            document as Word and PDF. Prefer talking? Fill it in by chat with
-            the AI assistant, then check every answer before it&apos;s made.
-          </p>
-          <ul className="relative mt-8 space-y-3 text-sm text-ink-inverse">
-            {[
-              "No legal drafting — just your details",
-              "Ready in minutes, GST invoice included",
-              "Optional review by an advocate",
-            ].map((point) => (
-              <li key={point} className="flex items-center gap-2.5">
-                <Icon icon={BadgeCheck} className="text-brand" />
-                {point}
-              </li>
-            ))}
-          </ul>
-          {summary.templates.examples.length > 0 && (
-            <div className="relative mt-auto pt-10">
-              <p className="text-xs font-semibold uppercase tracking-wide text-ink-inverse-muted">
-                Popular templates
-              </p>
-              <ul className="mt-3 flex flex-wrap gap-2">
-                {summary.templates.examples.map((title) => (
-                  <li
-                    key={title}
-                    className="rounded-full border border-line-inverse bg-surface-inverse-raised/60 px-3 py-1 text-sm text-ink-inverse"
-                  >
-                    {title}
-                  </li>
-                ))}
-              </ul>
+          <div className="relative z-10 max-w-sm">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-brand px-3 py-1 text-xs font-semibold text-on-brand">
+              <Icon icon={Sparkles} size="xs" /> New
+            </span>
+            <h3 className="mt-5 font-display text-3xl font-semibold leading-tight text-ink-inverse">
+              Any document, drafted by AI
+            </h3>
+            <p className="mt-3 text-base leading-relaxed text-ink-inverse-muted">
+              Describe what you need in your own words. The AI drafts it in the
+              format of our advocate-written documents, and an advocate reviews
+              it before you download.
+            </p>
+            <div className="mt-8">
+              <MoreLink tone="dark">Draft my document</MoreLink>
             </div>
-          )}
-          <span
-            className={`relative inline-flex items-center gap-2 pt-8 text-sm font-semibold text-brand ${
-              summary.templates.examples.length > 0 ? "" : "mt-auto"
-            }`}
-          >
-            Create a document
-            <Icon
-              icon={ArrowRight}
-              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-            />
-          </span>
+          </div>
+          <DraftingArt className="pointer-events-none absolute -bottom-6 -right-6 w-[58%] max-w-[22rem] opacity-90 transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transform-none sm:-right-2" />
         </Link>
 
-        <div className="grid gap-5 sm:grid-cols-2 lg:col-span-2">
-          {cards.map((card) => (
-            <Link
-              key={card.title}
-              href={card.href}
-              className="group flex flex-col rounded-card border border-line bg-surface p-6 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-raised"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <span className="grid h-11 w-11 place-items-center rounded-control bg-primary-subtle text-primary">
-                  <Icon icon={card.icon} size="md" />
-                </span>
-                <span className="rounded-full bg-brand-subtle px-2.5 py-1 text-xs font-semibold tabular-nums text-gold-ink">
-                  {card.soon
-                    ? "Coming soon"
-                    : `${countLabel(card.count)} ${card.unit}`}
-                </span>
-              </div>
-              <h3 className="mt-5 text-lg font-semibold">{card.title}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                {card.description}
-              </p>
-              {card.examples.length > 0 && (
-                <ul className="mt-4 space-y-1.5 border-t border-line pt-4 text-sm text-ink">
-                  {card.examples.map((example) => (
-                    <li key={example} className="flex gap-2">
-                      <span
-                        aria-hidden
-                        className="mt-2 h-1 w-1 shrink-0 rounded-full bg-ink-subtle"
-                      />
-                      <span className="min-w-0 truncate">{example}</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <span className="mt-auto inline-flex items-center gap-1.5 pt-5 text-sm font-semibold text-primary">
-                {card.cta}
-                <Icon
-                  icon={ArrowRight}
-                  size="xs"
-                  className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-                />
-              </span>
-            </Link>
-          ))}
-        </div>
+        {/* Templates */}
+        <OfferingTile
+          href="/documents"
+          className="lg:col-span-2"
+          title="Ready templates"
+          badge={
+            summary.templates.count > 0
+              ? `${countLabel(summary.templates.count)} templates`
+              : undefined
+          }
+          body="Answer a few questions — on a form or by chat — and get a finished Word and PDF."
+          cta="Create a document"
+          art={<FormArt className="h-36 w-auto" />}
+        />
+
+        {forms > 0 && (
+          <OfferingTile
+            href={shelfHref("FORM")}
+            className="lg:col-span-2"
+            title="Legal forms"
+            badge={`${countLabel(forms)} forms`}
+            body="Affidavits, notices, agreements and court formats, ready to fill in."
+            cta="Browse forms"
+            art={<StampArt className="h-36 w-auto" />}
+          />
+        )}
+        {checklists > 0 && (
+          <OfferingTile
+            href={shelfHref("CHECKLIST")}
+            className="lg:col-span-2"
+            title="Checklists"
+            badge={`${countLabel(checklists)} checklists`}
+            body="What to check before you sign, file or register — so nothing is missed."
+            cta="Browse checklists"
+            art={<ChecklistArt className="h-36 w-auto" />}
+          />
+        )}
+        {ebooks > 0 && (
+          <OfferingTile
+            href={shelfHref("EBOOK")}
+            className="lg:col-span-2"
+            title="E-books"
+            badge={`${countLabel(ebooks)} e-books`}
+            body="Plain-language handbooks on property, business, courts and careers."
+            cta="Browse e-books"
+            art={<LibraryArt className="h-36 w-auto" />}
+          />
+        )}
+
+        <OfferingTile
+          href="/courses"
+          className="lg:col-span-3"
+          title="Certificate courses"
+          badge={
+            COURSES_LIVE
+              ? `${countLabel(summary.courses.count)} courses`
+              : "Coming soon"
+          }
+          body="Short video courses on GST, property and running a business — with a certificate anyone can verify."
+          cta={COURSES_LIVE ? "Explore courses" : "See what's coming"}
+          art={<CourseArt className="h-36 w-auto" />}
+          horizontal
+        />
+
+        <Link
+          href="/assistant"
+          className="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-brand-border bg-brand-subtle p-8 transition-transform hover:-translate-y-1 motion-reduce:transform-none lg:col-span-3"
+        >
+          <div className="max-w-xs">
+            <span className="grid h-11 w-11 place-items-center rounded-xl bg-primary text-brand">
+              <Icon icon={MessageCircle} size="md" />
+            </span>
+            <h3 className="mt-5 font-display text-2xl font-semibold text-ink">
+              Not sure what you need?
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
+              Describe your situation to the AI assistant, in English or Hindi.
+              It points you to the right document, form or course.
+            </p>
+          </div>
+          <div className="mt-6">
+            <MoreLink>Ask the assistant</MoreLink>
+          </div>
+          <div
+            aria-hidden
+            className="pointer-events-none absolute bottom-8 right-6 hidden w-52 space-y-2 sm:block"
+          >
+            <p className="ml-auto w-fit rounded-2xl rounded-br-sm bg-brand px-3 py-2 text-xs font-medium text-on-brand shadow-raised">
+              My tenant hasn&apos;t paid rent
+            </p>
+            <p className="w-fit rounded-2xl rounded-bl-sm bg-surface px-3 py-2 text-xs text-ink shadow-raised">
+              A legal notice for unpaid rent fits…
+            </p>
+          </div>
+        </Link>
       </div>
     </section>
+  );
+}
+
+function OfferingTile({
+  href,
+  className = "",
+  title,
+  badge,
+  body,
+  cta,
+  art,
+  horizontal = false,
+}: {
+  href: string;
+  className?: string;
+  title: string;
+  badge?: string;
+  body: string;
+  cta: string;
+  art: ReactNode;
+  horizontal?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`group flex overflow-hidden rounded-3xl border border-line bg-surface shadow-card transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-overlay motion-reduce:transform-none ${horizontal ? "flex-col sm:flex-row sm:items-center" : "flex-col"} ${className}`}
+    >
+      <div
+        className={`grid place-items-center bg-gradient-to-br from-navy-50 to-surface ${horizontal ? "px-6 pt-6 sm:order-last sm:w-2/5 sm:self-stretch sm:p-6" : "px-6 pt-6"}`}
+      >
+        <div className="transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none">
+          {art}
+        </div>
+      </div>
+      <div className="flex flex-1 flex-col p-7">
+        <div className="flex items-start justify-between gap-3">
+          <h3 className="font-display text-xl font-semibold text-ink">
+            {title}
+          </h3>
+          {badge && (
+            <span className="shrink-0 rounded-full bg-brand-subtle px-2.5 py-1 text-xs font-semibold tabular-nums text-gold-ink">
+              {badge}
+            </span>
+          )}
+        </div>
+        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
+        <div className="mt-auto pt-5">
+          <MoreLink>{cta}</MoreLink>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -383,41 +348,77 @@ export function CategoryBrowser({ summary }: { summary: CatalogueSummary }) {
   return (
     <section
       aria-labelledby="categories-title"
-      className="border-y border-line bg-surface-sunken"
+      className="relative overflow-hidden bg-canvas"
     >
-      <div className={`${FRAME} py-20`}>
-        <SectionHeading
-          id="categories-title"
-          eyebrow="Browse by topic"
-          title="Find it by the area of law"
-          description="Every form, checklist and e-book is filed under the part of life it's for."
-        />
-        <ul className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {summary.categories.map((entry) => (
-            <li key={entry.category}>
+      {/* A fine dotted ground, so the section reads as its own room. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(theme(colors.navy.200)_1px,transparent_1px)] [background-size:22px_22px] opacity-50 [mask-image:linear-gradient(to_bottom,black,transparent)]"
+      />
+      <div className={`${FRAME} relative py-24`}>
+        <div className="flex flex-wrap items-end justify-between gap-6">
+          <SectionHeading
+            id="categories-title"
+            eyebrow="Browse by topic"
+            title="Find it by the area of law"
+            description="Every form, checklist and e-book is filed under the part of life it's for."
+          />
+          <Link
+            href="/content-library"
+            className="group rounded-xl border border-line-strong bg-surface px-5 py-3 text-sm font-semibold text-ink shadow-card hover:border-primary"
+          >
+            <MoreLink>Browse the whole library</MoreLink>
+          </Link>
+        </div>
+
+        <ul className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-6">
+          {summary.categories.map((entry, index) => (
+            <li
+              key={entry.category}
+              className={index < 3 ? "lg:col-span-2" : "lg:col-span-3"}
+            >
               <Link
                 href={categoryHref(entry.category)}
-                className="group flex h-full gap-4 rounded-card border border-line bg-surface p-5 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-raised"
+                className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-surface p-7 shadow-card transition-[transform,box-shadow,border-color] hover:-translate-y-1 hover:border-brand-border hover:shadow-overlay motion-reduce:transform-none"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-control bg-primary text-brand">
-                  <Icon icon={CATEGORY_ICONS[entry.category]} size="md" />
-                </span>
-                <span className="min-w-0">
-                  <span className="flex items-baseline justify-between gap-3">
-                    <span className="text-base font-semibold text-ink">
-                      {CONTENT_CATEGORY_LABELS[entry.category]}
-                    </span>
-                    <span className="shrink-0 text-sm tabular-nums text-ink-muted">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.18),transparent)] transition-transform duration-500 group-hover:scale-125"
+                />
+                <div className="relative flex items-start justify-between gap-4">
+                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-hero-navy text-brand shadow-raised ring-4 ring-brand-subtle">
+                    <Icon icon={CATEGORY_ICONS[entry.category]} size="lg" />
+                  </span>
+                  <span className="text-right">
+                    <span className="block font-display text-3xl font-semibold tabular-nums text-ink">
                       {entry.count}
                     </span>
+                    <span className="block text-xs text-ink-subtle">items</span>
                   </span>
-                  <span className="mt-1 block text-sm text-ink-muted">
-                    {CATEGORY_BLURBS[entry.category]}
-                  </span>
-                  <span className="mt-3 block truncate text-sm text-ink-subtle">
-                    {entry.examples.join(" · ")}
-                  </span>
-                </span>
+                </div>
+                <h3 className="relative mt-6 text-lg font-semibold text-ink">
+                  {CONTENT_CATEGORY_LABELS[entry.category]}
+                </h3>
+                <p className="relative mt-1 text-sm text-ink-muted">
+                  {CATEGORY_BLURBS[entry.category]}
+                </p>
+                {entry.examples.length > 0 && (
+                  <ul className="relative mt-5 space-y-1.5 border-t border-line pt-4 text-sm text-ink">
+                    {entry.examples.slice(0, 2).map((example) => (
+                      <li key={example} className="flex gap-2">
+                        <Icon
+                          icon={FileText}
+                          size="xs"
+                          className="mt-1 shrink-0 text-ink-subtle"
+                        />
+                        <span className="min-w-0 truncate">{example}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                <div className="relative mt-auto pt-5">
+                  <MoreLink>Explore</MoreLink>
+                </div>
               </Link>
             </li>
           ))}
@@ -427,88 +428,195 @@ export function CategoryBrowser({ summary }: { summary: CatalogueSummary }) {
   );
 }
 
-/* ─────────────────────────────────────────────────── assistant banner */
+/* ──────────────────────────────────────────────── AI drafting showcase */
 
-/** A sample exchange — illustrative, and hidden from screen readers. */
-const SAMPLE_CHAT = [
+const DRAFT_STEPS = [
   {
-    from: "you",
-    text: "My landlord wants an agreement for 11 months. What do I need?",
+    title: "Describe it",
+    body: "Say what you need and the details — parties, amounts, dates — in your own words.",
   },
   {
-    from: "ai",
-    text: "A Rent Agreement fits — I can fill it in with you. Shall we start with the landlord's and tenant's names?",
+    title: "AI drafts it",
+    body: "In about a minute, in the format of our advocate-written documents. Preview it free and ask for changes.",
   },
-] as const;
+  {
+    title: "An advocate reviews it",
+    body: "A practising advocate checks and corrects your draft. You're notified the moment it's done.",
+  },
+  {
+    title: "Download and sign",
+    body: "Word and PDF, ready to print — and in your account whenever you need it again.",
+  },
+];
 
 /**
- * The AI assistant, as a banner of its own: for the visitor who doesn't know
- * the name of the document they need, which is most first-time visitors.
+ * The flagship, explained: AI drafting with an advocate in the loop. The
+ * picture shows the journey from a customer's own sentence to a sealed
+ * document, in the same pieces the product uses.
+ */
+export function DraftingShowcase() {
+  return (
+    <section
+      aria-labelledby="drafting-title"
+      className="relative overflow-hidden bg-surface"
+    >
+      <div className={`${FRAME} grid items-center gap-16 py-24 lg:grid-cols-2`}>
+        <div>
+          <SectionHeading
+            id="drafting-title"
+            eyebrow="AI drafting"
+            title={
+              <>
+                Your words in. A reviewed legal document{" "}
+                <span className="text-gold-ink">out.</span>
+              </>
+            }
+            description="Can't find a template? Describe the document you need. Our AI drafts it, and an advocate makes sure it's right."
+          />
+          <ol className="relative mt-10 space-y-7">
+            <span
+              aria-hidden
+              className="absolute bottom-3 left-[1.15rem] top-3 w-px bg-gradient-to-b from-brand via-brand-border to-transparent"
+            />
+            {DRAFT_STEPS.map((step, index) => (
+              <li key={step.title} className="relative flex gap-5">
+                <span className="relative z-10 grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary font-display text-sm font-semibold text-brand ring-4 ring-surface">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="text-base font-semibold text-ink">
+                    {step.title}
+                  </h3>
+                  <p className="mt-1 text-sm leading-relaxed text-ink-muted">
+                    {step.body}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <div className="mt-10 flex flex-wrap gap-3">
+            <Link href="/documents/custom" className={NAVY_BUTTON}>
+              Draft my document
+              <Icon icon={ArrowRight} />
+            </Link>
+            <Link
+              href="/documents"
+              className="inline-flex items-center gap-2 rounded-xl border border-line-strong px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken"
+            >
+              Or use a template
+            </Link>
+          </div>
+        </div>
+
+        {/* The journey, pictured */}
+        <div
+          aria-hidden
+          className="relative mx-auto w-full max-w-md select-none"
+        >
+          <div className="absolute inset-0 -z-10 rounded-[2.5rem] bg-gradient-to-br from-gold-50 via-surface to-navy-50" />
+          <div className="space-y-5 p-6 sm:p-10">
+            <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary p-4 text-sm leading-relaxed text-ink-inverse shadow-overlay">
+              &ldquo;Partnership deed for my bakery with my cousin in Pune.
+              60:40 profit share, ₹5 lakh capital, either can exit with 3
+              months&apos; notice.&rdquo;
+            </div>
+            <div className="relative rounded-2xl bg-surface p-6 shadow-overlay ring-1 ring-line">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-gold-ink">
+                Draft ready
+              </p>
+              <p className="mt-1 font-display text-xl font-semibold text-ink">
+                Partnership Deed
+              </p>
+              <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium text-primary">
+                <Icon icon={BadgeCheck} size="xs" />
+                In the format of our advocate-written deed
+              </p>
+              <div className="mt-5 space-y-2">
+                {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
+                  (w, i) => (
+                    <div
+                      key={w + i}
+                      className={`h-2 ${w} rounded-full bg-navy-100`}
+                    />
+                  ),
+                )}
+              </div>
+              <Seal className="absolute -bottom-8 -right-6 h-24 w-24 rotate-12 drop-shadow-xl" />
+            </div>
+            <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-surface p-4 shadow-overlay ring-1 ring-line">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-success-subtle text-success-text">
+                <Icon icon={UserCheck} size="md" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-ink">
+                  Reviewed by an advocate
+                </span>
+                <span className="block text-xs text-ink-muted">
+                  Ready to download · Word + PDF
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────── assistant banner */
+
+const EXAMPLE_QUESTIONS = [
+  "My landlord wants an 11-month agreement",
+  "How do I register a will?",
+  "I'm hiring my first employee",
+];
+
+/**
+ * The AI assistant: for the visitor who doesn't know the name of the
+ * document they need — which is most first-time visitors.
  */
 export function AssistantBanner() {
   return (
-    <section aria-labelledby="assistant-title" className={`${FRAME} py-20`}>
-      <div className="relative overflow-hidden rounded-card bg-surface-inverse px-6 py-12 sm:px-12 lg:py-16">
+    <section aria-labelledby="assistant-title" className={`${FRAME} py-24`}>
+      <div className="relative overflow-hidden rounded-[2rem] bg-hero-navy px-6 py-14 shadow-overlay sm:px-14 lg:py-0">
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(36rem_24rem_at_0%_100%,theme(colors.navy.600),transparent_70%)]"
+          className="pointer-events-none absolute -left-24 bottom-0 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.14),transparent)]"
         />
-        <div className="relative grid items-center gap-12 lg:grid-cols-[1.1fr_1fr]">
-          <div>
-            <p className="inline-flex items-center gap-2 text-sm font-semibold text-brand">
-              <Icon icon={Sparkles} />
-              AI assistant
-            </p>
-            <h2
+        <div className="relative grid items-center gap-12 lg:grid-cols-[1.15fr_1fr]">
+          <div className="lg:py-16">
+            <SectionHeading
               id="assistant-title"
-              className="mt-3 font-display text-3xl font-semibold leading-tight text-ink-inverse sm:text-4xl"
-            >
-              Not sure which document you need? Just ask.
-            </h2>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-ink-inverse-muted sm:text-lg">
-              Describe your situation in your own words, in English or Hindi.
-              The assistant points you to the right document, checklist or
-              course — and can fill a document in with you, one question at a
-              time.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
+              tone="dark"
+              eyebrow="AI assistant"
+              title="Not sure which document you need? Just ask."
+              description="Describe your situation in English or Hindi. The assistant searches everything on the site and points you to the right document, form, e-book or course."
+            />
+            <ul className="mt-8 flex flex-wrap gap-2">
+              {EXAMPLE_QUESTIONS.map((question) => (
+                <li key={question}>
+                  <Link
+                    href={`/assistant?q=${encodeURIComponent(question)}`}
+                    className="inline-flex rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-ink-inverse transition-colors hover:border-brand/60 hover:bg-white/10"
+                  >
+                    &ldquo;{question}&rdquo;
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-8 flex flex-wrap items-center gap-4">
               <Link href="/assistant" className={GOLD_BUTTON}>
                 Ask the assistant
                 <Icon icon={MessageCircle} />
               </Link>
-            </div>
-            <p className="mt-5 text-xs text-ink-inverse-muted">
-              The assistant explains and recommends; it doesn&apos;t give legal
-              advice on your case.
-            </p>
-          </div>
-
-          <div aria-hidden className="space-y-3">
-            {SAMPLE_CHAT.map((message) => (
-              <p
-                key={message.text}
-                className={
-                  message.from === "you"
-                    ? "ml-auto max-w-[85%] rounded-card rounded-br-sm bg-brand px-4 py-3 text-sm leading-relaxed text-on-brand"
-                    : "max-w-[85%] rounded-card rounded-bl-sm border border-line-inverse bg-surface-inverse-raised px-4 py-3 text-sm leading-relaxed text-ink-inverse"
-                }
-              >
-                {message.text}
+              <p className="max-w-xs text-xs text-ink-inverse-muted">
+                It explains and recommends; it doesn&apos;t give legal advice on
+                your case.
               </p>
-            ))}
-            <p className="flex max-w-[85%] items-center gap-3 rounded-card border border-line-inverse bg-surface px-4 py-3 text-sm">
-              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-primary-subtle text-primary">
-                <Icon icon={FileText} />
-              </span>
-              <span>
-                <span className="block font-semibold text-ink">
-                  Rent Agreement
-                </span>
-                <span className="block text-ink-muted">
-                  Answer by chat · check every answer before it&apos;s made
-                </span>
-              </span>
-            </p>
+            </div>
+          </div>
+          <div className="relative mx-auto hidden h-full w-full max-w-xs items-end sm:flex lg:max-w-sm">
+            <PhoneChatArt className="w-full translate-y-10 drop-shadow-2xl lg:translate-y-16" />
           </div>
         </div>
       </div>
@@ -526,54 +634,58 @@ const STEPS: { title: string; body: string; icon: LucideIcon }[] = [
   },
   {
     title: "Fill in your details",
-    body: "Answer plain questions for a generated document, or download a form to complete yourself.",
+    body: "Answer plain questions, or download a form to complete yourself.",
     icon: FileText,
   },
   {
     title: "Pay once, securely",
-    body: "One price with GST shown, paid through Razorpay. A GST invoice comes with every order.",
+    body: "One price with GST shown, through Razorpay. A GST invoice with every order.",
     icon: IndianRupee,
   },
   {
     title: "Download — or get it reviewed",
-    body: "Word and PDF, ready to print and sign. Add an advocate's review if you want a second pair of eyes.",
+    body: "Word and PDF, ready to sign. Add an advocate's review for a second pair of eyes.",
     icon: UserCheck,
   },
 ];
 
 export function HowItWorks() {
   return (
-    <section aria-labelledby="how-title" className={`${FRAME} py-20`}>
-      <SectionHeading
-        id="how-title"
-        eyebrow="How it works"
-        title="From question to signed paper in four steps"
-        description="No appointments and no jargon — and you only pay for what you take."
-      />
-      <ol className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step, index) => (
-          <li
-            key={step.title}
-            className="relative rounded-card border border-line bg-surface p-6"
-          >
-            <div className="flex items-center justify-between">
-              <span className="grid h-11 w-11 place-items-center rounded-control bg-primary-subtle text-primary">
-                <Icon icon={step.icon} size="md" />
+    <section
+      aria-labelledby="how-title"
+      className="border-y border-line bg-canvas"
+    >
+      <div className={`${FRAME} py-24`}>
+        <SectionHeading
+          id="how-title"
+          align="center"
+          eyebrow="How it works"
+          title="From question to signed paper in four steps"
+          description="No appointments, no jargon — and you only pay for what you take."
+        />
+        <ol className="relative mt-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
+          <span
+            aria-hidden
+            className="absolute left-[12%] right-[12%] top-8 hidden h-px border-t-2 border-dashed border-brand-border lg:block"
+          />
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="relative text-center">
+              <span className="relative mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-surface text-primary shadow-overlay ring-1 ring-line">
+                <Icon icon={step.icon} size="lg" />
+                <span className="absolute -right-2 -top-2 grid h-6 w-6 place-items-center rounded-full bg-brand text-xs font-bold text-on-brand">
+                  {index + 1}
+                </span>
               </span>
-              <span
-                aria-hidden
-                className="font-display text-4xl font-semibold text-line-strong"
-              >
-                {index + 1}
-              </span>
-            </div>
-            <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-              {step.body}
-            </p>
-          </li>
-        ))}
-      </ol>
+              <h3 className="mt-6 text-lg font-semibold text-ink">
+                {step.title}
+              </h3>
+              <p className="mx-auto mt-2 max-w-[16rem] text-sm leading-relaxed text-ink-muted">
+                {step.body}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </div>
     </section>
   );
 }
@@ -588,14 +700,14 @@ export function HowItWorks() {
  */
 const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
   {
-    title: "Reviewed before publishing",
-    body: "Every template and course passes an internal review before it reaches the catalogue.",
-    icon: ShieldCheck,
+    title: "Advocate review",
+    body: "Every AI draft — and any document you choose — is checked by a practising advocate.",
+    icon: UserCheck,
   },
   {
-    title: "Advocate review on request",
-    body: "Send a generated document to a licensed advocate, who checks it and returns it to your dashboard.",
-    icon: UserCheck,
+    title: "Reviewed before publishing",
+    body: "Templates and forms come from our advocate-written library and pass review first.",
+    icon: ShieldCheck,
   },
   {
     title: "Secure payments",
@@ -604,49 +716,107 @@ const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
   },
   {
     title: "GST invoice, every time",
-    body: "One price per item with tax shown — no subscription and no recurring charge.",
+    body: "One price with tax shown — no subscription, no recurring charge.",
     icon: Receipt,
   },
   {
     title: "Private to your account",
-    body: "Your answers and documents stay in your account, with download links that expire.",
+    body: "Your answers and documents stay yours, behind download links that expire. Delete your account any time.",
     icon: KeyRound,
   },
   {
     title: "Certificates you can check",
-    body: "Each course certificate carries a code anyone can verify on this site, no account needed.",
+    body: "Each certificate carries a code anyone can verify here, no account needed.",
     icon: BadgeCheck,
   },
 ];
 
 export function Assurances() {
   return (
-    <section
-      aria-labelledby="trust-title"
-      className="border-t border-line bg-surface-sunken"
-    >
-      <div className={`${FRAME} py-20`}>
-        <SectionHeading
-          id="trust-title"
-          eyebrow="Why Pratikar"
-          title="Built for documents you'll actually sign"
-          description="Legal paperwork has to be right. Here is what we do to make sure it is."
-        />
-        <ul className="mt-12 grid gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+    <section aria-labelledby="trust-title" className={`${FRAME} py-24`}>
+      <div className="grid items-center gap-14 lg:grid-cols-[0.9fr_1.4fr]">
+        <div>
+          <SectionHeading
+            id="trust-title"
+            eyebrow="Why Pratikar"
+            title="Built for documents you'll actually sign"
+            description="Legal paperwork has to be right. Here is what we do to make sure it is."
+          />
+          <ShieldEmblem className="mt-10 hidden w-72 lg:block" />
+        </div>
+        <ul className="grid gap-5 sm:grid-cols-2">
           {ASSURANCES.map((item) => (
-            <li key={item.title} className="flex gap-4">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-control border border-line bg-surface text-primary">
+            <li
+              key={item.title}
+              className="rounded-2xl border border-line bg-surface p-6 shadow-card transition-shadow hover:shadow-raised"
+            >
+              <span className="grid h-11 w-11 place-items-center rounded-xl bg-brand-subtle text-gold-ink">
                 <Icon icon={item.icon} size="md" />
               </span>
-              <div>
-                <h3 className="text-base font-semibold">{item.title}</h3>
-                <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
-                  {item.body}
-                </p>
-              </div>
+              <h3 className="mt-4 text-base font-semibold text-ink">
+                {item.title}
+              </h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+                {item.body}
+              </p>
             </li>
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ───────────────────────────────────────────────────────────── FAQ teaser */
+
+export interface FaqPreviewItem {
+  id: string;
+  question: string;
+  answer: string;
+}
+
+/**
+ * A few answers from the FAQ, for the questions that stop people buying.
+ * Server-rendered <details>, so it works without JavaScript. Left out
+ * entirely until the client has published FAQ entries.
+ */
+export function FaqTeaser({ items }: { items: FaqPreviewItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <section
+      aria-labelledby="faq-title"
+      className="border-t border-line bg-canvas"
+    >
+      <div className={`${FRAME} grid gap-12 py-24 lg:grid-cols-[0.8fr_1.2fr]`}>
+        <div>
+          <SectionHeading
+            id="faq-title"
+            eyebrow="Questions"
+            title="Good to know"
+            description="Quick answers about downloads, payments and reviews."
+          />
+          <Link href="/faq" className="group mt-8 inline-block">
+            <MoreLink>All questions</MoreLink>
+          </Link>
+        </div>
+        <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
+          {items.map((item) => (
+            <details key={item.id} className="group/faq">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 text-base font-semibold text-ink hover:bg-surface-sunken [&::-webkit-details-marker]:hidden">
+                {item.question}
+                <span
+                  aria-hidden
+                  className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary-subtle text-primary transition-transform group-open/faq:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="whitespace-pre-line px-6 pb-5 text-sm leading-relaxed text-ink-muted">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -656,32 +826,51 @@ export function Assurances() {
 
 export function ClosingBanner() {
   return (
-    <section aria-labelledby="closing-title" className="bg-surface-inverse">
-      <div
-        className={`${FRAME} flex flex-col items-start gap-8 py-16 lg:flex-row lg:items-center lg:justify-between`}
-      >
-        <div className="max-w-2xl">
-          <h2
-            id="closing-title"
-            className="font-display text-3xl font-semibold leading-tight text-ink-inverse sm:text-4xl"
-          >
-            Start with the document you need today.
-          </h2>
-          <p className="mt-3 text-lg text-ink-inverse-muted">
-            Browse everything freely — sign in only when you&apos;re ready to
-            make or buy something.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <Link href="/documents" className={GOLD_BUTTON}>
-            Create a document
-            <Icon icon={ArrowRight} />
-          </Link>
-          <Link href="/contact" className={INVERSE_BUTTON}>
-            Talk to us
-          </Link>
+    <section aria-labelledby="closing-title" className={`${FRAME} pb-24`}>
+      <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-gold-300 via-brand to-gold-600 px-6 py-14 shadow-overlay sm:px-14">
+        {/* The logo's columns, large and faint, as a watermark */}
+        <svg
+          aria-hidden
+          viewBox="0 0 300 380"
+          className="pointer-events-none absolute -right-6 -top-10 h-[150%] text-navy-900/10"
+          fill="currentColor"
+        >
+          <path d="M2 3H192A108 113 0 0 1 192 229H178V196H192A75 80 0 0 0 192 36H24Z" />
+          <path d="M22 58H190Q188 80 168 80H44Q24 80 22 58Z" />
+          <rect x="46" y="100" width="114" height="19" />
+          <path d="M57 125H76V359L57 377Z" />
+          <path d="M94 125H112V320L94 338Z" />
+          <path d="M130 125H148V282L130 300Z" />
+        </svg>
+        <div className="relative flex flex-col items-start gap-8 lg:flex-row lg:items-center lg:justify-between">
+          <div className="max-w-2xl">
+            <h2
+              id="closing-title"
+              className="font-display text-3xl font-semibold leading-tight text-navy-900 sm:text-[2.6rem] sm:leading-[1.1]"
+            >
+              Start with the document you need today.
+            </h2>
+            <p className="mt-3 text-lg text-navy-800">
+              Browse everything freely — sign in only when you&apos;re ready to
+              make or buy something.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-3">
+            <Link href="/documents/custom" className={NAVY_BUTTON}>
+              Draft with AI
+              <Icon icon={Sparkles} />
+            </Link>
+            <Link
+              href="/documents"
+              className="inline-flex items-center gap-2 rounded-xl border border-navy-900/25 px-6 py-3.5 text-sm font-semibold text-navy-900 transition-colors hover:bg-navy-900/5"
+            >
+              Browse templates
+            </Link>
+          </div>
         </div>
       </div>
     </section>
   );
 }
+
+export { GHOST_INVERSE_BUTTON, GOLD_BUTTON };
