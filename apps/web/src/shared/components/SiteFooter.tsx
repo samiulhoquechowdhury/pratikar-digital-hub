@@ -54,7 +54,9 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
 export function SiteFooter() {
   return (
     <footer className="mt-24 bg-surface-inverse">
-      <div className="mx-auto max-w-shell px-4 py-14 sm:px-6 lg:px-8">
+      {/* Extra room at the bottom on phones, so the floating Ask AI button
+          never sits on the footer's last line. */}
+      <div className="mx-auto max-w-shell px-4 pb-24 pt-14 sm:px-6 sm:pb-14 lg:px-8">
         <div className="grid gap-10 md:grid-cols-[1.4fr_repeat(3,1fr)]">
           <div className="max-w-xs">
             <SiteLogo tone="dark" />

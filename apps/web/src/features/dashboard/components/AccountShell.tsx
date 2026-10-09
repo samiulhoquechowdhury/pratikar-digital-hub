@@ -83,10 +83,10 @@ export function AccountShell({ children }: { children: ReactNode }) {
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-shell gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:px-8 lg:py-10">
+      <div className="mx-auto grid max-w-shell grid-cols-[minmax(0,1fr)] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:px-8 lg:py-10">
         <nav aria-label="Account">
           {/* A scrolling row on phones, a sticky column on desktop. */}
-          <ul className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
+          <ul className="relative -mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
             {ACCOUNT_NAV.map((item) => {
               const active = isActive(item.href, pathname);
               return (
