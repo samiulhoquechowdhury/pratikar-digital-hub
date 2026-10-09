@@ -21,6 +21,8 @@ export const AuditAction = {
   COURSE_CREATED: "COURSE_CREATED",
   COURSE_UPDATED: "COURSE_UPDATED",
   COURSE_MODULES_REPLACED: "COURSE_MODULES_REPLACED",
+  /** A customer erased their own account (DPDP Act s12). */
+  ACCOUNT_DELETED: "ACCOUNT_DELETED",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];

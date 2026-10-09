@@ -1,12 +1,15 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
   Param,
   Patch,
   Put,
   UseGuards,
 } from "@nestjs/common";
+import { Throttle } from "@nestjs/throttler";
 import { Role } from "@pratikar/types";
 
 import {
@@ -17,6 +20,8 @@ import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
 
+import { AccountPrivacyService } from "./account-privacy.service";
+import { DeleteAccountDto } from "./dto/delete-account.dto";
 import { UpdateProfileDto } from "./dto/update-profile.dto";
 import { UpdateRoleDto } from "./dto/update-role.dto";
 import { UsersService } from "./users.service";
@@ -24,7 +29,10 @@ import { UsersService } from "./users.service";
 @Controller("users")
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly privacy: AccountPrivacyService,
+  ) {}
 
   @Get()
   @Roles(Role.SUPPORT, Role.ADMIN, Role.SUPER_ADMIN)
@@ -44,6 +52,29 @@ export class UsersController {
   @Patch("me")
   updateMe(@Body() dto: UpdateProfileDto, @CurrentUser() user: RequestUser) {
     return this.usersService.updateProfile(user.id, dto);
+  }
+
+  /**
+   * Everything personal held about the signed-in customer, as JSON — the
+   * "summary of personal data" the DPDP Act gives them a right to.
+   * Declared before ":id". Throttled: it reads every table they appear in.
+   */
+  @Get("me/export")
+  @Throttle({ default: { limit: 5, ttl: 3_600_000 } })
+  exportMe(@CurrentUser() user: RequestUser) {
+    return this.privacy.exportData(user.id);
+  }
+
+  /** Erases the signed-in customer's account. See AccountPrivacyService. */
+  @Delete("me")
+  @HttpCode(200)
+  @Throttle({ default: { limit: 5, ttl: 3_600_000 } })
+  async deleteMe(
+    @Body() _dto: DeleteAccountDto,
+    @CurrentUser() user: RequestUser,
+  ) {
+    await this.privacy.deleteAccount(user.id);
+    return { deleted: true };
   }
 
   @Get(":id")

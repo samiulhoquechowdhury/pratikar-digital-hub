@@ -11,6 +11,8 @@ import { Icon } from "@/shared/components/Icon";
 import { apiClient } from "@/shared/lib/apiClient";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
+import { AccountDataControls } from "./AccountDataControls";
+
 interface Profile {
   id: string;
   name: string | null;
@@ -324,6 +326,8 @@ export function AccountSettings() {
           </Button>
         </div>
       </section>
+
+      <AccountDataControls />
     </div>
   );
 }
