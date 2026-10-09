@@ -8,8 +8,21 @@ import cookieParser from "cookie-parser";
 
 import { AppModule } from "./app.module";
 import { parseTrustProxyHops } from "./common/http/trust-proxy";
+import { productionSecretProblems } from "./modules/admin/readiness/config-checks";
 
 async function bootstrap() {
+  // A production API with a missing or published security secret would
+  // accept forged logins and download links. Refuse to start rather than
+  // serve like that; the message says exactly what to set.
+  const problems = productionSecretProblems(process.env);
+  if (problems.length > 0) {
+    // eslint-disable-next-line no-console
+    console.error(
+      `Refusing to start in production:\n- ${problems.join("\n- ")}`,
+    );
+    process.exit(1);
+  }
+
   // rawBody keeps the unparsed request bytes on req.rawBody. The Razorpay
   // webhook signature is an HMAC over exactly those bytes, so verifying
   // against a re-serialised copy of the parsed body would fail on any
