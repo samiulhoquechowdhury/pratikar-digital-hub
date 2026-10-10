@@ -141,7 +141,7 @@ export function AssistantLauncher() {
         onClick={() => (present ? close() : openPanel())}
         aria-expanded={present}
         aria-haspopup="dialog"
-        className="group fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-primary py-3 pl-4 pr-5 text-sm font-semibold text-ink-inverse shadow-overlay transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-primary-hover active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+        className="group fixed bottom-4 right-4 z-50 inline-flex h-14 w-14 ring-2 ring-white/80 items-center justify-center gap-2 rounded-full bg-primary text-sm sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:py-3 sm:pl-4 sm:pr-5 font-semibold text-ink-inverse shadow-overlay transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-primary-hover active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         {/*
           Navy, not gold: gold is the site's one primary-action colour ("Sign
@@ -177,7 +177,11 @@ export function AssistantLauncher() {
             }`}
           />
         </span>
-        {present ? "Close" : "Ask AI"}
+        {/* On a phone, an icon-only circle: a labelled pill covered too much
+            of the page under it. The name stays for screen readers. */}
+        <span className="sr-only sm:not-sr-only">
+          {present ? "Close" : "Ask AI"}
+        </span>
       </button>
     </>
   );

@@ -205,7 +205,7 @@ function Steps({ doc }: { doc: MyDocument }) {
           <li
             key={step.label}
             aria-current={isCurrent ? "step" : undefined}
-            className={`flex items-center gap-2 rounded-card border px-3 py-2.5 text-sm ${
+            className={`flex flex-col items-center gap-1 rounded-card border px-2 py-2.5 text-center text-xs sm:flex-row sm:gap-2 sm:px-3 sm:text-left sm:text-sm ${
               isCurrent
                 ? "border-brand-border bg-brand-subtle font-semibold text-ink"
                 : isDone
@@ -220,7 +220,7 @@ function Steps({ doc }: { doc: MyDocument }) {
                 isDone ? "text-success-text" : isCurrent ? "text-gold-ink" : ""
               }
             />
-            <span className="truncate">{step.label}</span>
+            <span className="leading-tight">{step.label}</span>
           </li>
         );
       })}

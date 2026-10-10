@@ -280,6 +280,26 @@ module.exports = {
           "radial-gradient(ellipse 80% 60% at 70% 40%, rgb(18 46 82 / 0.85), transparent 60%), linear-gradient(135deg, #081729 0%, #0b1f3a 55%, #122e52 100%)",
       },
 
+      // Marketing motion only — the home page's floating cards and entrance.
+      // Always applied through `motion-safe:`, so reduced-motion users get
+      // the still page.
+      keyframes: {
+        float: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-8px)" },
+        },
+        "fade-up": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        float: "float 6s ease-in-out infinite",
+        "float-slow": "float 8s ease-in-out infinite 1s",
+        "float-delayed": "float 7s ease-in-out infinite 2.5s",
+        "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
+      },
+
       // Reading measure. Legal copy past ~75 characters per line is genuinely
       // harder to follow, so content columns are capped rather than fluid.
       maxWidth: {

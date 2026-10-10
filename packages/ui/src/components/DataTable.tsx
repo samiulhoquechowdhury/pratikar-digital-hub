@@ -30,11 +30,16 @@ export function Table({
     // columns past the fold simply don't exist for anyone tabbing through.
     // Making it a focusable region is the fix, and it needs a name to be
     // announced as anything more useful than "region".
+    //
+    // `relative` matters too: screen-reader-only labels (an "Actions"
+    // header) are absolutely positioned, and without a positioned ancestor
+    // they're placed against the page, past the scroll box — which made the
+    // whole page scroll sideways on a phone.
     <div
       role="region"
       aria-label={label}
       tabIndex={0}
-      className="overflow-x-auto rounded-card border border-line bg-surface shadow-card"
+      className="relative overflow-x-auto rounded-card border border-line bg-surface shadow-card"
     >
       <table className="w-full border-collapse text-left text-sm">
         {children}

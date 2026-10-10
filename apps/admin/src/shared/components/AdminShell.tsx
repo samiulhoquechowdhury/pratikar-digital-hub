@@ -112,7 +112,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <nav
           aria-label="Sections"
           data-surface="inverse"
-          className="flex gap-1 overflow-x-auto border-b border-line-inverse bg-surface-inverse-deep px-3 py-2 lg:hidden"
+          className="relative flex gap-1 overflow-x-auto border-b border-line-inverse bg-surface-inverse-deep px-3 py-2 lg:hidden"
         >
           {NAV.map((item) => (
             <Link
