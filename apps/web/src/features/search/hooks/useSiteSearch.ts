@@ -6,24 +6,35 @@ import { useEffect, useState } from "react";
 import { contentLibraryApi } from "@/features/content-library/api/contentLibraryApi";
 import { documentsApi } from "@/features/documents/api/documentsApi";
 import { lmsApi } from "@/features/lms/api/lmsApi";
-import { matchesWords } from "@/shared/catalogue";
+import { matchesWords, searchWithTypos } from "@/shared/catalogue";
 import { COURSES_LIVE } from "@/shared/lib/features";
 
 export interface SiteSearchResults {
   templates: Template[];
   courses: Course[];
   library: ContentLibraryItem[];
+  /** Nothing matched as typed; these are the closest spellings. */
+  fuzzy: boolean;
+  /** The search re-spelt in the catalogue's words, for "Showing results for". */
+  correction: string | null;
 }
 
-const EMPTY: SiteSearchResults = { templates: [], courses: [], library: [] };
+const EMPTY: SiteSearchResults = {
+  templates: [],
+  courses: [],
+  library: [],
+  fuzzy: false,
+  correction: null,
+};
 
-/**
- * Every word of the search starts a word of the text, in any order — the
- * same rule as the catalogue pages' search, so "deed sale" finds "Sale
- * Deed" wherever someone types it.
- */
-const matches = (haystack: string | null | undefined, needle: string) =>
-  matchesWords(haystack ?? "", needle);
+/** What each kind is searched by. */
+const templateText = (t: Template) => `${t.title} ${t.category}`;
+const courseText = (c: Course) => `${c.title} ${c.description ?? ""}`;
+// The type too, so "checklist" or "form" finds the whole shelf.
+const libraryText = (i: ContentLibraryItem) =>
+  `${i.title} ${i.category.replaceAll("_", " ")} ${
+    i.type === "EBOOK" ? "e-book ebook" : i.type
+  }`;
 
 /**
  * Site-wide search.
@@ -73,26 +84,56 @@ export function useSiteSearch(query: string) {
         if (cancelled) return;
 
         setIncomplete(failed);
+        // Not searched while courses are coming soon: a result would lead
+        // to a page that says so.
+        const searchable = COURSES_LIVE ? courses : [];
+
+        /**
+         * One search over all three catalogues together. Every word of the
+         * search starts a word of the text, in any order — the catalogue
+         * pages' rule, so "deed sale" finds "Sale Deed". Only when that
+         * finds nothing anywhere do near spellings count, so a correctly
+         * spelt search never gets noisier.
+         */
+        type Hit =
+          | { kind: "template"; item: Template; text: string }
+          | { kind: "course"; item: Course; text: string }
+          | { kind: "library"; item: ContentLibraryItem; text: string };
+        const everything: Hit[] = [
+          ...templates.map((item) => ({
+            kind: "template" as const,
+            item,
+            text: templateText(item),
+          })),
+          ...searchable.map((item) => ({
+            kind: "course" as const,
+            item,
+            text: courseText(item),
+          })),
+          ...library.map((item) => ({
+            kind: "library" as const,
+            item,
+            text: libraryText(item),
+          })),
+        ];
+        const found = searchWithTypos(
+          everything,
+          needle,
+          (hit) => hit.text,
+          matchesWords,
+        );
         setResults({
-          templates: templates.filter((t) =>
-            matches(`${t.title} ${t.category}`, needle),
+          templates: found.items.flatMap((hit) =>
+            hit.kind === "template" ? [hit.item] : [],
           ),
-          // Not searched while courses are coming soon: a result would lead
-          // to a page that says so.
-          courses: COURSES_LIVE
-            ? courses.filter((c) =>
-                matches(`${c.title} ${c.description ?? ""}`, needle),
-              )
-            : [],
-          library: library.filter((i) =>
-            // The type too, so "checklist" or "form" finds the whole shelf.
-            matches(
-              `${i.title} ${i.category.replaceAll("_", " ")} ${
-                i.type === "EBOOK" ? "e-book ebook" : i.type
-              }`,
-              needle,
-            ),
+          courses: found.items.flatMap((hit) =>
+            hit.kind === "course" ? [hit.item] : [],
           ),
+          library: found.items.flatMap((hit) =>
+            hit.kind === "library" ? [hit.item] : [],
+          ),
+          fuzzy: found.fuzzy,
+          correction: found.correction,
         });
       })
       .finally(() => {

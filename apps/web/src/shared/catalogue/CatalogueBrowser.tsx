@@ -173,6 +173,8 @@ export function CatalogueBrowser<T>({
           total={result.total}
           noun={noun}
           q={params.q}
+          fuzzy={result.fuzzy}
+          correction={result.correction}
           facets={facets}
           filters={params.filters}
           onRemoveFilter={(id) => setFilter(id, null)}
@@ -446,6 +448,8 @@ function ResultsBar<T>({
   total,
   noun,
   q,
+  fuzzy,
+  correction,
   facets,
   filters,
   onRemoveFilter,
@@ -459,6 +463,8 @@ function ResultsBar<T>({
   total: number;
   noun: [string, string];
   q: string;
+  fuzzy: boolean;
+  correction: string | null;
   facets: FacetDef<T>[];
   filters: Record<string, string>;
   onRemoveFilter: (facetId: string) => void;
@@ -487,8 +493,16 @@ function ResultsBar<T>({
           {q.trim() && (
             <>
               {" "}
-              for <span className="font-semibold text-ink">“{q.trim()}”</span>
+              for{" "}
+              <span className="font-semibold text-ink">
+                “{fuzzy && correction ? correction : q.trim()}”
+              </span>
             </>
+          )}
+          {fuzzy && (
+            <span className="mt-0.5 block text-xs text-ink-subtle">
+              No exact match for “{q.trim()}” — showing the closest spellings.
+            </span>
           )}
         </p>
         <div className="flex items-center gap-2">

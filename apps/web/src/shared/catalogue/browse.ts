@@ -8,6 +8,8 @@
  * directly.
  */
 
+import { searchWithTypos, wordsOf } from "./fuzzy";
+
 export interface FacetOption {
   value: string;
   label: string;
@@ -47,14 +49,14 @@ export interface BrowseResult<T> {
   page: number;
   /** facet id → option value → how many matches choosing it would give. */
   counts: Record<string, Record<string, number>>;
+  /**
+   * Nothing matched the search as typed, so these are close spellings —
+   * "afidavit" finding "Affidavit". `correction` is the search re-spelt in
+   * the catalogue's own words, for "Showing results for …".
+   */
+  fuzzy: boolean;
+  correction: string | null;
 }
-
-/** Lower-case words, punctuation dropped: "Sale-Deed (2026)" → sale, deed, 2026. */
-export const wordsOf = (text: string): string[] =>
-  text
-    .toLowerCase()
-    .split(/[^\p{L}\p{N}]+/u)
-    .filter(Boolean);
 
 /**
  * True when every word of the query starts a word of the text, in any order:
@@ -79,9 +81,11 @@ export function browse<T>(
   },
 ): BrowseResult<T> {
   const { facets, sorts, searchText } = options;
-  const searched = all.filter((item) =>
-    matchesWords(searchText(item), query.q),
-  );
+  const {
+    items: searched,
+    fuzzy,
+    correction,
+  } = searchWithTypos(all, query.q, searchText, matchesWords);
 
   const passes = (item: T, except?: string) =>
     facets.every((facet) => {
@@ -116,6 +120,8 @@ export function browse<T>(
     pageCount,
     page,
     counts,
+    fuzzy,
+    correction,
   };
 }
 

@@ -81,12 +81,28 @@ export function SearchResults() {
 
   return (
     <div className="space-y-12">
-      <p className="text-base text-ink-muted">
-        {total === 0
-          ? "No matches"
-          : `${total} ${total === 1 ? "result" : "results"}`}{" "}
-        for <span className="font-medium text-ink">“{query}”</span>
-      </p>
+      {results.fuzzy ? (
+        // A misspelt search still gets an answer — and says so, so nobody
+        // wonders why "afidavit" shows affidavits.
+        <div className="rounded-2xl border border-brand-border bg-brand-subtle px-5 py-4">
+          <p className="text-base text-ink">
+            Showing {total} {total === 1 ? "result" : "results"} for{" "}
+            <span className="font-semibold">
+              “{results.correction ?? query}”
+            </span>
+          </p>
+          <p className="mt-0.5 text-sm text-ink-muted">
+            No exact match for “{query}”, so these are the closest spellings.
+          </p>
+        </div>
+      ) : (
+        <p className="text-base text-ink-muted">
+          {total === 0
+            ? "No matches"
+            : `${total} ${total === 1 ? "result" : "results"}`}{" "}
+          for <span className="font-medium text-ink">“{query}”</span>
+        </p>
+      )}
 
       {incomplete && (
         <Alert tone="warning" role="status">
@@ -163,9 +179,12 @@ export function SearchResults() {
       {total === 0 && (
         <EmptyState
           title={`Nothing matched “${query}”`}
-          description="Try a shorter phrase, or browse the catalogue instead."
+          description="Try a shorter phrase, browse the catalogue — or describe what you need to the AI assistant, which understands it in your own words."
           action={
             <div className="flex flex-wrap justify-center gap-2">
+              <ButtonLink href={`/assistant?q=${encodeURIComponent(query)}`}>
+                Ask the AI assistant
+              </ButtonLink>
               <ButtonLink href="/documents" variant="secondary">
                 Documents
               </ButtonLink>
