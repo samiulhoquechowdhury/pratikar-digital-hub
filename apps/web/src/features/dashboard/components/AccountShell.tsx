@@ -66,18 +66,24 @@ export function AccountShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <section className="border-b border-line-inverse bg-surface-inverse">
-        <div className="mx-auto flex max-w-shell items-center gap-4 px-4 py-8 sm:px-6 lg:px-8">
+      <section className="relative isolate overflow-hidden border-b border-line bg-paper">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -right-24 -top-32 -z-10 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.18),transparent)]"
+        />
+        <div className="mx-auto flex max-w-shell items-center gap-4 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <span
             aria-hidden
-            className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-brand font-display text-xl font-semibold text-on-brand"
+            className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-primary font-display text-xl font-bold text-brand shadow-raised"
           >
             {user ? initialsOf(user.name) : <Icon icon={UserRound} size="lg" />}
           </span>
           <div className="min-w-0">
-            <p className="text-sm text-ink-inverse-muted">Your account</p>
-            <h1 className="truncate text-2xl text-ink-inverse sm:text-3xl">
-              {user?.name ? user.name : "Welcome"}
+            <p className="eyebrow">Your account</p>
+            <h1 className="mt-1 truncate text-3xl text-ink sm:text-4xl">
+              {user?.name
+                ? `Welcome back, ${user.name.split(" ")[0]}`
+                : "Welcome"}
             </h1>
           </div>
         </div>
@@ -86,7 +92,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
       <div className="mx-auto grid max-w-shell grid-cols-[minmax(0,1fr)] gap-8 px-4 py-8 sm:px-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:px-8 lg:py-10">
         <nav aria-label="Account">
           {/* A scrolling row on phones, a sticky column on desktop. */}
-          <ul className="relative -mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:sticky lg:top-24 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
+          <ul className="relative -mx-4 flex gap-1 overflow-x-auto px-4 pb-1 lg:sticky lg:top-32 lg:mx-0 lg:flex-col lg:overflow-visible lg:px-0">
             {ACCOUNT_NAV.map((item) => {
               const active = isActive(item.href, pathname);
               return (
@@ -94,13 +100,16 @@ export function AccountShell({ children }: { children: ReactNode }) {
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`flex items-center gap-3 rounded-control px-3 py-2.5 text-sm font-medium transition-colors ${
+                    className={`flex items-center gap-3 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors lg:rounded-xl ${
                       active
-                        ? "bg-primary-subtle text-primary"
-                        : "text-ink-muted hover:bg-surface-sunken hover:text-ink"
+                        ? "bg-primary text-ink-inverse"
+                        : "text-ink-muted hover:bg-paper hover:text-ink"
                     }`}
                   >
-                    <Icon icon={item.icon} />
+                    <Icon
+                      icon={item.icon}
+                      className={active ? "text-brand" : ""}
+                    />
                     {item.label}
                   </Link>
                 </li>
@@ -161,7 +170,7 @@ export function AccountPageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
       <div>
-        <h2 className="font-display text-2xl font-semibold">{title}</h2>
+        <h2 className="text-2xl font-bold">{title}</h2>
         <p className="mt-1 text-sm text-ink-muted">{description}</p>
       </div>
       {action}

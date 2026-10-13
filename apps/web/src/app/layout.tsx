@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
-import { Cinzel, Inter, Source_Serif_4 } from "next/font/google";
+import {
+  Cinzel,
+  Inter,
+  Plus_Jakarta_Sans,
+  Source_Serif_4,
+} from "next/font/google";
 
 import { AssistantLauncher } from "@/features/assistant";
+import { AnnouncementBar } from "@/shared/components/AnnouncementBar";
 import { SiteFooter } from "@/shared/components/SiteFooter";
 import { SiteHeader } from "@/shared/components/SiteHeader";
 import { SITE_NAME, siteOrigin } from "@/shared/lib/site";
@@ -18,23 +24,31 @@ const inter = Inter({
 });
 
 /**
- * The display face, used only on page and section titles.
+ * The display face — titles and big numbers.
  *
- * A single sans across an entire legal-services product reads as generic —
- * Inter is the safe default precisely because it is everywhere. A serif on the
- * headings does the work the subject actually asks for: contracts, statutes
- * and certificates are set in serif, and the association is what carries
- * authority. Source Serif rather than a traditional book face because the
- * interface around it is Swiss-plain, and a bookish serif would fight it.
- *
- * Restraint is the point. Body copy, labels, tables and every control stay
- * Inter, so the serif marks hierarchy instead of decorating the page.
+ * A geometric sans with a little warmth, the way modern product sites set
+ * their headlines: confident and quick to read at large sizes, where Inter
+ * starts to look like body copy blown up. Body, labels, tables and controls
+ * stay Inter.
  */
-const displaySerif = Source_Serif_4({
+const display = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "600", "700"],
+  weight: ["500", "600", "700", "800"],
   variable: "--font-display",
+});
+
+/**
+ * The editorial accent: an italic serif word set inside a sans headline.
+ * Contracts and certificates are set in serif, so one serif word carries
+ * the subject's authority without making the page read as old-fashioned.
+ */
+const accentSerif = Source_Serif_4({
+  subsets: ["latin"],
+  display: "swap",
+  weight: ["400", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-serif",
 });
 
 /** The logo's wordmark face — "PRATIKAR" only, so one weight is enough. */
@@ -78,7 +92,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${displaySerif.variable} ${brandFont.variable}`}
+      className={`${inter.variable} ${display.variable} ${accentSerif.variable} ${brandFont.variable}`}
     >
       <body className="flex min-h-screen flex-col font-sans">
         <AuthProvider>
@@ -93,6 +107,7 @@ export default function RootLayout({
             Skip to content
           </a>
 
+          <AnnouncementBar />
           <SiteHeader />
 
           <main id="main" className="flex-1">

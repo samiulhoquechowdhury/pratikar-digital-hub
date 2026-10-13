@@ -43,23 +43,27 @@ export function SiteSearch({
       <label htmlFor={inputId} className="sr-only">
         Search documents, courses and guides
       </label>
-      <Icon
-        icon={Search}
-        className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-subtle"
-      />
       <input
         id={inputId}
         type="search"
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         autoFocus={autoFocus}
-        placeholder="Search forms, documents, courses, e-books…"
+        placeholder="What legal document do you need?"
         // No `focus:outline-none` here. The border change is the aesthetic
         // treatment; the global focus-visible outline is the accessibility
         // guarantee, and a component opting out of it is how keyboard
         // navigation quietly breaks.
-        className="h-11 w-full rounded-full border border-line bg-surface-sunken pl-9 pr-4 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-line focus:border-line-strong focus:bg-surface"
+        className="h-11 w-full rounded-full border border-line-strong bg-surface pl-5 pr-12 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-primary"
       />
+      {/* Coursera's round button inside the field: the search is one tap
+          on a phone, not a hunt for the keyboard's Go key. */}
+      <button
+        type="submit"
+        className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-primary text-ink-inverse transition-colors hover:bg-primary-hover"
+      >
+        <Icon icon={Search} size="sm" label="Search" />
+      </button>
     </form>
   );
 }

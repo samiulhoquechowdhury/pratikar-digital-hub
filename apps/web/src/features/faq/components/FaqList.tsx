@@ -35,21 +35,25 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.category} aria-labelledby={`faq-${group.category}`}>
-          <h2 id={`faq-${group.category}`} className="text-xl">
+          <h2 id={`faq-${group.category}`} className="text-2xl font-bold">
             {group.category}
           </h2>
-          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+          <ul className="mt-5 space-y-3">
             {group.items.map((item) => {
               const isOpen = open === item.id;
               return (
-                <li key={item.id} id={item.id} className="scroll-mt-28">
+                <li
+                  key={item.id}
+                  id={item.id}
+                  className={`scroll-mt-36 rounded-2xl border border-line bg-surface transition-shadow ${isOpen ? "shadow-float" : ""}`}
+                >
                   <h3>
                     <button
                       type="button"
                       aria-expanded={isOpen}
                       aria-controls={`${item.id}-answer`}
                       onClick={() => setOpen(isOpen ? null : item.id)}
-                      className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left text-base font-semibold text-ink transition-colors hover:bg-surface-sunken"
+                      className="flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-left font-display text-base font-bold text-ink transition-colors hover:bg-paper"
                     >
                       {item.question}
                       <Icon
@@ -61,7 +65,7 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
                   <div
                     id={`${item.id}-answer`}
                     hidden={!isOpen}
-                    className="whitespace-pre-line px-5 pb-5 text-sm leading-relaxed text-ink-muted"
+                    className="whitespace-pre-line px-6 pb-6 text-sm leading-relaxed text-ink-muted"
                   >
                     {item.answer}
                   </div>

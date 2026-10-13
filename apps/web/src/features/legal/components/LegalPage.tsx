@@ -93,7 +93,7 @@ export function LegalPage({
               screen down, and every policy is also linked in the footer. */}
           <nav
             aria-label="On this page"
-            className="hidden lg:sticky lg:top-24 lg:block lg:self-start"
+            className="hidden lg:sticky lg:top-36 lg:block lg:self-start"
           >
             <p className="text-sm font-semibold text-ink">On this page</p>
             <ol className="mt-3 space-y-2 border-l border-line text-sm">
@@ -101,7 +101,7 @@ export function LegalPage({
                 <li key={section.id}>
                   <a
                     href={`#${section.id}`}
-                    className="-ml-px block border-l border-transparent pl-4 text-ink-muted transition-colors hover:border-line-strong hover:text-ink"
+                    className="-ml-px block border-l-2 border-transparent pl-4 text-ink-muted transition-colors hover:border-brand hover:text-ink"
                   >
                     {section.title}
                   </a>
@@ -137,9 +137,9 @@ export function LegalPage({
                 key={section.id}
                 id={section.id}
                 // Clears the sticky header when jumped to from the contents.
-                className="scroll-mt-24"
+                className="scroll-mt-36"
               >
-                <h2 className="mt-12 text-xl font-semibold text-ink">
+                <h2 className="mt-12 text-2xl font-bold text-ink">
                   {section.title}
                 </h2>
                 <div className="mt-4">{section.body}</div>

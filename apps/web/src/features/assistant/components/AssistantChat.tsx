@@ -99,7 +99,7 @@ export function AssistantChat({
    * the floating panel fills its parent instead, so the frame comes from
    * whichever container is using it rather than being baked in here.
    */
-  className = "h-[min(70vh,44rem)] rounded-card border border-line shadow-card",
+  className = "h-[min(72vh,46rem)] rounded-panel border border-line shadow-float",
   autoFocus = false,
   initialQuestion,
 }: {
@@ -292,7 +292,7 @@ export function AssistantChat({
         {messages.map((message) =>
           message.role === "you" ? (
             <p key={message.id} className="flex justify-end">
-              <span className="max-w-[85%] whitespace-pre-wrap rounded-card rounded-br-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-ink-inverse">
+              <span className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-br-sm bg-primary px-4 py-2.5 text-sm leading-relaxed text-ink-inverse">
                 {message.text}
               </span>
             </p>
@@ -307,9 +307,9 @@ export function AssistantChat({
           e.preventDefault();
           send(draft);
         }}
-        className="border-t border-line bg-canvas p-3 sm:p-4"
+        className="border-t border-line bg-paper p-3 sm:p-4"
       >
-        <div className="flex items-end gap-2 rounded-card border border-line-strong bg-surface p-2 focus-within:border-brand">
+        <div className="flex items-end gap-2 rounded-2xl border border-line-strong bg-surface p-2 shadow-card focus-within:border-primary">
           <label htmlFor="assistant-input" className="sr-only">
             Ask a question
           </label>

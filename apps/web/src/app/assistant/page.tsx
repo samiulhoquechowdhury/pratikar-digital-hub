@@ -46,17 +46,17 @@ export default async function AssistantPage({
       />
 
       <section className="mx-auto max-w-shell px-4 pb-12 sm:px-6 lg:px-8">
-        <div className="max-w-4xl">
+        <div className="mx-auto max-w-4xl">
           <AssistantChat initialQuestion={question} />
         </div>
       </section>
 
       <section className="mx-auto max-w-shell px-4 sm:px-6 lg:px-8">
-        <div className="rounded-card bg-surface-sunken px-6 py-10 sm:px-10">
+        <div className="mx-auto max-w-4xl rounded-panel border border-line bg-paper px-6 py-10 sm:px-10">
           <ul className="grid gap-8 sm:grid-cols-3">
             {LIMITS.map((item) => (
               <li key={item.title}>
-                <h2 className="text-base font-semibold">{item.title}</h2>
+                <h2 className="text-lg font-bold">{item.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {item.body}
                 </p>

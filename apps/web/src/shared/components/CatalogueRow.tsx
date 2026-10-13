@@ -36,13 +36,13 @@ export function CatalogueRow({
     <article className="group relative flex items-center gap-4 px-4 py-3.5 transition-colors hover:bg-surface-sunken sm:px-5">
       <span
         aria-hidden
-        className={`grid h-11 w-11 shrink-0 place-items-center rounded-control text-brand ${cover}`}
+        className={`grid h-11 w-11 shrink-0 place-items-center rounded-xl text-brand ${cover}`}
       >
         <Icon icon={icon} size="md" />
       </span>
 
       <div className="min-w-0 flex-1">
-        <h3 className="text-[0.9375rem] font-semibold leading-snug">
+        <h3 className="font-sans text-[0.9375rem] font-semibold leading-snug tracking-normal">
           <Link
             href={href}
             className="line-clamp-2 text-ink transition-colors after:absolute after:inset-0 after:content-[''] group-hover:text-primary"
