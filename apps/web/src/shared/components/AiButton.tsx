@@ -16,9 +16,9 @@ export function AiButton({ className = "" }: { className?: string }) {
   return (
     <Link
       href="/assistant"
-      className={`inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border border-line px-3 text-sm font-medium text-ink transition-colors hover:border-line-strong hover:bg-surface-sunken ${className}`}
+      className={`inline-flex h-10 items-center gap-1.5 whitespace-nowrap rounded-full border border-brand-border bg-brand-subtle px-3.5 text-sm font-semibold text-ink transition-colors hover:border-brand ${className}`}
     >
-      <Icon icon={Sparkles} className="text-primary" />
+      <Icon icon={Sparkles} className="text-gold-ink" />
       Ask AI
     </Link>
   );

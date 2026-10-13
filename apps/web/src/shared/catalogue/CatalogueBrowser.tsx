@@ -156,7 +156,7 @@ export function CatalogueBrowser<T>({
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="inline-flex h-12 shrink-0 items-center gap-2 rounded-control border border-line-strong bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:hidden"
+              className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:hidden"
             >
               <Icon icon={SlidersHorizontal} />
               Filters
@@ -198,13 +198,13 @@ export function CatalogueBrowser<T>({
             />
           </div>
         ) : params.view === "list" ? (
-          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
             {result.items.map((item) => (
               <li key={keyOf(item)}>{renderRow(item)}</li>
             ))}
           </ul>
         ) : (
-          <ul className="mt-4 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <ul className="mt-4 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {result.items.map((item) => (
               <li key={keyOf(item)}>{renderCard(item)}</li>
             ))}
@@ -280,7 +280,7 @@ function SearchBox({
         onChange={(event) => setText(event.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="h-12 w-full rounded-control border border-line-strong bg-surface pl-12 pr-4 text-base text-ink shadow-card placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-primary"
+        className="h-12 w-full rounded-full border border-line-strong bg-surface pl-12 pr-5 text-base text-ink shadow-card placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-primary"
       />
     </div>
   );

@@ -1,3 +1,4 @@
+import { BrandMark } from "@pratikar/ui";
 import { Check, ChevronRight, ShieldCheck, Receipt } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -20,23 +21,19 @@ export function Breadcrumbs({
 }) {
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-inverse-muted">
+      <ol className="flex flex-wrap items-center gap-1.5 text-sm text-ink-muted">
         {trail.map((crumb) => (
           <li key={crumb.href} className="flex items-center gap-1.5">
             <Link
               href={crumb.href}
-              className="transition-colors hover:text-ink-inverse"
+              className="transition-colors hover:text-primary hover:underline"
             >
               {crumb.label}
             </Link>
-            <Icon
-              icon={ChevronRight}
-              size="xs"
-              className="text-ink-inverse-muted"
-            />
+            <Icon icon={ChevronRight} size="xs" className="text-ink-subtle" />
           </li>
         ))}
-        <li aria-current="page" className="truncate text-ink-inverse">
+        <li aria-current="page" className="truncate font-medium text-ink">
           {current}
         </li>
       </ol>
@@ -45,9 +42,9 @@ export function Breadcrumbs({
 }
 
 /**
- * Content on the left, the purchase panel pinned on the right — under a navy
- * title band, with the panel floating over its edge, the way Udemy and
- * Coursera present a course.
+ * Content on the left, the purchase panel pinned on the right — under a warm
+ * paper title band, with the panel floating over its edge, the way Coursera
+ * presents a course.
  *
  * Three slots rather than two so the phone order can differ from the desktop
  * one: on a phone the panel comes straight after the title — price and the
@@ -72,7 +69,7 @@ export function ProductLayout({
     <div className="overflow-x-clip">
       <div className="mx-auto max-w-shell px-4 pb-8 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-x-16 lg:gap-y-0">
-          <div className="relative min-w-0 py-10 before:absolute before:inset-y-0 before:-left-[100vw] before:-right-[100vw] before:-z-10 before:bg-surface-inverse lg:col-start-1 lg:row-start-1 lg:py-14">
+          <div className="relative min-w-0 py-10 before:absolute before:inset-y-0 before:-left-[100vw] before:-right-[100vw] before:-z-10 before:border-b before:border-line before:bg-paper lg:col-start-1 lg:row-start-1 lg:py-14">
             {header}
           </div>
           {/* Sticky below the header, so the price and the button stay in
@@ -105,23 +102,33 @@ export function ProductHeading({
   const { label, icon } = CATALOGUE_KINDS[kind];
   return (
     <header className="mt-6">
-      <p className="flex items-center gap-2 text-sm font-semibold text-brand">
-        <Icon icon={icon} />
+      <p className="inline-flex items-center gap-2 rounded-full border border-brand-border bg-brand-subtle px-3 py-1 text-xs font-bold uppercase tracking-[0.12em] text-gold-ink">
+        <Icon icon={icon} size="xs" />
         {label}
       </p>
-      <h1 className="mt-3 text-4xl text-ink-inverse sm:text-5xl">{title}</h1>
+      <h1 className="mt-4 text-4xl leading-[1.1] text-ink sm:text-5xl">
+        {title}
+      </h1>
       {description && (
-        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-inverse-muted">
+        <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-muted">
           {description}
         </p>
       )}
+      <p className="mt-6 flex items-center gap-2.5 text-sm text-ink-muted">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-primary text-brand">
+          <BrandMark className="h-4 w-auto" />
+        </span>
+        <span>
+          From{" "}
+          <span className="font-semibold text-ink">Pratikar Digital Hub</span>
+        </span>
+      </p>
       {meta.length > 0 && (
-        <ul className="mt-6 flex flex-wrap gap-2">
+        // Coursera's fact strip: the numbers someone weighs before buying,
+        // in one white card rather than scattered through the text.
+        <ul className="mt-7 flex flex-wrap divide-x divide-line overflow-hidden rounded-2xl border border-line bg-surface shadow-card">
           {meta.map((fact) => (
-            <li
-              key={fact}
-              className="rounded-full border border-line-inverse px-3 py-1 text-sm text-ink-inverse-muted"
-            >
+            <li key={fact} className="px-5 py-3 text-sm font-semibold text-ink">
               {fact}
             </li>
           ))}
@@ -141,7 +148,7 @@ export function ProductSection({
 }) {
   return (
     <section className="mt-12 border-t border-line pt-10 first:mt-10 first:border-t-0 first:pt-0">
-      <h2 className="text-xl font-semibold">{title}</h2>
+      <h2 className="text-2xl font-bold">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -169,7 +176,7 @@ export function FeatureList({ items }: { items: string[] }) {
  */
 export function PurchaseCard({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-card border border-line bg-surface p-6 shadow-raised">
+    <div className="rounded-2xl border border-line bg-surface p-6 shadow-float">
       {children}
       <ul className="mt-6 space-y-2 border-t border-line pt-5 text-sm text-ink-muted">
         <li className="flex items-center gap-2">

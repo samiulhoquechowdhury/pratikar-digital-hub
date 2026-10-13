@@ -30,13 +30,13 @@ const CATEGORY_BAR = [
 ];
 
 /**
- * The site header, laid out the way Coursera and Udemy lay theirs out: the
- * brand, an Explore menu holding the whole catalogue, a wide search — the
+ * The site header, laid out the way Coursera lays its own out: the brand, an
+ * Explore mega-menu holding the whole catalogue, a wide pill search — the
  * main way people arrive at a legal form — and the account. A slim bar
  * beneath lists the catalogue's sections on wide screens.
  *
- * Gold is spent on one thing only, "Sign up", so the action that matters
- * most is the one thing in the header with colour.
+ * Gold is spent on one thing only, "Join for free", so the action that
+ * matters most is the one thing in the header with colour.
  *
  * A client component because it reflects sign-in state; the rest of the shell
  * stays server-rendered.
@@ -50,7 +50,7 @@ export function SiteHeader() {
   useEffect(() => setMenuOpen(false), [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line bg-surface/95 backdrop-blur-md supports-[backdrop-filter]:bg-surface/85">
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-surface/95 backdrop-blur-xl supports-[backdrop-filter]:bg-surface/80">
       <div className="mx-auto flex h-16 max-w-shell items-center gap-3 px-4 sm:px-6 lg:gap-5 lg:px-8">
         <SiteLogo />
 
@@ -72,13 +72,13 @@ export function SiteHeader() {
             // then swapping it out under their cursor.
             <div
               aria-hidden
-              className="h-9 w-24 rounded-control bg-surface-sunken"
+              className="h-10 w-32 rounded-full bg-surface-sunken"
             />
           ) : user ? (
             <>
               <Link
                 href="/dashboard"
-                className="hidden whitespace-nowrap rounded-control px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:inline-block"
+                className="hidden whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:inline-block"
               >
                 My account
               </Link>
@@ -87,19 +87,19 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              {/* Two buttons, not one. "Log in" alone reads as a members-only
+              {/* Two actions, not one. "Log in" alone reads as a members-only
                   site; the pair is what signals you can join. */}
               <Link
                 href="/login"
-                className="hidden whitespace-nowrap rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:inline-block"
+                className="hidden whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:inline-block"
               >
                 Log in
               </Link>
               <Link
                 href="/signup"
-                className="whitespace-nowrap rounded-control bg-brand px-4 py-2 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
+                className="whitespace-nowrap rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand shadow-card transition-colors hover:bg-brand-hover sm:px-5"
               >
-                Sign up
+                Join for free
               </Link>
             </>
           )}
@@ -109,7 +109,7 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="-mr-2 grid h-11 w-11 place-items-center rounded-control text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink lg:hidden"
+            className="-mr-2 grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink lg:hidden"
           >
             <Icon
               icon={menuOpen ? X : Menu}
@@ -149,9 +149,11 @@ export function SiteHeader() {
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center gap-3 rounded-control px-3 py-2.5 transition-colors hover:bg-surface-sunken"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-sunken"
                     >
-                      <Icon icon={item.icon} className="text-primary" />
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-subtle text-primary">
+                        <Icon icon={item.icon} />
+                      </span>
                       <span>
                         <span className="block text-base font-medium text-ink">
                           {item.label}
@@ -185,7 +187,7 @@ export function SiteHeader() {
               {user && (
                 <Link
                   href="/dashboard"
-                  className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink"
+                  className="rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink"
                 >
                   My account
                 </Link>
@@ -193,7 +195,7 @@ export function SiteHeader() {
               {!user && !isRestoring && (
                 <Link
                   href="/login"
-                  className="rounded-control border border-line-strong px-4 py-2 text-sm font-semibold text-ink sm:hidden"
+                  className="rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink sm:hidden"
                 >
                   Log in
                 </Link>

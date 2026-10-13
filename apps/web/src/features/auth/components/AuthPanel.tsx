@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Bell, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
@@ -65,7 +65,10 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
     <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
-      <section className="relative hidden overflow-hidden bg-surface-inverse lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20">
+      <section
+        data-surface="inverse"
+        className="relative hidden overflow-hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
+      >
         {/* The hero's light and grid, so signing in feels like the same
             place as the home page rather than a utility screen. */}
         <div
@@ -80,8 +83,9 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           <p className="text-sm font-semibold text-brand">
             Har Ghar Mein Kanooni Gyaan
           </p>
-          <p className="mt-4 font-display text-4xl font-semibold leading-tight text-ink-inverse xl:text-5xl">
-            Legal knowledge in <span className="text-brand">every home.</span>
+          <p className="mt-4 font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-ink-inverse xl:text-5xl">
+            Legal knowledge in{" "}
+            <span className="accent-serif text-brand">every home.</span>
           </p>
           <ul className="mt-10 space-y-4">
             {PROMISES.map((promise) => (
@@ -98,11 +102,29 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
               </li>
             ))}
           </ul>
+
+          {/* What signing in leads to — the moment the product is for. */}
+          <div
+            aria-hidden
+            className="mt-12 flex max-w-xs items-start gap-3 rounded-2xl bg-surface px-4 py-3 shadow-float motion-safe:animate-float"
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-brand">
+              <Icon icon={Bell} size="sm" />
+            </span>
+            <span>
+              <span className="block text-sm font-semibold text-ink">
+                Your document is ready
+              </span>
+              <span className="block text-xs text-ink-muted">
+                Reviewed by an advocate · tap to download
+              </span>
+            </span>
+          </div>
         </div>
       </section>
 
-      <section className="flex items-center justify-center px-4 py-12 sm:px-6">
-        <div className="w-full max-w-sm">
+      <section className="flex items-center justify-center bg-paper px-4 py-12 sm:px-6">
+        <div className="w-full max-w-md rounded-panel border border-line bg-surface p-6 shadow-float sm:p-10">
           <h1 className="text-3xl">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             {copy.sub}

@@ -1,10 +1,15 @@
+import { BrandMark } from "@pratikar/ui";
 import {
   BadgeCheck,
   Bell,
+  BookOpen,
+  Check,
   FileText,
+  FolderOpen,
   Lock,
   Receipt,
   Sparkles,
+  UserCheck,
 } from "lucide-react";
 
 import { Icon } from "@/shared/components/Icon";
@@ -12,7 +17,7 @@ import { Icon } from "@/shared/components/Icon";
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
 import { IntentSearch } from "./IntentSearch";
-import { PillarsBackdrop, Seal } from "./illustrations";
+import { Seal } from "./illustrations";
 
 const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
@@ -23,11 +28,10 @@ const TRUST = [
 ];
 
 /**
- * The hero. In one screen it has to say what this is, prove it's real, and
- * let someone act — so the headline names the outcome, the search takes
- * them straight to it three ways, and the illustration shows the product's
- * actual journey: a drafted agreement, an advocate's seal, the "it's ready"
- * notification. Stats underneath are counted from the live catalogue.
+ * The hero, on warm paper the way Jasper opens: a big centred headline that
+ * names the outcome, one input that takes people straight to it three ways,
+ * and then the product itself — a full window of the drafting screen, not a
+ * stock photo — so the first scroll already shows what you'd be using.
  */
 export function LandingHero({ summary }: { summary: CatalogueSummary }) {
   const stats = [
@@ -40,42 +44,49 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
   return (
     <section
       aria-labelledby="hero-title"
-      className="relative isolate overflow-hidden bg-hero-navy"
+      className="relative isolate overflow-hidden bg-paper"
     >
-      <PillarsBackdrop className="pointer-events-none absolute inset-0 -z-10 h-full w-full" />
-      {/* A warm glow behind the illustration, and a soft vignette at the
-          bottom so the stats strip reads cleanly. */}
+      {/* A ruled grid that fades out, and two soft lights — gold behind the
+          headline, navy under the window. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute -right-40 top-10 -z-10 h-[38rem] w-[38rem] rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.16),transparent)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/55%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/55%)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_60%_55%_at_50%_0%,black,transparent_80%)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute left-1/2 top-[-12rem] -z-10 h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.22),transparent)]"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute bottom-0 left-0 right-0 -z-10 h-1/2 bg-gradient-to-b from-transparent to-paper-deep"
       />
 
-      <div
-        className={`${FRAME} grid grid-cols-[minmax(0,1fr)] items-center gap-14 pb-14 pt-14 sm:pt-20 lg:grid-cols-[minmax(0,1.08fr)_minmax(0,1fr)] lg:gap-10 lg:pb-20 lg:pt-24`}
-      >
-        <div className="motion-safe:animate-fade-up">
-          <p className="inline-flex items-center gap-2 rounded-full border border-brand/30 bg-brand/10 px-3.5 py-1.5 text-sm font-medium text-brand">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />
+      <div className={`${FRAME} pb-16 pt-14 sm:pt-20 lg:pt-24`}>
+        <div className="mx-auto flex max-w-4xl flex-col items-center text-center motion-safe:animate-fade-up">
+          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/80 py-1 pl-1 pr-3.5 text-sm font-medium text-ink shadow-card backdrop-blur">
+            <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-brand">
+              <BrandMark className="h-3 w-auto" />
+            </span>
             Har Ghar Mein Kanooni Gyaan
           </p>
 
           <h1
             id="hero-title"
-            className="mt-6 font-display text-[2.6rem] font-semibold leading-[1.08] tracking-tight text-ink-inverse sm:text-6xl lg:text-[3.6rem]"
+            className="mt-7 text-[2.6rem] font-extrabold leading-[1.04] text-ink sm:text-6xl lg:text-7xl"
           >
             Every legal document,{" "}
-            <span className="relative whitespace-nowrap text-brand">
-              drafted right
+            <span className="relative whitespace-nowrap">
+              <span className="accent-serif text-gold-ink">drafted right</span>
               <svg
                 aria-hidden
                 viewBox="0 0 300 12"
                 preserveAspectRatio="none"
-                className="absolute -bottom-1 left-0 h-2.5 w-full text-brand/60"
+                className="absolute -bottom-1.5 left-0 h-3 w-full text-brand"
               >
                 <path
                   d="M2 9 C 80 2, 220 2, 298 7"
                   stroke="currentColor"
-                  strokeWidth="3"
+                  strokeWidth="3.5"
                   fill="none"
                   strokeLinecap="round"
                 />
@@ -84,177 +95,220 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
             — and checked by an advocate.
           </h1>
 
-          <p className="mt-7 max-w-xl text-lg leading-relaxed text-ink-inverse-muted sm:text-xl">
+          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-ink-muted sm:text-xl">
             Fill in a ready template, have AI draft anything from your own
-            words, or download from hundreds of forms, checklists and e-books.
-            Plain language, fair prices, and an advocate&apos;s review when it
-            matters.
+            words, or download from hundreds of forms, checklists and e-books —
+            in plain language, at fair prices.
           </p>
 
-          <div className="mt-9">
+          <div className="mt-10 flex w-full justify-center">
             <IntentSearch />
           </div>
 
-          <ul className="mt-9 flex flex-col gap-3 text-sm text-ink-inverse sm:flex-row sm:flex-wrap sm:gap-x-6">
+          <ul className="mt-8 flex flex-col items-center gap-3 text-sm text-ink-muted sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-7">
             {TRUST.map((item) => (
               <li key={item.label} className="flex items-center gap-2">
-                <Icon icon={item.icon} className="text-brand" />
+                <Icon icon={item.icon} className="text-gold-ink" />
                 {item.label}
               </li>
             ))}
           </ul>
         </div>
 
-        <HeroIllustration />
-      </div>
+        <HeroWindow />
 
-      {stats.length > 0 && (
-        <div className="border-t border-white/10 bg-navy-950/40 backdrop-blur-sm">
-          <dl
-            className={`${FRAME} grid grid-cols-2 divide-white/10 py-6 sm:grid-cols-4 sm:divide-x`}
-          >
+        {stats.length > 0 && (
+          <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-y-8 sm:grid-cols-4">
             {stats.map((stat) => (
               <div
                 key={stat.label}
-                className="flex flex-col px-2 py-2 sm:px-6 sm:first:pl-0"
+                className="flex flex-col items-center text-center sm:border-l sm:border-line sm:first:border-l-0"
               >
-                <dt className="text-sm text-ink-inverse-muted">{stat.label}</dt>
-                <dd className="order-first font-display text-3xl font-semibold tabular-nums text-ink-inverse sm:text-4xl">
+                <dt className="mt-1 text-sm text-ink-muted">{stat.label}</dt>
+                <dd className="order-first font-display text-4xl font-extrabold tabular-nums tracking-tight text-ink sm:text-5xl">
                   {countLabel(stat.value)}
                 </dd>
               </div>
             ))}
           </dl>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
 
+/* ───────────────────────────────────────────────────────── the window */
+
+const SIDEBAR = [
+  { icon: Sparkles, label: "AI drafting", active: true },
+  { icon: FileText, label: "Templates" },
+  { icon: BookOpen, label: "Library" },
+  { icon: FolderOpen, label: "My documents" },
+];
+
 /**
- * The product's journey in one picture: an agreement the AI drafted, the
- * advocate's seal on it, and the notification that it's ready. Built from
- * real interface pieces, so it shows what the customer will actually see.
- * Decorative — the headline says it in words.
+ * The drafting screen in a browser window: the sidebar, the customer's own
+ * sentence and the AI's reply, the draft with an advocate's seal, and the
+ * notification that it's ready. Built from the product's own pieces so it
+ * shows what the customer will actually see. Decorative — the headline says
+ * it in words.
  */
-function HeroIllustration() {
+function HeroWindow() {
   return (
     <div
       aria-hidden
-      className="relative mx-auto w-full max-w-[32rem] select-none py-6 lg:py-0"
+      className="relative mx-auto mt-16 max-w-5xl select-none motion-safe:animate-fade-up sm:mt-20"
+      style={{ animationDelay: "150ms" }}
     >
-      {/* The agreement */}
-      <div className="relative rotate-[-2deg] rounded-2xl bg-surface p-7 shadow-[0_40px_80px_-20px_rgb(5_15_29/0.7)] ring-1 ring-black/5 sm:p-9">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-gold-ink">
-              Drafted with AI
-            </p>
-            <p className="mt-1.5 font-display text-xl font-semibold leading-tight text-ink sm:text-2xl">
-              Leave and Licence Agreement
-            </p>
-            <p className="mt-1 text-xs text-ink-muted">
-              Pune · 11 months · 2 parties
-            </p>
-          </div>
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary-subtle text-primary">
-            <Icon icon={FileText} size="md" />
+      <div className="overflow-hidden rounded-2xl bg-surface shadow-float ring-1 ring-black/5 sm:rounded-3xl">
+        {/* Browser chrome */}
+        <div className="flex items-center gap-3 border-b border-line bg-canvas px-4 py-3">
+          <span className="flex gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-danger/40" />
+            <span className="h-2.5 w-2.5 rounded-full bg-brand/60" />
+            <span className="h-2.5 w-2.5 rounded-full bg-success/40" />
           </span>
+          <span className="mx-auto flex min-w-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink-subtle">
+            <Icon icon={Lock} size="xs" />
+            <span className="truncate">pratikar.in/documents/custom</span>
+          </span>
+          <span className="hidden w-12 sm:block" />
         </div>
 
-        <div className="mt-6 space-y-2.5">
-          <p className="text-xs font-semibold uppercase tracking-wider text-ink">
-            Between
-          </p>
-          <div className="h-2 w-11/12 rounded-full bg-navy-100" />
-          <div className="h-2 w-4/5 rounded-full bg-navy-100" />
-          <p className="pt-2 text-xs font-semibold uppercase tracking-wider text-ink">
-            Terms and conditions
-          </p>
-          {["w-full", "w-10/12", "w-11/12", "w-9/12"].map((width, index) => (
-            <div key={width + index} className="flex items-center gap-2">
-              <span className="w-4 text-[0.65rem] font-semibold text-ink-subtle">
-                {index + 1}.
+        <div className="grid min-h-[22rem] grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1.05fr)_minmax(0,1fr)]">
+          {/* Sidebar */}
+          <div className="hidden border-r border-line bg-canvas p-3 lg:block">
+            <span className="flex items-center gap-2 px-2 py-1.5">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-brand">
+                <BrandMark className="h-3.5 w-auto" />
               </span>
-              <div
-                className={`h-2 ${width} rounded-full ${index === 1 ? "bg-brand/60" : "bg-navy-100"}`}
-              />
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-8 grid grid-cols-2 gap-6">
-          {["Licensor", "Licensee"].map((party) => (
-            <div key={party}>
-              <div className="h-px bg-ink/25" />
-              <p className="mt-1.5 text-[0.65rem] uppercase tracking-wider text-ink-subtle">
-                {party}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <Seal className="absolute -bottom-9 -right-2 h-24 w-24 sm:-right-7 sm:h-28 sm:w-28 rotate-12 drop-shadow-xl sm:h-32 sm:w-32" />
-      </div>
-
-      {/* "AI draft ready" */}
-      <div className="absolute -top-10 left-0 flex items-center gap-2.5 rounded-xl bg-surface px-3.5 py-2.5 shadow-overlay ring-1 ring-black/5 motion-safe:animate-float sm:-left-10">
-        <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand text-on-brand">
-          <Icon icon={Sparkles} size="sm" />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold text-ink">
-            AI draft ready
-          </span>
-          <span className="block text-xs text-ink-muted">
-            Word + PDF preview
-          </span>
-        </span>
-      </div>
-
-      {/* Advocate review progress */}
-      <div className="absolute right-0 top-1/3 w-48 sm:w-52 rounded-xl bg-surface-inverse-raised/95 p-4 shadow-overlay ring-1 ring-white/10 backdrop-blur motion-safe:animate-float-slow sm:-right-12">
-        <p className="text-xs font-semibold uppercase tracking-wider text-brand">
-          Advocate review
-        </p>
-        <ol className="mt-3 space-y-2.5 text-sm text-ink-inverse">
-          {[
-            ["Drafted", true],
-            ["Reviewed by advocate", true],
-            ["Ready to download", true],
-          ].map(([label, done]) => (
-            <li key={label as string} className="flex items-center gap-2">
-              <span
-                className={`grid h-4 w-4 place-items-center rounded-full ${done ? "bg-brand text-on-brand" : "border border-white/30"}`}
-              >
-                <svg viewBox="0 0 12 12" className="h-2.5 w-2.5">
-                  <path
-                    d="M2.5 6.2 5 8.5 9.5 3.8"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+              <span className="font-brand text-xs font-semibold tracking-wider text-gold-ink">
+                PRATIKAR
+              </span>
+            </span>
+            <ul className="mt-4 space-y-1">
+              {SIDEBAR.map((item) => (
+                <li
+                  key={item.label}
+                  className={`flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium ${
+                    item.active
+                      ? "bg-primary text-ink-inverse"
+                      : "text-ink-muted"
+                  }`}
+                >
+                  <Icon
+                    icon={item.icon}
+                    size="xs"
+                    className={item.active ? "text-brand" : ""}
                   />
-                </svg>
+                  {item.label}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* The conversation */}
+          <div className="flex flex-col gap-4 p-5 sm:p-7">
+            <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-subtle">
+              Describe your document
+            </p>
+            <div className="ml-auto max-w-[92%] rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-left text-sm leading-relaxed text-ink-inverse">
+              Partnership deed for my bakery with my cousin in Pune — 60:40
+              profit share, ₹5 lakh capital, 3 months&apos; notice to exit.
+            </div>
+            <div className="flex max-w-[92%] gap-2.5">
+              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-on-brand">
+                <Icon icon={Sparkles} size="xs" />
               </span>
-              {label as string}
-            </li>
-          ))}
-        </ol>
+              <div className="rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-left text-sm leading-relaxed text-ink">
+                Your draft is ready — in the format of our advocate-written
+                partnership deed. Preview it free, then send it for review.
+              </div>
+            </div>
+            <ol className="mt-auto grid grid-cols-3 gap-2 pt-2 text-left">
+              {[
+                { label: "Drafted", state: "done" },
+                { label: "Advocate review", state: "done" },
+                { label: "Ready", state: "now" },
+              ].map((step) => (
+                <li
+                  key={step.label}
+                  className={`rounded-xl border px-2.5 py-2 text-[0.7rem] font-semibold ${
+                    step.state === "now"
+                      ? "border-brand bg-brand-subtle text-gold-ink"
+                      : "border-line text-ink-muted"
+                  }`}
+                >
+                  <span className="mb-1 grid h-4 w-4 place-items-center rounded-full bg-success text-ink-inverse">
+                    <Icon icon={Check} size="xs" className="h-2.5 w-2.5" />
+                  </span>
+                  {step.label}
+                </li>
+              ))}
+            </ol>
+          </div>
+
+          {/* The draft */}
+          <div className="relative hidden border-l border-line bg-[linear-gradient(160deg,theme(colors.navy.50),theme(colors.paper))] p-6 md:block">
+            <div className="relative rotate-[1.5deg] rounded-lg bg-surface p-6 text-left shadow-overlay ring-1 ring-black/5">
+              <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-gold-ink">
+                Draft · v2
+              </p>
+              <p className="mt-1 font-serif text-xl font-semibold text-ink">
+                Partnership Deed
+              </p>
+              <p className="mt-0.5 text-[0.7rem] text-ink-subtle">
+                Pune · 2 partners · 60:40
+              </p>
+              <div className="mt-5 space-y-2">
+                {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
+                  (width, index) => (
+                    <div
+                      key={width + index}
+                      className={`h-1.5 ${width} rounded-full ${index === 2 ? "bg-brand/60" : "bg-navy-100"}`}
+                    />
+                  ),
+                )}
+              </div>
+              <div className="mt-6 grid grid-cols-2 gap-5">
+                {["First partner", "Second partner"].map((party) => (
+                  <div key={party}>
+                    <div className="h-px bg-ink/25" />
+                    <p className="mt-1 text-[0.55rem] uppercase tracking-wider text-ink-subtle">
+                      {party}
+                    </p>
+                  </div>
+                ))}
+              </div>
+              <Seal className="absolute -bottom-8 -right-5 h-24 w-24 rotate-12 drop-shadow-xl" />
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* The notification */}
-      <div className="absolute -bottom-6 left-0 flex max-w-[17rem] items-start gap-3 rounded-xl bg-surface px-4 py-3 shadow-overlay ring-1 ring-black/5 motion-safe:animate-float-delayed sm:-left-8">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary text-brand">
+      {/* Floating notes around the window */}
+      <div className="absolute -left-3 bottom-24 hidden items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-2.5 shadow-float ring-1 ring-black/5 motion-safe:animate-float sm:flex lg:-left-14">
+        <span className="grid h-8 w-8 place-items-center rounded-xl bg-success-subtle text-success-text">
+          <Icon icon={UserCheck} size="sm" />
+        </span>
+        <span className="text-left">
+          <span className="block text-sm font-semibold text-ink">
+            Advocate approved
+          </span>
+          <span className="block text-xs text-ink-muted">2 changes made</span>
+        </span>
+      </div>
+
+      <div className="absolute -bottom-7 right-2 flex max-w-[17rem] items-start gap-3 rounded-2xl bg-surface-inverse px-4 py-3 text-left shadow-float motion-safe:animate-float-delayed sm:-right-6 lg:-right-12">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand text-on-brand">
           <Icon icon={Bell} size="sm" />
         </span>
         <span>
-          <span className="block text-sm font-semibold text-ink">
+          <span className="block text-sm font-semibold text-ink-inverse">
             Your document is ready
           </span>
-          <span className="block text-xs text-ink-muted">
-            Reviewed by an advocate · tap to download
+          <span className="block text-xs text-ink-inverse-muted">
+            Word + PDF · tap to download
           </span>
         </span>
       </div>

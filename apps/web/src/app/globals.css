@@ -36,20 +36,18 @@
   }
 
   /**
-   * Page titles take the display serif; everything below stays Inter.
-   *
-   * One serif moment per page is the point. The title is where a reader
-   * decides what kind of place this is, and serif is what legal documents are
-   * set in. Section headings, card titles and labels are where they scan and
-   * act — a modern sans keeps those quick, and keeps the page from reading as
-   * old-fashioned.
-   *
-   * Tracking is reset rather than inherited: `tracking-tight` flatters a
-   * geometric sans but crowds a serif's own spacing at display sizes.
+   * Titles take the display sans, set tight the way large geometric type
+   * wants to be. A single italic serif word (`.accent-serif`) is the one
+   * editorial flourish a headline may carry.
    */
+  h1,
+  h2 {
+    @apply font-display;
+    letter-spacing: -0.025em;
+  }
+
   h1 {
-    @apply font-display font-semibold;
-    letter-spacing: -0.015em;
+    @apply font-bold;
   }
 
   /**
@@ -102,6 +100,17 @@
 }
 
 @layer components {
+  /** One serif word inside a sans headline — "drafted *right*". */
+  .accent-serif {
+    @apply font-serif font-normal italic;
+    letter-spacing: -0.01em;
+  }
+
+  /** The storefront's eyebrow: a short label above a section title. */
+  .eyebrow {
+    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-gold-ink;
+  }
+
   /**
    * Long-form content: template descriptions, course syllabi, anything the
    * customer actually reads. Capped at a readable measure.

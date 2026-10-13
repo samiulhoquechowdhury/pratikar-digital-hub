@@ -32,7 +32,7 @@ export function CatalogueHeader({
               key={term}
               href={`${basePath}?q=${encodeURIComponent(term)}`}
               scroll={false}
-              className="rounded-full border border-line-strong bg-surface px-3 py-1 text-sm text-ink transition-colors hover:border-primary hover:text-primary"
+              className="rounded-full border border-line-strong bg-surface px-3.5 py-1.5 text-sm font-medium text-ink shadow-card transition-colors hover:border-primary hover:text-primary"
             >
               {term}
             </Link>

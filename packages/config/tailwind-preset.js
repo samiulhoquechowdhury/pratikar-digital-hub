@@ -123,6 +123,14 @@ module.exports = {
 
         /** Light surfaces — where reading and data entry happen. */
         canvas: PALETTE.gray[50],
+        /**
+         * Warm paper — the storefront's marketing ground (page intros, the
+         * hero, alternating home sections). A whisper of the gold, so the
+         * page reads as stationery rather than a grey dashboard. Ink on it
+         * keeps the same contrast as on white (17.3:1).
+         */
+        paper: "#fbf8f1",
+        "paper-deep": "#f4eee0",
         surface: "#ffffff",
         "surface-sunken": PALETTE.gray[100],
 
@@ -213,12 +221,22 @@ module.exports = {
       // --font-sans is set by next/font in each app's root layout, so the font
       // is self-hosted and swappable per app without touching this preset.
       fontFamily: {
-        // Display is opt-in: apps/web sets --font-display and applies it to
-        // page and section titles; apps/admin leaves it unset and falls
-        // through to the sans stack, which is right for a tool people use all
-        // day rather than read.
+        // Display is opt-in: apps/web sets --font-display (a geometric sans)
+        // and applies it to titles; apps/admin leaves it unset and falls
+        // through to the system sans, which is right for a tool people use
+        // all day rather than read.
         display: [
           "var(--font-display)",
+          "ui-sans-serif",
+          "system-ui",
+          "-apple-system",
+          "Segoe UI",
+          "sans-serif",
+        ],
+        // The editorial accent — an italic serif word inside a sans
+        // headline ("drafted *right*"). Never whole paragraphs.
+        serif: [
+          "var(--font-serif)",
           "ui-serif",
           "Georgia",
           "Times New Roman",
@@ -257,11 +275,16 @@ module.exports = {
         "3xl": ["1.875rem", { lineHeight: "2.375rem" }],
         "4xl": ["2.25rem", { lineHeight: "2.625rem" }],
         "5xl": ["3rem", { lineHeight: "3.25rem" }],
+        // Marketing display sizes — the home hero and section titles only.
+        "6xl": ["3.75rem", { lineHeight: "1.04" }],
+        "7xl": ["4.5rem", { lineHeight: "1.02" }],
       },
 
       borderRadius: {
         card: "0.75rem",
         control: "0.5rem",
+        /** Big marketing panels and feature cards. */
+        panel: "1.75rem",
       },
 
       // Shadows tinted with navy rather than neutral black, so cards sit on
@@ -272,10 +295,18 @@ module.exports = {
           "0 4px 6px -1px rgb(11 31 58 / 0.08), 0 2px 4px -2px rgb(11 31 58 / 0.06)",
         overlay:
           "0 20px 25px -5px rgb(11 31 58 / 0.14), 0 8px 10px -6px rgb(11 31 58 / 0.10)",
+        /** A product screenshot floating on the page — the hero's window. */
+        float:
+          "0 2px 4px rgb(11 31 58 / 0.04), 0 30px 60px -20px rgb(11 31 58 / 0.28), 0 50px 100px -40px rgb(11 31 58 / 0.25)",
       },
 
       // The brand sheet's hero treatment: deep navy with a subtle warm lift.
       backgroundImage: {
+        // Catalogue covers, one ground per kind — see CatalogueCover.
+        "cover-course": `linear-gradient(135deg, ${PALETTE.navy[950]}, ${PALETTE.navy[600]})`,
+        "cover-ebook": `linear-gradient(135deg, ${PALETTE.gold[100]}, ${PALETTE.gold[300]})`,
+        "cover-checklist": `linear-gradient(135deg, ${PALETTE.navy[50]}, ${PALETTE.navy[200]})`,
+        "cover-form": "linear-gradient(135deg, #f4eee0, #e5d6b3)",
         "hero-navy":
           "radial-gradient(ellipse 80% 60% at 70% 40%, rgb(18 46 82 / 0.85), transparent 60%), linear-gradient(135deg, #081729 0%, #0b1f3a 55%, #122e52 100%)",
       },
@@ -292,19 +323,25 @@ module.exports = {
           from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" },
         },
+        // The "trusted by" strip: a row duplicated once, slid by half.
+        marquee: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" },
+        },
       },
       animation: {
         float: "float 6s ease-in-out infinite",
         "float-slow": "float 8s ease-in-out infinite 1s",
         "float-delayed": "float 7s ease-in-out infinite 2.5s",
         "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
+        marquee: "marquee 50s linear infinite",
       },
 
       // Reading measure. Legal copy past ~75 characters per line is genuinely
       // harder to follow, so content columns are capped rather than fluid.
       maxWidth: {
         prose: "68ch",
-        shell: "72rem",
+        shell: "76rem",
       },
     },
   },
