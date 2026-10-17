@@ -65,84 +65,88 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
   };
 
   return (
-    <section
-      aria-labelledby={`${baseId}-title`}
-      className="mx-auto max-w-shell px-4 py-24 sm:px-6 lg:px-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div className="max-w-2xl">
-          <p className="eyebrow">
-            <span aria-hidden className="h-px w-6 bg-current" />
-            The catalogue
-          </p>
-          <h2
-            id={`${baseId}-title`}
-            className="mt-4 text-3xl font-extrabold leading-[1.1] text-ink sm:text-5xl sm:leading-[1.06]"
-          >
-            Popular right now
-          </h2>
-        </div>
-        <Link
-          href={active.href}
-          className="group inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink-subtle"
-        >
-          View all {active.label.toLowerCase()}
-          <Icon
-            icon={ArrowRight}
-            size="xs"
-            className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-          />
-        </Link>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label="Kinds of product"
-        className="relative mt-8 flex gap-2 overflow-x-auto pb-1"
-      >
-        {live.map((shelf, index) => {
-          const selected = shelf.id === active.id;
-          return (
-            <button
-              key={shelf.id}
-              ref={(node) => {
-                tabRefs.current[index] = node;
-              }}
-              type="button"
-              role="tab"
-              id={`${baseId}-tab-${shelf.id}`}
-              aria-selected={selected}
-              aria-controls={`${baseId}-panel`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setActiveId(shelf.id)}
-              onKeyDown={(event) => onTabKey(event, index)}
-              className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                selected
-                  ? "bg-primary text-ink-inverse"
-                  : "border border-line-strong bg-surface text-ink hover:border-ink-subtle"
-              }`}
-            >
-              {shelf.label}
-              <span
-                className={`ml-2 tabular-nums ${selected ? "text-brand" : "text-ink-subtle"}`}
-              >
-                {shelf.total}
+    <section aria-labelledby={`${baseId}-title`} className="bg-ivory">
+      <div className="mx-auto max-w-shell px-4 py-28 sm:px-6 sm:py-36 lg:px-8">
+        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-3xl">
+            <p className="flex items-center gap-4">
+              <span className="font-display text-lg italic text-brand">03</span>
+              <span aria-hidden className="h-px w-10 bg-noir/20" />
+              <span className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-noir/55">
+                The catalogue
               </span>
-            </button>
-          );
-        })}
-      </div>
+            </p>
+            <h2
+              id={`${baseId}-title`}
+              className="mt-6 text-4xl font-light leading-[1.04] text-noir sm:text-6xl"
+            >
+              Most sought <span className="accent-serif">this season.</span>
+            </h2>
+          </div>
+          <Link
+            href={active.href}
+            className="group inline-flex shrink-0 items-center gap-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-noir"
+          >
+            <span className="link-draw">
+              View all {active.label.toLowerCase()}
+            </span>
+            <span className="grid h-10 w-10 place-items-center rounded-full border border-noir/20 transition-colors group-hover:border-noir group-hover:bg-noir group-hover:text-ivory">
+              <Icon icon={ArrowRight} size="xs" />
+            </span>
+          </Link>
+        </div>
 
-      <div
-        role="tabpanel"
-        id={`${baseId}-panel`}
-        aria-labelledby={`${baseId}-tab-${active.id}`}
-        className="mt-8"
-      >
-        <Carousel key={active.id} label={active.label} items={active.items} />
-        <p className="sr-only" aria-live="polite">
-          Showing {active.label}, tab {activeIndex + 1} of {live.length}
-        </p>
+        <div
+          role="tablist"
+          aria-label="Kinds of product"
+          className="relative mt-14 flex gap-8 overflow-x-auto border-b border-noir/15"
+        >
+          {live.map((shelf, index) => {
+            const selected = shelf.id === active.id;
+            return (
+              <button
+                key={shelf.id}
+                ref={(node) => {
+                  tabRefs.current[index] = node;
+                }}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${shelf.id}`}
+                aria-selected={selected}
+                aria-controls={`${baseId}-panel`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveId(shelf.id)}
+                onKeyDown={(event) => onTabKey(event, index)}
+                className={`relative shrink-0 pb-4 text-[0.7rem] font-semibold uppercase tracking-[0.22em] transition-colors ${
+                  selected ? "text-noir" : "text-noir/45 hover:text-noir/80"
+                }`}
+              >
+                {shelf.label}
+                <sup className="ml-1.5 font-display text-xs normal-case italic tracking-normal text-gold-ink">
+                  {shelf.total}
+                </sup>
+                <span
+                  aria-hidden
+                  className={`absolute inset-x-0 -bottom-px h-0.5 origin-left bg-noir transition-transform duration-500 ${
+                    selected ? "scale-x-100" : "scale-x-0"
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          role="tabpanel"
+          id={`${baseId}-panel`}
+          aria-labelledby={`${baseId}-tab-${active.id}`}
+          className="mt-10"
+        >
+          <Carousel key={active.id} label={active.label} items={active.items} />
+          <p className="sr-only" aria-live="polite">
+            Showing {active.label}, tab {activeIndex + 1} of {live.length}
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -189,7 +193,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
         {items.map((item) => (
           <li
             key={item.id}
-            className="w-[82%] max-w-[20rem] shrink-0 snap-start sm:w-[20rem] lg:w-[17rem]"
+            className="w-[82%] max-w-[20rem] shrink-0 snap-start sm:w-[20rem] lg:w-[17.5rem]"
           >
             <CatalogueCard
               href={item.href}
@@ -211,7 +215,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
           type="button"
           onClick={() => page(arrow.direction)}
           disabled={arrow.hidden}
-          className={`absolute top-[30%] hidden h-12 w-12 place-items-center rounded-full border border-line bg-surface text-ink shadow-float transition-opacity hover:bg-paper disabled:pointer-events-none disabled:opacity-0 lg:grid ${
+          className={`absolute top-[30%] hidden h-14 w-14 place-items-center rounded-full border border-noir/15 bg-ivory text-noir shadow-float transition-[opacity,background-color,color] hover:bg-noir hover:text-ivory disabled:pointer-events-none disabled:opacity-0 lg:grid ${
             arrow.direction === -1 ? "-left-6" : "-right-6"
           }`}
         >

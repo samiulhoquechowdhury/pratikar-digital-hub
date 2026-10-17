@@ -39,10 +39,10 @@ export function HeroSearch({
     <div>
       <form
         role="search"
-        className={`flex w-full max-w-2xl items-center gap-2 rounded-full border bg-surface p-1.5 pl-5 shadow-raised transition-colors ${
+        className={`flex w-full max-w-2xl items-center gap-2 border bg-surface p-1.5 pl-5 transition-colors ${
           dark
             ? "border-transparent focus-within:border-brand"
-            : "border-line-strong focus-within:border-primary"
+            : "border-ivory-line focus-within:border-noir"
         }`}
         onSubmit={(event) => {
           event.preventDefault();
@@ -64,10 +64,7 @@ export function HeroSearch({
           // see the note in SiteSearch.
           className="h-11 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-ink-subtle"
         />
-        <button
-          type="submit"
-          className="h-11 shrink-0 rounded-full bg-brand px-6 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
-        >
+        <button type="submit" className="btn-gold h-11 shrink-0 !py-0">
           Search
         </button>
       </form>
@@ -83,10 +80,10 @@ export function HeroSearch({
             key={suggestion}
             type="button"
             onClick={() => go(suggestion)}
-            className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+            className={`border px-3 py-1 text-sm transition-colors ${
               dark
                 ? "border-line-inverse text-ink-inverse-muted hover:border-ink-inverse-muted hover:text-ink-inverse"
-                : "border-line text-ink-muted hover:border-line-strong hover:text-ink"
+                : "border-ivory-line text-noir/70 hover:border-noir hover:text-noir"
             }`}
           >
             {suggestion}

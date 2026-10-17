@@ -1,18 +1,14 @@
 import type { ContentCategory } from "@pratikar/types";
 import {
   ArrowRight,
+  ArrowUpRight,
   BadgeCheck,
   Briefcase,
-  Check,
-  FileText,
   House,
-  IndianRupee,
   KeyRound,
   Laptop,
   ListChecks,
   Lock,
-  MessageCircle,
-  MessagesSquare,
   Receipt,
   Scale,
   ShieldCheck,
@@ -23,126 +19,143 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CatalogueCover } from "@/shared/components/CatalogueCard";
 import { Icon } from "@/shared/components/Icon";
+import { Reveal } from "@/shared/components/Reveal";
 import { COURSES_LIVE } from "@/shared/lib/features";
 import { CONTENT_CATEGORY_LABELS } from "@/shared/lib/labels";
-import { categoryHref } from "@/shared/lib/navigation";
+import { categoryHref, shelfHref } from "@/shared/lib/navigation";
 
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
-import {
-  CertificateArt,
-  DraftingArt,
-  FormArt,
-  LibraryArt,
-  PhoneChatArt,
-  Seal,
-} from "./illustrations";
+import { CertificateArt, Seal } from "./illustrations";
 
 /** The page's horizontal frame — every section lines up on it. */
 export const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
-const GOLD_BUTTON =
-  "inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-on-brand shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-brand-hover motion-reduce:transform-none";
-
-const NAVY_BUTTON =
-  "inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-ink-inverse shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-primary-hover motion-reduce:transform-none";
-
-const OUTLINE_BUTTON =
-  "inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink-subtle";
-
-const GHOST_INVERSE_BUTTON =
-  "inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-sm font-semibold text-ink-inverse transition-colors hover:bg-white/10";
+const ROMAN = ["I", "II", "III", "IV", "V", "VI"];
 
 /**
- * A section's heading: a small eyebrow, a big sans title that may carry one
- * italic serif word, and one sentence of why. Centred for sections that
- * stand alone; left-aligned where it sits beside its content.
+ * A section's opening: its number in italic gold, a small-capital label on a
+ * hairline, and a large light serif title. Numbering the sections is what
+ * makes a long page read as one considered document rather than a stack of
+ * blocks.
  */
-export function SectionHeading({
+export function SectionHead({
+  index,
   eyebrow,
   title,
-  description,
+  intro,
   id,
-  align = "left",
   tone = "light",
+  align = "left",
+  aside,
 }: {
+  index: string;
   eyebrow: string;
   title: ReactNode;
-  description?: string;
+  intro?: string;
   id: string;
-  align?: "left" | "center";
   tone?: "light" | "dark";
+  align?: "left" | "center";
+  /** Something for the far side — usually a "view all" link. */
+  aside?: ReactNode;
 }) {
   const dark = tone === "dark";
   return (
-    <div
-      className={
-        align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-2xl"
-      }
+    <Reveal
+      className={`flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between ${
+        align === "center"
+          ? "items-center text-center lg:flex-col lg:items-center"
+          : ""
+      }`}
     >
-      <p className={`eyebrow ${dark ? "text-brand" : ""}`}>
-        <span aria-hidden className="h-px w-6 bg-current" />
-        {eyebrow}
-      </p>
-      <h2
-        id={id}
-        className={`mt-4 text-3xl font-extrabold leading-[1.1] sm:text-5xl sm:leading-[1.06] ${dark ? "text-ink-inverse" : "text-ink"}`}
-      >
-        {title}
-      </h2>
-      {description && (
+      <div className={align === "center" ? "max-w-3xl" : "max-w-3xl"}>
         <p
-          className={`mt-5 text-lg leading-relaxed ${dark ? "text-ink-inverse-muted" : "text-ink-muted"}`}
+          className={`flex items-center gap-4 ${align === "center" ? "justify-center" : ""}`}
         >
-          {description}
+          <span className="font-display text-lg italic text-brand">
+            {index}
+          </span>
+          <span
+            aria-hidden
+            className={`h-px w-10 ${dark ? "bg-ivory/25" : "bg-noir/20"}`}
+          />
+          <span
+            className={`text-[0.65rem] font-semibold uppercase tracking-[0.28em] ${dark ? "text-ivory/60" : "text-noir/55"}`}
+          >
+            {eyebrow}
+          </span>
         </p>
-      )}
-    </div>
+        <h2
+          id={id}
+          className={`mt-6 text-4xl font-light leading-[1.04] sm:text-6xl ${dark ? "text-ivory" : "text-noir"}`}
+        >
+          {title}
+        </h2>
+        {intro && (
+          <p
+            className={`mt-6 max-w-2xl text-lg leading-relaxed ${align === "center" ? "mx-auto" : ""} ${dark ? "text-ivory/65" : "text-noir/65"}`}
+          >
+            {intro}
+          </p>
+        )}
+      </div>
+      {aside}
+    </Reveal>
   );
 }
 
-/** "Browse →", with the arrow nudging on hover. */
-function MoreLink({
+/** "View all →" for the far side of a section head. */
+function AsideLink({
+  href,
   children,
   tone = "light",
 }: {
+  href: string;
   children: ReactNode;
   tone?: "light" | "dark";
 }) {
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-sm font-semibold ${tone === "dark" ? "text-brand" : "text-primary"}`}
+    <Link
+      href={href}
+      className={`group inline-flex shrink-0 items-center gap-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] ${tone === "dark" ? "text-ivory" : "text-noir"}`}
     >
-      {children}
-      <Icon
-        icon={ArrowRight}
-        size="xs"
-        className="transition-transform group-hover:translate-x-1 motion-reduce:transform-none"
-      />
-    </span>
+      <span className="link-draw">{children}</span>
+      <span
+        className={`grid h-10 w-10 place-items-center rounded-full border transition-colors ${
+          tone === "dark"
+            ? "border-ivory/25 group-hover:border-brand group-hover:bg-brand group-hover:text-noir"
+            : "border-noir/20 group-hover:border-noir group-hover:bg-noir group-hover:text-ivory"
+        }`}
+      >
+        <Icon icon={ArrowRight} size="xs" />
+      </span>
+    </Link>
   );
 }
 
-/** A small "New" tag, gold. */
-function NewTag() {
+/* ─────────────────────────────────────────────────────── title marquee */
+
+/** A small four-point star, the marquee's separator. */
+function Star() {
   return (
-    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-on-brand">
-      <Icon icon={Sparkles} size="xs" />
-      New
-    </span>
+    <svg
+      aria-hidden
+      viewBox="0 0 12 12"
+      className="h-3 w-3 shrink-0 text-brand"
+      fill="currentColor"
+    >
+      <path d="M6 0c.4 3.2 2.8 5.6 6 6-3.2.4-5.6 2.8-6 6-.4-3.2-2.8-5.6-6-6 3.2-.4 5.6-2.8 6-6Z" />
+    </svg>
   );
 }
-
-/* ───────────────────────────────────────────────────────── trust strip */
 
 /**
- * Jasper's "trusted by" logo strip, made honest: there are no client logos
- * to show yet, so the strip shows what the platform is actually built on —
- * the advocate-written documents themselves, their real titles sliding by.
+ * The library's real titles, sliding past in the display italic — what the
+ * platform is built on, said by showing it. There are no client logos to
+ * parade yet, and this is better than inventing any.
  */
-export function TrustMarquee({ summary }: { summary: CatalogueSummary }) {
+export function TitleMarquee({ summary }: { summary: CatalogueSummary }) {
   const library =
     summary.library.FORM.count +
     summary.library.CHECKLIST.count +
@@ -156,449 +169,280 @@ export function TrustMarquee({ summary }: { summary: CatalogueSummary }) {
   return (
     <section
       aria-label="What the library holds"
-      className="border-y border-line bg-surface py-8"
+      className="border-b border-ivory-line bg-ivory py-10"
     >
-      <p className="px-4 text-center text-sm font-medium text-ink-muted">
-        Built on{" "}
-        <span className="font-semibold text-ink">
-          {countLabel(library)} documents
-        </span>{" "}
-        written by practising advocates
+      <p className="px-4 text-center text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-noir/55">
+        {countLabel(library)} documents, written by practising advocates
       </p>
-      {/* The row twice over, slid by half its width, so the loop is
-          seamless. Paused on hover; still for reduced motion. */}
-      <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-        <ul className="flex w-max gap-3 hover:[animation-play-state:paused] motion-safe:animate-marquee">
+      <div className="relative mt-7 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_12%,black_88%,transparent)]">
+        <ul className="flex w-max items-center gap-10 hover:[animation-play-state:paused] motion-safe:animate-marquee-slow">
           {[...titles, ...titles].map((title, index) => (
             <li
               key={`${title}-${index}`}
               aria-hidden={index >= titles.length || undefined}
-              className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink"
+              className="flex shrink-0 items-center gap-10"
             >
-              <Icon icon={FileText} size="xs" className="text-gold-ink" />
-              {title}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-/* ────────────────────────────────────────────────── platform overview */
-
-/**
- * The platform in three cards, the way Jasper introduces its own: one dark
- * card for the flagship (AI drafting with an advocate in the loop), two
- * light ones for the ready catalogue and for learning. Real counts only.
- */
-export function PlatformOverview({ summary }: { summary: CatalogueSummary }) {
-  const ready = summary.templates.count + summary.library.FORM.count;
-  const learn = summary.library.EBOOK.count + summary.library.CHECKLIST.count;
-
-  return (
-    <section aria-labelledby="platform-title" className={`${FRAME} py-24`}>
-      <SectionHeading
-        id="platform-title"
-        align="center"
-        eyebrow="The platform"
-        title={
-          <>
-            One place for the paperwork{" "}
-            <span className="accent-serif text-gold-ink">in your life</span>
-          </>
-        }
-        description="Renting a flat, hiring your first employee, going to court — start with the right document, then understand what it means."
-      />
-
-      <div className="mt-16 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-3">
-        <Link
-          href="/documents/custom"
-          data-surface="inverse"
-          className="group relative flex min-h-[30rem] flex-col overflow-hidden rounded-panel bg-hero-navy p-8 text-ink-inverse shadow-float transition-transform hover:-translate-y-1 motion-reduce:transform-none"
-        >
-          <NewTag />
-          <h3 className="mt-6 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink-inverse">
-            Draft anything with AI
-          </h3>
-          <p className="mt-3 text-base leading-relaxed text-ink-inverse-muted">
-            Describe it in your own words. The AI drafts it in the format of our
-            advocate-written documents — and an advocate reviews it.
-          </p>
-          <div className="mt-6">
-            <MoreLink tone="dark">Draft my document</MoreLink>
-          </div>
-          <DraftingArt className="pointer-events-none absolute -bottom-10 -right-8 w-[78%] max-w-[20rem] opacity-95 transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transform-none" />
-        </Link>
-
-        <PlatformCard
-          href="/documents"
-          badge={ready > 0 ? `${countLabel(ready)} ready` : undefined}
-          title="Ready documents"
-          body="Templates you fill in on a form or by chat, and legal forms to download — agreements, affidavits, notices."
-          points={[
-            "Finished Word and PDF",
-            "Plain-language questions",
-            "Optional advocate review",
-          ]}
-          cta="Create a document"
-          art={<FormArt className="h-40 w-auto" />}
-        />
-
-        <PlatformCard
-          href="/content-library"
-          badge={learn > 0 ? `${countLabel(learn)} guides` : undefined}
-          title="Learn the law you use"
-          body={`E-books and checklists in plain language${COURSES_LIVE ? ", and video courses with a certificate" : ""}.`}
-          points={[
-            "Property, business and courts",
-            "Checklists before you sign",
-            COURSES_LIVE ? "Verifiable certificates" : "Courses coming soon",
-          ]}
-          cta="Browse the library"
-          art={<LibraryArt className="h-40 w-auto" />}
-        />
-      </div>
-    </section>
-  );
-}
-
-function PlatformCard({
-  href,
-  badge,
-  title,
-  body,
-  points,
-  cta,
-  art,
-}: {
-  href: string;
-  badge?: string;
-  title: string;
-  body: string;
-  points: string[];
-  cta: string;
-  art: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex min-h-[30rem] flex-col overflow-hidden rounded-panel border border-line bg-paper transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-float motion-reduce:transform-none"
-    >
-      <div className="grid h-48 place-items-center bg-[radial-gradient(ellipse_at_50%_100%,theme(colors.navy.50),transparent_70%)]">
-        <div className="transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none">
-          {art}
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col p-8 pt-4">
-        {badge && (
-          <span className="w-fit rounded-full bg-surface px-2.5 py-1 text-xs font-semibold tabular-nums text-gold-ink ring-1 ring-brand-border">
-            {badge}
-          </span>
-        )}
-        <h3 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink">
-          {title}
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
-        <ul className="mt-5 space-y-2 text-sm text-ink">
-          {points.map((point) => (
-            <li key={point} className="flex items-center gap-2">
-              <Icon icon={Check} size="xs" className="text-success" />
-              {point}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-auto pt-6">
-          <MoreLink>{cta}</MoreLink>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
-/* ───────────────────────────────────────────────────── feature rows */
-
-/**
- * One feature, Jasper-style: copy on one side, the product on the other,
- * alternating down the page so it reads as a walk through the product.
- */
-function FeatureRow({
-  id,
-  eyebrow,
-  isNew = false,
-  title,
-  body,
-  points,
-  cta,
-  visual,
-  flip = false,
-}: {
-  id: string;
-  eyebrow: string;
-  isNew?: boolean;
-  title: ReactNode;
-  body: string;
-  points: string[];
-  cta: { href: string; label: string };
-  visual: ReactNode;
-  flip?: boolean;
-}) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div className={flip ? "lg:order-last" : ""}>
-        <div className="flex items-center gap-3">
-          <p className="eyebrow">{eyebrow}</p>
-          {isNew && <NewTag />}
-        </div>
-        <h3
-          id={id}
-          className="mt-4 font-display text-3xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl"
-        >
-          {title}
-        </h3>
-        <p className="mt-4 text-lg leading-relaxed text-ink-muted">{body}</p>
-        <ul className="mt-6 space-y-3">
-          {points.map((point) => (
-            <li key={point} className="flex gap-3 text-base text-ink">
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-brand">
-                <Icon icon={Check} size="xs" className="h-3 w-3" />
+              <span className="font-display text-2xl font-light italic text-noir sm:text-3xl">
+                {title}
               </span>
-              {point}
+              <Star />
             </li>
           ))}
         </ul>
-        <Link href={cta.href} className={`${NAVY_BUTTON} mt-8`}>
-          {cta.label}
-          <Icon icon={ArrowRight} size="xs" />
-        </Link>
       </div>
-      <div aria-hidden className="relative select-none">
-        {visual}
-      </div>
-    </div>
+    </section>
   );
 }
 
-/** A soft panel the product pictures sit on. */
-function Stage({
-  children,
-  tone = "paper",
-  className = "",
-}: {
-  children: ReactNode;
-  tone?: "paper" | "navy";
-  className?: string;
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-panel p-6 sm:p-10 ${
-        tone === "navy"
-          ? "bg-hero-navy"
-          : "bg-[linear-gradient(150deg,theme(colors.gold.50),theme(colors.paper)_45%,theme(colors.navy.50))] ring-1 ring-line"
-      } ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** The drafting journey: the customer's sentence, the draft, the review. */
-function DraftingVisual() {
-  return (
-    <Stage>
-      <div className="space-y-5">
-        <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary p-4 text-sm leading-relaxed text-ink-inverse shadow-overlay">
-          &ldquo;Rent agreement for my flat in Bandra — ₹45,000 a month, 11
-          months, two months&apos; deposit.&rdquo;
-        </div>
-        <div className="relative rounded-2xl bg-surface p-6 shadow-float ring-1 ring-line">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gold-ink">
-            Draft ready
-          </p>
-          <p className="mt-1 font-serif text-xl font-semibold text-ink">
-            Leave and Licence Agreement
-          </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium text-primary">
-            <Icon icon={BadgeCheck} size="xs" />
-            In the format of our advocate-written agreement
-          </p>
-          <div className="mt-5 space-y-2">
-            {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
-              (width, index) => (
-                <div
-                  key={width + index}
-                  className={`h-2 ${width} rounded-full bg-navy-100`}
-                />
-              ),
-            )}
-          </div>
-          <Seal className="absolute -bottom-8 -right-5 h-24 w-24 rotate-12 drop-shadow-xl" />
-        </div>
-        <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-success-subtle text-success-text">
-            <Icon icon={UserCheck} size="md" />
-          </span>
-          <span>
-            <span className="block text-sm font-semibold text-ink">
-              Reviewed by an advocate
-            </span>
-            <span className="block text-xs text-ink-muted">
-              Ready to download · Word + PDF
-            </span>
-          </span>
-        </div>
-      </div>
-    </Stage>
-  );
-}
-
-/** A template being filled in by chat, with the form fields filling up. */
-function FillByChatVisual() {
-  const fields = [
-    ["Employee name", "Priya Sharma"],
-    ["Designation", "Senior Designer"],
-    ["Annual CTC", "₹9,60,000"],
-    ["Joining date", "1 November 2026"],
-  ];
-  return (
-    <Stage>
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <p className="flex items-center gap-2 text-xs font-semibold text-ink">
-            <Icon icon={MessagesSquare} size="xs" className="text-gold-ink" />
-            Fill by chat
-          </p>
-          <p className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-paper px-3 py-2 text-xs leading-relaxed text-ink">
-            What&apos;s the annual salary on offer?
-          </p>
-          <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-ink-inverse">
-            9.6 lakh a year
-          </p>
-          <p className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-paper px-3 py-2 text-xs leading-relaxed text-ink">
-            Got it — ₹9,60,000. And the joining date?
-          </p>
-        </div>
-        <div className="rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <p className="font-serif text-base font-semibold text-ink">
-            Employment Offer Letter
-          </p>
-          <dl className="mt-3 space-y-2.5">
-            {fields.map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-[0.65rem] uppercase tracking-wider text-ink-subtle">
-                  {label}
-                </dt>
-                <dd className="mt-0.5 flex items-center justify-between gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink">
-                  {value}
-                  <Icon icon={Check} size="xs" className="text-success" />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </div>
-    </Stage>
-  );
-}
+/* ──────────────────────────────────────────────────────── the practice */
 
 /**
- * The flagship and the three ways in, walked through one at a time:
- * AI drafting, templates by chat, the assistant, and courses.
+ * Everything the site does, as an index — one ruled line each, the way a
+ * luxury house lists its services. Hovering a line turns it to noir; the
+ * count on the right is live.
  */
-export function FeatureRows() {
+export function PracticeIndex({ summary }: { summary: CatalogueSummary }) {
+  const rows: {
+    href: string;
+    title: string;
+    body: string;
+    count?: string;
+    tag?: string;
+  }[] = [
+    {
+      href: "/documents/custom",
+      title: "AI Drafting",
+      body: "Any document from your own words, reviewed by an advocate.",
+      tag: "New",
+    },
+    {
+      href: "/documents",
+      title: "Ready Templates",
+      body: "Answer a few questions; receive the finished Word and PDF.",
+      count: summary.templates.count
+        ? `${countLabel(summary.templates.count)} templates`
+        : undefined,
+    },
+    {
+      href: shelfHref("FORM"),
+      title: "Legal Forms",
+      body: "Affidavits, notices, agreements and court formats.",
+      count: summary.library.FORM.count
+        ? `${countLabel(summary.library.FORM.count)} forms`
+        : undefined,
+    },
+    {
+      href: "/content-library",
+      title: "Checklists & E\u2011books",
+      body: "What to check before you sign — and why it matters.",
+      count:
+        summary.library.CHECKLIST.count + summary.library.EBOOK.count
+          ? `${countLabel(summary.library.CHECKLIST.count + summary.library.EBOOK.count)} guides`
+          : undefined,
+    },
+    {
+      href: "/courses",
+      title: "Certificate Courses",
+      body: "Short video courses ending in a certificate anyone can verify.",
+      tag: COURSES_LIVE ? undefined : "Soon",
+    },
+  ];
+
   return (
-    <section
-      aria-labelledby="features-title"
-      className="border-y border-line bg-surface"
-    >
-      <div className={`${FRAME} py-24`}>
-        <SectionHeading
-          id="features-title"
-          align="center"
-          eyebrow="How Pratikar helps"
+    <section aria-labelledby="practice-title" className="bg-ivory">
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="01"
+          eyebrow="The practice"
+          id="practice-title"
           title={
             <>
-              Built for documents you&apos;ll{" "}
-              <span className="accent-serif text-gold-ink">actually sign</span>
+              Everything for the paperwork{" "}
+              <span className="accent-serif">in your life.</span>
             </>
           }
-          description="Every way in ends the same way: a document that's right, in your hands, ready to use."
+          intro="Renting a flat, hiring your first employee, going to court — begin with the right document, then understand what it means."
         />
 
-        <div className="mt-20 space-y-28">
-          <FeatureRow
-            id="feature-drafting"
-            eyebrow="AI drafting"
-            isNew
-            title="Your words in. A reviewed legal document out."
-            body="Can't find a template? Describe what you need. The AI drafts it in about a minute, using our advocate-written documents as its reference — and a practising advocate checks it before you download."
-            points={[
-              "Preview free, ask for changes",
-              "Advocate review before download",
-              "Notified by email, SMS and push when it's ready",
-            ]}
-            cta={{ href: "/documents/custom", label: "Draft my document" }}
-            visual={<DraftingVisual />}
-          />
-          <FeatureRow
-            id="feature-templates"
-            eyebrow="Ready templates"
-            title="Answer a few questions. Get the finished document."
-            body="Pick a template and fill it in on a form — or just chat, and the answers fill themselves in. Pay once and download Word and PDF."
-            points={[
-              "Plain-language questions, no jargon",
-              "Word and PDF, ready to print",
-              "Kept in your account to download again",
-            ]}
-            cta={{ href: "/documents", label: "Browse templates" }}
-            visual={<FillByChatVisual />}
-            flip
-          />
-          <FeatureRow
-            id="feature-assistant"
-            eyebrow="AI assistant"
-            title="Not sure what you need? Just ask."
-            body="Describe your situation in English or Hindi. The assistant searches everything on the site and points you to the right document, form, e-book or course."
-            points={[
-              "Understands your situation, not just keywords",
-              "Links straight to the right document",
-              "Explains — it doesn't give advice on your case",
-            ]}
-            cta={{ href: "/assistant", label: "Ask the assistant" }}
-            visual={
-              <Stage tone="navy" className="flex justify-center !pb-0">
-                <PhoneChatArt className="w-full max-w-[17rem] translate-y-6 drop-shadow-2xl" />
-              </Stage>
-            }
-          />
-          <FeatureRow
-            id="feature-courses"
-            eyebrow={COURSES_LIVE ? "Certificate courses" : "Coming soon"}
-            title="Learn the law — and prove it."
-            body="Short video courses on GST, property and running a business. Finish one and get a certificate with a code anyone can check."
-            points={[
-              "Short lessons at your own pace",
-              "A quick test after each lesson",
-              "A certificate anyone can verify",
-            ]}
-            cta={{
-              href: "/courses",
-              label: COURSES_LIVE ? "Explore courses" : "See what's coming",
-            }}
-            visual={
-              <Stage className="grid place-items-center">
-                <CertificateArt className="w-full max-w-md rotate-[-3deg] drop-shadow-2xl" />
-              </Stage>
-            }
-            flip
-          />
-        </div>
+        <ol className="mt-20 border-t border-noir/15">
+          {rows.map((row, index) => (
+            <Reveal as="li" key={row.title} delay={index * 60}>
+              <Link
+                href={row.href}
+                className="group relative grid grid-cols-[2.5rem_minmax(0,1fr)_auto] items-center gap-x-4 border-b border-noir/15 py-8 transition-colors duration-500 hover:bg-noir sm:grid-cols-[4rem_minmax(0,1.1fr)_minmax(0,1fr)_3rem] sm:gap-x-8 sm:px-4 lg:grid-cols-[4rem_minmax(0,1.1fr)_minmax(0,1fr)_14rem] lg:py-10"
+              >
+                <span className="font-display text-sm italic text-gold-ink transition-colors group-hover:text-brand">
+                  {String(index + 1).padStart(2, "0")}
+                </span>
+                <span className="flex items-baseline gap-3">
+                  <span className="font-display text-3xl font-light text-noir transition-colors group-hover:text-ivory sm:text-5xl">
+                    {row.title}
+                  </span>
+                  {row.tag && (
+                    <span className="border border-brand px-2 py-0.5 text-[0.6rem] font-semibold uppercase tracking-[0.2em] text-gold-ink group-hover:text-brand">
+                      {row.tag}
+                    </span>
+                  )}
+                </span>
+                <span className="col-start-2 mt-2 text-sm leading-relaxed text-noir/60 transition-colors group-hover:text-ivory/65 sm:col-start-3 sm:mt-0 sm:text-base">
+                  {row.body}
+                  {row.count && (
+                    <span className="mt-1 block text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-noir/40 group-hover:text-brand sm:hidden">
+                      {row.count}
+                    </span>
+                  )}
+                </span>
+                <span className="col-start-3 row-span-2 row-start-1 flex items-center justify-end gap-6 sm:col-start-4 sm:row-span-1">
+                  {row.count && (
+                    <span className="hidden text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-noir/45 transition-colors group-hover:text-brand lg:inline">
+                      {row.count}
+                    </span>
+                  )}
+                  <span className="grid h-12 w-12 place-items-center rounded-full border border-noir/20 text-noir transition-[transform,border-color,color,background-color] duration-500 group-hover:rotate-45 group-hover:border-brand group-hover:bg-brand group-hover:text-noir">
+                    <Icon icon={ArrowUpRight} size="sm" />
+                  </span>
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </ol>
       </div>
     </section>
   );
 }
 
-/* ────────────────────────────────────────────────────────── topics */
+/* ─────────────────────────────────────────────── the signature service */
+
+const DRAFT_STEPS = [
+  {
+    title: "Describe it",
+    body: "Parties, amounts, dates — in your own words, in English or Hindi.",
+  },
+  {
+    title: "AI drafts it",
+    body: "In about a minute, modelled on our advocate-written documents. Preview free; ask for changes.",
+  },
+  {
+    title: "An advocate reviews it",
+    body: "A practising advocate checks and corrects every clause.",
+  },
+  {
+    title: "You sign it",
+    body: "Word and PDF, notified by email, SMS and push the moment it's ready.",
+  },
+];
+
+/**
+ * The flagship, given the page's one full noir band: AI drafting with an
+ * advocate in the loop. A customer's own sentence on the left becomes a
+ * sealed deed on the right; the four steps run beneath on a gold line.
+ */
+export function SignatureDrafting() {
+  return (
+    <section
+      aria-labelledby="signature-title"
+      data-surface="inverse"
+      className="relative overflow-hidden bg-noir-glow text-ivory"
+    >
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="02"
+          tone="dark"
+          eyebrow="The signature service"
+          id="signature-title"
+          title={
+            <>
+              Your words in.{" "}
+              <em className="foil-text font-light italic">
+                A reviewed document out.
+              </em>
+            </>
+          }
+          intro="When no template fits, describe the document you need. Our AI drafts it in the form of our advocate-written precedents — and a practising advocate makes certain it's right."
+          aside={
+            <Link href="/documents/custom" className="btn-gold">
+              Draft my document
+              <Icon icon={ArrowRight} size="xs" />
+            </Link>
+          }
+        />
+
+        {/* The transformation */}
+        <Reveal className="mt-20 grid grid-cols-[minmax(0,1fr)] items-center gap-10 lg:grid-cols-[1fr_auto_1fr]">
+          <figure className="border border-noir-line bg-white/[0.03] p-8 backdrop-blur sm:p-10">
+            <figcaption className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-ivory/45">
+              What you write
+            </figcaption>
+            <blockquote className="mt-6 font-display text-2xl font-light italic leading-snug text-ivory sm:text-3xl">
+              &ldquo;A partnership deed for my bakery with my cousin in Pune —
+              sixty–forty profit share, five lakh capital, three months&apos;
+              notice to exit.&rdquo;
+            </blockquote>
+          </figure>
+
+          <div aria-hidden className="flex justify-center">
+            <span className="grid h-16 w-16 rotate-90 place-items-center rounded-full border border-brand/50 text-brand lg:rotate-0">
+              <Icon icon={ArrowRight} size="md" />
+            </span>
+          </div>
+
+          <figure
+            aria-hidden
+            className="relative bg-ivory p-8 text-noir shadow-[0_40px_90px_-30px_rgb(0_0_0/0.9)] sm:p-10"
+          >
+            <div className="h-0.5 w-10 bg-gold-foil" />
+            <p className="mt-5 text-[0.6rem] font-semibold uppercase tracking-[0.3em] text-gold-ink">
+              What you receive
+            </p>
+            <p className="mt-2 font-display text-3xl font-normal">
+              Partnership <span className="italic">Deed</span>
+            </p>
+            <div className="mt-6 space-y-2.5">
+              {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
+                (width, index) => (
+                  <div key={index} className={`h-[3px] ${width} bg-noir/10`} />
+                ),
+              )}
+            </div>
+            <p className="mt-6 inline-flex items-center gap-2 text-xs font-semibold text-noir/70">
+              <Icon icon={BadgeCheck} size="xs" className="text-gold-ink" />
+              Reviewed by a practising advocate
+            </p>
+            <Seal className="absolute -bottom-10 -right-6 h-28 w-28 rotate-12 drop-shadow-[0_14px_24px_rgb(0_0_0/0.5)]" />
+          </figure>
+        </Reveal>
+
+        {/* The four steps on a gold line */}
+        <ol className="relative mt-24 grid gap-12 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          <span
+            aria-hidden
+            className="absolute left-0 right-0 top-[1.1rem] hidden h-px bg-gold-foil opacity-50 lg:block"
+          />
+          {DRAFT_STEPS.map((step, index) => (
+            <Reveal
+              as="li"
+              key={step.title}
+              delay={index * 90}
+              className="relative"
+            >
+              <span className="relative grid h-9 w-9 place-items-center rounded-full border border-brand bg-noir font-display text-sm italic text-brand">
+                {ROMAN[index]}
+              </span>
+              <h3 className="mt-6 font-display text-2xl font-light text-ivory">
+                {step.title}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-ivory/60">
+                {step.body}
+              </p>
+            </Reveal>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── areas of law */
 
 const CATEGORY_ICONS: Record<ContentCategory, LucideIcon> = {
   PROPERTY_DOCUMENTATION: House,
@@ -616,331 +460,475 @@ const CATEGORY_BLURBS: Record<ContentCategory, string> = {
   CHECKLISTS_REFERENCE: "Step-by-step lists before you sign or file",
 };
 
-/** Searches people run most — Coursera's "trending" row. */
-const TRENDING = [
-  "Rent agreement",
-  "Affidavit",
-  "Legal notice",
-  "Partnership deed",
-  "Power of attorney",
-  "Offer letter",
-  "Will",
-  "NDA",
-];
-
 /**
- * The library by area of law, Coursera's "Explore categories": trending
- * searches as chips, then a card per topic with its count and examples.
+ * The library by area of law, as an editorial grid: the largest area leads
+ * on noir, the rest sit on ivory, each with its live count set large.
  */
-export function TopicExplorer({ summary }: { summary: CatalogueSummary }) {
+export function AreasOfLaw({ summary }: { summary: CatalogueSummary }) {
   if (summary.categories.length === 0) return null;
+  const areas = [...summary.categories].sort((a, b) => b.count - a.count);
 
   return (
-    <section aria-labelledby="topics-title" className="bg-paper">
-      <div className={`${FRAME} py-24`}>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <SectionHeading
-            id="topics-title"
-            eyebrow="Explore topics"
-            title="Find it by the area of law"
-            description="Every form, checklist and e-book is filed under the part of life it's for."
-          />
-          <Link href="/content-library" className={`${OUTLINE_BUTTON} group`}>
-            Browse the whole library
-            <Icon
-              icon={ArrowRight}
-              size="xs"
-              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-            />
-          </Link>
-        </div>
+    <section aria-labelledby="areas-title" className="bg-ivory-deep">
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="04"
+          eyebrow="Areas of law"
+          id="areas-title"
+          title={
+            <>
+              Find it by the part of life{" "}
+              <span className="accent-serif">it&apos;s for.</span>
+            </>
+          }
+          aside={
+            <AsideLink href="/content-library">The whole library</AsideLink>
+          }
+        />
 
-        <div className="mt-10 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm font-semibold text-ink">Trending:</span>
-          {TRENDING.map((term) => (
-            <Link
-              key={term}
-              href={`/search?q=${encodeURIComponent(term)}`}
-              className="rounded-full border border-line-strong bg-surface px-4 py-1.5 text-sm text-ink transition-colors hover:border-primary hover:bg-primary hover:text-ink-inverse"
-            >
-              {term}
-            </Link>
-          ))}
-        </div>
-
-        <ul className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 lg:grid-cols-6">
-          {summary.categories.map((entry, index) => (
-            <li
-              key={entry.category}
-              className={index < 3 ? "lg:col-span-2" : "lg:col-span-3"}
-            >
-              <Link
-                href={categoryHref(entry.category)}
-                className="group relative flex h-full flex-col overflow-hidden rounded-panel border border-line bg-surface p-7 transition-[transform,box-shadow,border-color] hover:-translate-y-1 hover:border-brand-border hover:shadow-float motion-reduce:transform-none"
+        <ul className="mt-16 grid grid-cols-[minmax(0,1fr)] gap-px overflow-hidden border border-noir/10 bg-noir/10 sm:grid-cols-2 lg:grid-cols-3">
+          {areas.map((entry, index) => {
+            const lead = index === 0;
+            return (
+              <Reveal
+                as="li"
+                key={entry.category}
+                delay={index * 70}
+                className={lead ? "lg:row-span-2" : ""}
               >
-                <div className="flex items-start justify-between gap-4">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-brand transition-transform duration-300 group-hover:-rotate-6 motion-reduce:transform-none">
-                    <Icon icon={CATEGORY_ICONS[entry.category]} size="lg" />
-                  </span>
-                  <span className="text-right">
-                    <span className="block font-display text-3xl font-extrabold tabular-nums tracking-tight text-ink">
+                <Link
+                  href={categoryHref(entry.category)}
+                  data-surface={lead ? "inverse" : undefined}
+                  className={`group flex h-full min-h-[17rem] flex-col p-8 transition-colors duration-500 sm:p-10 ${
+                    lead
+                      ? "bg-noir-glow text-ivory"
+                      : "bg-ivory text-noir hover:bg-noir hover:text-ivory"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-6">
+                    <Icon
+                      icon={CATEGORY_ICONS[entry.category]}
+                      size="lg"
+                      className="text-gold-ink group-hover:text-brand"
+                    />
+                    <span
+                      className={`font-display font-light tabular-nums ${lead ? "text-8xl text-brand" : "text-6xl"}`}
+                    >
                       {entry.count}
                     </span>
-                    <span className="block text-xs text-ink-subtle">items</span>
+                  </div>
+                  <h3
+                    className={`mt-auto pt-10 font-display font-light ${lead ? "text-4xl text-ivory sm:text-5xl" : "text-3xl text-noir group-hover:text-ivory"}`}
+                  >
+                    {CONTENT_CATEGORY_LABELS[entry.category]}
+                  </h3>
+                  <p className="mt-2 text-sm opacity-65">
+                    {CATEGORY_BLURBS[entry.category]}
+                  </p>
+                  {lead && entry.examples.length > 0 && (
+                    <ul className="mt-8 space-y-2 border-t border-noir-line pt-6 text-sm text-ivory/75">
+                      {entry.examples.map((example) => (
+                        <li key={example} className="font-display italic">
+                          {example}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <span className="mt-6 inline-flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.24em] opacity-70 transition-opacity group-hover:opacity-100">
+                    Explore
+                    <Icon
+                      icon={ArrowRight}
+                      size="xs"
+                      className="transition-transform group-hover:translate-x-1"
+                    />
                   </span>
-                </div>
-                <h3 className="mt-6 font-display text-xl font-bold tracking-tight text-ink">
-                  {CONTENT_CATEGORY_LABELS[entry.category]}
-                </h3>
-                <p className="mt-1 text-sm text-ink-muted">
-                  {CATEGORY_BLURBS[entry.category]}
-                </p>
-                {entry.examples.length > 0 && (
-                  <ul className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm text-ink">
-                    {entry.examples.slice(0, 2).map((example) => (
-                      <li key={example} className="flex gap-2">
-                        <Icon
-                          icon={FileText}
-                          size="xs"
-                          className="mt-1 shrink-0 text-ink-subtle"
-                        />
-                        <span className="min-w-0 truncate">{example}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mt-auto pt-5">
-                  <MoreLink>Explore</MoreLink>
-                </div>
-              </Link>
-            </li>
-          ))}
+                </Link>
+              </Reveal>
+            );
+          })}
         </ul>
       </div>
     </section>
   );
 }
 
-/* ───────────────────────────────────────────────────────── impact band */
+/* ──────────────────────────────────────────────────────── the assistant */
+
+const QUESTIONS = [
+  "My landlord wants an 11-month agreement",
+  "How do I register a will?",
+  "I'm hiring my first employee",
+];
 
 /**
- * Jasper's big-number band, with only numbers the catalogue backs up —
- * counted from the rows on sale — and two that are promises the product
- * enforces, not statistics.
+ * The assistant, for the visitor who doesn't know the name of the document
+ * they need — most first-time visitors. A conversation shown as it happens,
+ * with the answer leading to real documents.
  */
-export function ImpactBand({ summary }: { summary: CatalogueSummary }) {
-  const library =
-    summary.library.FORM.count +
-    summary.library.CHECKLIST.count +
-    summary.library.EBOOK.count;
-  const stats = [
-    ...(library > 0
-      ? [
-          {
-            value: countLabel(library),
-            label: "advocate-written forms, checklists and e-books",
-          },
-        ]
-      : []),
-    ...(summary.categories.length > 0
-      ? [
-          {
-            value: String(summary.categories.length),
-            label: "areas of law, from property to the courts",
-          },
-        ]
-      : []),
-    { value: "100%", label: "of AI drafts reviewed by an advocate" },
-    { value: "₹0", label: "to browse, search or ask the assistant" },
-  ];
-
+export function AssistantFeature() {
   return (
-    <section
-      aria-labelledby="impact-title"
-      data-surface="inverse"
-      className="relative overflow-hidden bg-hero-navy"
-    >
+    <section aria-labelledby="assistant-title" className="bg-ivory">
       <div
-        aria-hidden
-        className="pointer-events-none absolute -left-32 top-0 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.14),transparent)]"
-      />
-      <div
-        className={`${FRAME} relative grid grid-cols-[minmax(0,1fr)] gap-14 py-24 lg:grid-cols-[1fr_1.2fr] lg:items-center`}
+        className={`${FRAME} grid grid-cols-[minmax(0,1fr)] items-center gap-16 py-28 sm:py-36 lg:grid-cols-2 lg:gap-24`}
       >
-        <SectionHeading
-          id="impact-title"
-          tone="dark"
-          eyebrow="Why Pratikar"
-          title={
-            <>
-              Legal paperwork has to be{" "}
-              <span className="accent-serif text-brand">right.</span>
-            </>
-          }
-          description="So every document starts from one written by a practising advocate — and every AI draft is checked by one before it reaches you."
-        />
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-panel bg-white/10 ring-1 ring-white/10">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex flex-col bg-surface-inverse/60 p-6 sm:p-9"
-            >
-              <dt className="mt-2 text-sm leading-relaxed text-ink-inverse-muted">
-                {stat.label}
-              </dt>
-              <dd className="order-first font-display text-4xl font-extrabold tabular-nums tracking-tight text-brand sm:text-5xl">
-                {stat.value}
-              </dd>
+        <div>
+          <SectionHead
+            index="05"
+            eyebrow="The assistant"
+            id="assistant-title"
+            title={
+              <>
+                Not sure what you need?{" "}
+                <span className="accent-serif">Simply ask.</span>
+              </>
+            }
+            intro="Describe your situation in English or Hindi. The assistant reads everything on the site and points you to the right document, form, e-book or course. It explains; it never gives advice on your case."
+          />
+          <Reveal className="mt-10">
+            <p className="text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-noir/50">
+              People ask
+            </p>
+            <ul className="mt-4 divide-y divide-noir/10 border-y border-noir/10">
+              {QUESTIONS.map((question) => (
+                <li key={question}>
+                  <Link
+                    href={`/assistant?q=${encodeURIComponent(question)}`}
+                    className="group flex items-center justify-between gap-4 py-4"
+                  >
+                    <span className="font-display text-xl font-light italic text-noir">
+                      &ldquo;{question}&rdquo;
+                    </span>
+                    <Icon
+                      icon={ArrowUpRight}
+                      className="shrink-0 text-noir/40 transition-colors group-hover:text-gold-ink"
+                    />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <Link href="/assistant" className="btn-noir mt-10">
+              <Icon icon={Sparkles} size="xs" className="text-brand" />
+              Ask the assistant
+            </Link>
+          </Reveal>
+        </div>
+
+        {/* The conversation */}
+        <Reveal className="relative">
+          <div className="absolute -inset-4 -z-10 border border-ivory-line" />
+          <div
+            aria-hidden
+            className="select-none bg-noir p-6 text-ivory shadow-[0_50px_100px_-40px_rgb(6_12_23/0.7)] sm:p-9"
+          >
+            <div className="flex items-center justify-between border-b border-noir-line pb-5">
+              <span className="flex items-center gap-2 text-[0.6rem] font-semibold uppercase tracking-[0.28em] text-ivory/55">
+                <Icon icon={Sparkles} size="xs" className="text-brand" />
+                Pratikar assistant
+              </span>
+              <span className="h-2 w-2 rounded-full bg-success" />
             </div>
-          ))}
-        </dl>
+            <p className="ml-auto mt-7 max-w-[85%] bg-ivory px-5 py-3.5 text-sm leading-relaxed text-noir">
+              My tenant hasn&apos;t paid rent for three months. What can I do?
+            </p>
+            <div className="mt-6 max-w-[92%] space-y-3 text-sm leading-relaxed text-ivory/80">
+              <p>
+                The usual first step is a written legal notice demanding the
+                arrears, with a date to pay by. Keep proof of the agreement and
+                of each missed payment.
+              </p>
+              <p>These will help:</p>
+            </div>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {[
+                ["Form", "Legal Notice for Unpaid Rent"],
+                ["Template", "Rent Agreement"],
+              ].map(([kind, title]) => (
+                <div
+                  key={title}
+                  className="border border-noir-line bg-white/[0.04] p-4"
+                >
+                  <p className="text-[0.55rem] font-semibold uppercase tracking-[0.26em] text-brand">
+                    {kind}
+                  </p>
+                  <p className="mt-1.5 font-display text-lg leading-snug text-ivory">
+                    {title}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-/* ──────────────────────────────────────────────────────── how it works */
+/* ───────────────────────────────────────────────────────────── prices */
 
-const STEPS: { title: string; body: string; icon: LucideIcon }[] = [
-  {
-    title: "Find what you need",
-    body: "Search, browse by topic, or describe your situation to the assistant.",
-    icon: Sparkles,
-  },
-  {
-    title: "Fill in your details",
-    body: "Answer plain questions, or download a form to complete yourself.",
-    icon: FileText,
-  },
-  {
-    title: "Pay once, securely",
-    body: "One price with GST shown, through Razorpay. A GST invoice with every order.",
-    icon: IndianRupee,
-  },
-  {
-    title: "Download — or get it reviewed",
-    body: "Word and PDF, ready to sign. Add an advocate's review for a second pair of eyes.",
-    icon: UserCheck,
-  },
-];
+export interface PriceFloor {
+  label: string;
+  /** Formatted, GST-inclusive. */
+  from: string;
+  note: string;
+  href: string;
+}
 
-export function HowItWorks() {
+/**
+ * What things cost, before anyone has to ask: the lowest real price of each
+ * kind, GST included, read from the catalogue. Kinds with nothing on sale
+ * are left out rather than given a made-up number.
+ */
+export function PriceGuide({ prices }: { prices: PriceFloor[] }) {
+  if (prices.length === 0) return null;
   return (
-    <section aria-labelledby="how-title" className={`${FRAME} py-24`}>
-      <SectionHeading
-        id="how-title"
-        align="center"
-        eyebrow="How it works"
-        title="From question to signed paper in four steps"
-        description="No appointments, no jargon — and you only pay for what you take."
-      />
-      <ol className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step, index) => (
-          <li
-            key={step.title}
-            className="relative overflow-hidden rounded-panel border border-line bg-paper p-7"
-          >
-            <span
-              aria-hidden
-              className="absolute right-4 top-3 font-display text-7xl font-extrabold leading-none text-navy-100"
-            >
-              {index + 1}
-            </span>
-            <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-primary text-brand shadow-raised">
-              <Icon icon={step.icon} size="md" />
-            </span>
-            <h3 className="relative mt-6 font-display text-lg font-bold tracking-tight text-ink">
-              <span className="sr-only">Step {index + 1}: </span>
-              {step.title}
-            </h3>
-            <p className="relative mt-2 text-sm leading-relaxed text-ink-muted">
-              {step.body}
-            </p>
-          </li>
-        ))}
-      </ol>
+    <section
+      aria-labelledby="prices-title"
+      className="border-y border-ivory-line bg-ivory"
+    >
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="08"
+          eyebrow="Fees"
+          id="prices-title"
+          title={
+            <>
+              One fixed price.{" "}
+              <span className="accent-serif">No appointments.</span>
+            </>
+          }
+          intro="GST included, shown before you begin. No subscription and no hourly fees — you pay once, for the document you take."
+        />
+        <ul
+          className={`mt-16 grid grid-cols-[minmax(0,1fr)] gap-px border border-noir/10 bg-noir/10 sm:grid-cols-2 ${
+            prices.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"
+          }`}
+        >
+          {prices.map((price, index) => (
+            <Reveal as="li" key={price.label} delay={index * 70}>
+              <Link
+                href={price.href}
+                className="group flex h-full flex-col bg-ivory p-8 transition-colors duration-500 hover:bg-noir sm:p-10"
+              >
+                <p className="text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-noir/55 group-hover:text-ivory/55">
+                  {price.label}
+                </p>
+                <p className="mt-8 font-display text-sm italic text-gold-ink group-hover:text-brand">
+                  from
+                </p>
+                <p className="font-display text-6xl font-light tabular-nums text-noir group-hover:text-ivory">
+                  {price.from}
+                </p>
+                <p className="mt-6 text-sm leading-relaxed text-noir/60 group-hover:text-ivory/65">
+                  {price.note}
+                </p>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
+        <p className="mt-6 text-sm text-noir/55">
+          Generating and previewing a template is free — you pay only to
+          download. An advocate&apos;s review is quoted on the document page.
+        </p>
+      </div>
     </section>
   );
 }
 
-/* ─────────────────────────────────────────────────────────────── trust */
+/* ─────────────────────────────────────────────────────────── standard */
 
 /**
- * Why someone should believe any of this. Only what the product actually
- * does — no customer counts, ratings or testimonials until there are real
- * ones. On a site selling legal material, an invented number is a worse
- * first impression than a plain one.
+ * What the platform promises, set as articles — numbered, ruled, plain.
+ * Only what the product actually does; no invented customer counts,
+ * ratings or testimonials until there are real ones.
  */
-const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
+const STANDARD: { title: string; body: string; icon: LucideIcon }[] = [
   {
-    title: "Advocate review",
-    body: "Every AI draft — and any document you choose — is checked by a practising advocate.",
+    title: "An advocate, in the loop",
+    body: "Every AI draft — and any document you choose — is checked by a practising advocate before you download it.",
     icon: UserCheck,
   },
   {
-    title: "Reviewed before publishing",
-    body: "Templates and forms come from our advocate-written library and pass review first.",
+    title: "Written by advocates",
+    body: "Templates and forms come from our advocate-written library and pass review before they're published.",
     icon: ShieldCheck,
   },
   {
-    title: "Secure payments",
+    title: "Secure payment",
     body: "Paid through Razorpay. Your card details never reach our servers.",
     icon: Lock,
   },
   {
-    title: "GST invoice, every time",
+    title: "A GST invoice, every time",
     body: "One price with tax shown — no subscription, no recurring charge.",
     icon: Receipt,
   },
   {
-    title: "Private to your account",
-    body: "Your answers and documents stay yours, behind download links that expire. Delete your account any time.",
+    title: "Private to you",
+    body: "Your answers and documents stay yours, behind links that expire. Delete your account whenever you like.",
     icon: KeyRound,
   },
   {
-    title: "Certificates you can check",
-    body: "Each certificate carries a code anyone can verify here, no account needed.",
+    title: "Certificates that verify",
+    body: "Every certificate carries a code anyone can check here, without an account.",
     icon: BadgeCheck,
   },
 ];
 
-export function Assurances() {
+export function TheStandard() {
   return (
     <section
-      aria-labelledby="trust-title"
-      className="border-y border-line bg-paper"
+      aria-labelledby="standard-title"
+      data-surface="inverse"
+      className="bg-noir text-ivory"
     >
-      <div className={`${FRAME} py-24`}>
-        <SectionHeading
-          id="trust-title"
-          align="center"
-          eyebrow="Our promise"
-          title="What we do to make sure it's right"
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="09"
+          tone="dark"
+          eyebrow="The Pratikar standard"
+          id="standard-title"
+          title={
+            <>
+              Legal paperwork has to be{" "}
+              <em className="foil-text font-light italic">right.</em>
+            </>
+          }
+          intro="Here is what we do to make certain it is."
         />
-        <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {ASSURANCES.map((item) => (
-            <li
+        <ol className="mt-20 grid gap-x-12 sm:grid-cols-2 lg:grid-cols-3">
+          {STANDARD.map((item, index) => (
+            <Reveal
+              as="li"
               key={item.title}
-              className="rounded-panel border border-line bg-surface p-7 transition-shadow hover:shadow-float"
+              delay={(index % 3) * 80}
+              className="border-t border-noir-line py-10"
             >
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-subtle text-gold-ink ring-1 ring-brand-border">
-                <Icon icon={item.icon} size="md" />
-              </span>
-              <h3 className="mt-5 font-display text-lg font-bold tracking-tight text-ink">
+              <div className="flex items-center justify-between">
+                <span className="font-display text-sm italic text-brand">
+                  Article {ROMAN[index]}
+                </span>
+                <Icon icon={item.icon} className="text-ivory/40" />
+              </div>
+              <h3 className="mt-8 font-display text-2xl font-light text-ivory">
                 {item.title}
               </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+              <p className="mt-3 text-sm leading-relaxed text-ivory/60">
                 {item.body}
               </p>
-            </li>
+            </Reveal>
           ))}
-        </ul>
+        </ol>
       </div>
     </section>
   );
 }
 
-/* ───────────────────────────────────────────────────────────── FAQ teaser */
+/* ───────────────────────────────────────────────────────── the process */
+
+const PROCESS = [
+  {
+    title: "Find",
+    body: "Search, browse by area of law, or describe your situation to the assistant.",
+  },
+  {
+    title: "Fill",
+    body: "Answer plain questions — on a form, or simply by chatting.",
+  },
+  {
+    title: "Pay",
+    body: "One price with GST shown, through Razorpay, with a GST invoice.",
+  },
+  {
+    title: "Sign",
+    body: "Download Word and PDF — or add an advocate's review first.",
+  },
+];
+
+export function Process() {
+  return (
+    <section aria-labelledby="process-title" className="bg-ivory">
+      <div className={`${FRAME} py-28 sm:py-36`}>
+        <SectionHead
+          index="10"
+          eyebrow="How it works"
+          id="process-title"
+          align="center"
+          title={
+            <>
+              From question to signed paper,{" "}
+              <span className="accent-serif">in four steps.</span>
+            </>
+          }
+        />
+        <ol className="mt-20 grid gap-px border border-noir/10 bg-noir/10 sm:grid-cols-2 lg:grid-cols-4">
+          {PROCESS.map((step, index) => (
+            <Reveal
+              as="li"
+              key={step.title}
+              delay={index * 80}
+              className="bg-ivory p-8 sm:p-10"
+            >
+              <span className="font-display text-7xl font-light italic text-gold-ink/80">
+                {index + 1}
+              </span>
+              <h3 className="mt-8 font-display text-3xl font-light text-noir">
+                <span className="sr-only">Step {index + 1}: </span>
+                {step.title}
+              </h3>
+              <p className="mt-3 text-sm leading-relaxed text-noir/60">
+                {step.body}
+              </p>
+            </Reveal>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────── courses */
+
+/**
+ * Courses: the certificate itself as the picture — the thing a learner
+ * walks away with. Says "coming soon" plainly until courses are live.
+ */
+export function CoursesFeature() {
+  return (
+    <section aria-labelledby="courses-title" className="bg-ivory-deep">
+      <div
+        className={`${FRAME} grid grid-cols-[minmax(0,1fr)] items-center gap-16 py-28 sm:py-36 lg:grid-cols-2 lg:gap-24`}
+      >
+        <Reveal className="order-last lg:order-first">
+          <CertificateArt className="mx-auto w-full max-w-lg rotate-[-3deg] drop-shadow-[0_40px_60px_rgb(6_12_23/0.25)]" />
+        </Reveal>
+        <div>
+          <SectionHead
+            index="07"
+            eyebrow={COURSES_LIVE ? "Courses" : "Coming soon · Courses"}
+            id="courses-title"
+            title={
+              <>
+                Learn the law you use —{" "}
+                <span className="accent-serif">and prove it.</span>
+              </>
+            }
+            intro="Short video courses on GST, property and running a business. Finish one and receive a certificate with a code anyone can check."
+          />
+          <Reveal className="mt-10 flex flex-wrap gap-3">
+            <Link href="/courses" className="btn-noir">
+              {COURSES_LIVE ? "Explore courses" : "See what's coming"}
+            </Link>
+            <Link href="/verify" className="btn-line text-noir">
+              Verify a certificate
+            </Link>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────── FAQ */
 
 export interface FaqPreviewItem {
   id: string;
@@ -956,36 +944,37 @@ export interface FaqPreviewItem {
 export function FaqTeaser({ items }: { items: FaqPreviewItem[] }) {
   if (items.length === 0) return null;
   return (
-    <section aria-labelledby="faq-title" className={`${FRAME} py-24`}>
-      <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
-        <div>
-          <SectionHeading
-            id="faq-title"
-            eyebrow="Questions"
-            title="Good to know"
-            description="Quick answers about downloads, payments and reviews."
-          />
-          <Link href="/faq" className={`${OUTLINE_BUTTON} mt-8`}>
-            All questions
-            <Icon icon={ArrowRight} size="xs" />
-          </Link>
-        </div>
-        <div className="space-y-3">
+    <section aria-labelledby="faq-title" className="bg-ivory">
+      <div
+        className={`${FRAME} grid gap-16 border-t border-ivory-line py-28 sm:py-36 lg:grid-cols-[0.8fr_1.2fr]`}
+      >
+        <SectionHead
+          index="11"
+          eyebrow="Questions"
+          id="faq-title"
+          title={
+            <>
+              Good to <span className="accent-serif">know.</span>
+            </>
+          }
+          aside={<AsideLink href="/faq">All questions</AsideLink>}
+        />
+        <div className="border-t border-noir/15">
           {items.map((item) => (
             <details
               key={item.id}
-              className="group/faq rounded-2xl border border-line bg-surface transition-shadow open:shadow-float"
+              className="group/faq border-b border-noir/15"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-display text-base font-bold text-ink [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-7 font-display text-xl font-light text-noir sm:text-2xl [&::-webkit-details-marker]:hidden">
                 {item.question}
                 <span
                   aria-hidden
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-lg text-primary transition-transform group-open/faq:rotate-45"
+                  className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-noir/20 text-xl font-light transition-transform duration-500 group-open/faq:rotate-45 group-open/faq:border-noir group-open/faq:bg-noir group-open/faq:text-ivory"
                 >
                   +
                 </span>
               </summary>
-              <p className="whitespace-pre-line px-6 pb-6 text-sm leading-relaxed text-ink-muted">
+              <p className="whitespace-pre-line pb-8 pr-14 text-base leading-relaxed text-noir/65">
                 {item.answer}
               </p>
             </details>
@@ -996,91 +985,51 @@ export function FaqTeaser({ items }: { items: FaqPreviewItem[] }) {
   );
 }
 
-/* ──────────────────────────────────────────────────────── closing band */
+/* ──────────────────────────────────────────────────────── closing call */
 
-const COLLAGE = [
-  {
-    kind: "document" as const,
-    title: "Leave and Licence Agreement",
-    place: "left-0 top-4 -rotate-6",
-  },
-  {
-    kind: "ebook" as const,
-    title: "Buying Your First Home",
-    place: "right-0 top-0 rotate-6",
-  },
-  {
-    kind: "checklist" as const,
-    title: "Before You Sign a Lease",
-    place: "bottom-0 left-8 rotate-3",
-  },
-  {
-    kind: "form" as const,
-    title: "General Affidavit",
-    place: "bottom-6 right-6 -rotate-3",
-  },
-];
-
-/**
- * The last invitation, Jasper's way: a headline and buttons over a collage
- * — here, catalogue covers fanned out like papers on a desk.
- */
-export function ClosingBanner() {
+export function ClosingCall() {
   return (
-    <section aria-labelledby="closing-title" className={`${FRAME} pt-24`}>
-      <div
-        data-surface="inverse"
-        className="relative overflow-hidden rounded-[2.25rem] bg-hero-navy px-6 py-16 shadow-float sm:px-14 lg:py-20"
+    <section
+      aria-labelledby="closing-title"
+      data-surface="inverse"
+      data-flush-footer
+      className="relative overflow-hidden bg-noir-glow text-ivory"
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -right-8 -top-24 select-none font-display text-[34rem] font-light leading-none text-white/[0.025]"
       >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 -right-20 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.2),transparent)]"
-        />
-        <div className="relative grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[1.5fr_1fr]">
-          <div>
-            <h2
-              id="closing-title"
-              className="text-4xl font-extrabold leading-[1.06] text-ink-inverse sm:text-5xl lg:text-[3.4rem]"
-            >
-              Start with the document{" "}
-              <span className="accent-serif text-brand">you need today.</span>
-            </h2>
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-inverse-muted">
-              Browse everything freely — sign in only when you&apos;re ready to
-              make or buy something.
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/documents/custom" className={GOLD_BUTTON}>
-                <Icon icon={Sparkles} size="xs" />
-                Draft with AI
-              </Link>
-              <Link href="/documents" className={GHOST_INVERSE_BUTTON}>
-                Browse templates
-              </Link>
-              <Link href="/assistant" className={GHOST_INVERSE_BUTTON}>
-                <Icon icon={MessageCircle} size="xs" />
-                Ask a question
-              </Link>
-            </div>
-          </div>
-
-          <div
-            aria-hidden
-            className="relative mx-auto hidden h-80 w-full max-w-md select-none sm:block"
-          >
-            {COLLAGE.map((cover) => (
-              <CatalogueCover
-                key={cover.title}
-                kind={cover.kind}
-                title={cover.title}
-                className={`!absolute w-60 rounded-2xl shadow-float ring-1 ring-white/10 ${cover.place}`}
-              />
-            ))}
-          </div>
+        §
+      </span>
+      <Reveal
+        className={`${FRAME} relative flex flex-col items-center py-32 text-center sm:py-44`}
+      >
+        <p className="flex items-center gap-4 font-display text-base italic text-brand">
+          <span aria-hidden className="h-px w-10 bg-gold-foil" />
+          Begin today
+          <span aria-hidden className="h-px w-10 bg-gold-foil" />
+        </p>
+        <h2
+          id="closing-title"
+          className="mt-8 max-w-4xl text-5xl font-light leading-[1.02] text-ivory sm:text-7xl lg:text-8xl"
+        >
+          The document you need,{" "}
+          <em className="foil-text font-light italic">done properly.</em>
+        </h2>
+        <p className="mt-8 max-w-xl text-lg leading-relaxed text-ivory/65">
+          Browse everything freely — sign in only when you&apos;re ready to make
+          or buy something.
+        </p>
+        <div className="mt-12 flex flex-wrap justify-center gap-3">
+          <Link href="/documents/custom" className="btn-gold">
+            <Icon icon={Sparkles} size="xs" />
+            Draft with AI
+          </Link>
+          <Link href="/documents" className="btn-line-inverse">
+            Browse templates
+          </Link>
         </div>
-      </div>
+      </Reveal>
     </section>
   );
 }
-
-export { GHOST_INVERSE_BUTTON, GOLD_BUTTON, NAVY_BUTTON, OUTLINE_BUTTON };

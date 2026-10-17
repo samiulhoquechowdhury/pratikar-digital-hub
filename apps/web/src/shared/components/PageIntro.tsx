@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 /**
  * The top of every page: what this is, in a sentence, and what you can do.
  *
- * Warm paper with a faint ruled grid and a gold glow — the same on every
- * page (catalogue, assistant, legal) so the site reads as one product, and
- * compact enough that what the page is *for* starts high on the screen.
+ * Ivory with fine vertical rules, a gold hairline and a large light serif
+ * title — the same on every page (catalogue, assistant, legal) so the site
+ * reads as one house.
  *
  * Web-only on purpose. The shared PageHeader in @pratikar/ui is also the
  * admin panel's, and a storefront title wants more presence than a tool's.
@@ -26,36 +26,35 @@ export function PageIntro({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative isolate mb-10 overflow-hidden border-b border-line bg-paper">
+    <section className="relative isolate mb-12 overflow-hidden border-b border-ivory-line bg-ivory">
+      {/* Fine vertical rules — the hero's columns, on ivory. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/45%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/45%)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_70%_90%_at_85%_0%,black,transparent_75%)]"
+        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,rgb(6_12_23/0.05)_1px,transparent_1px)] [background-size:calc(100%/12)_100%] [mask-image:linear-gradient(to_bottom,black,transparent)]"
       />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -right-24 -top-32 -z-10 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.18),transparent)]"
-      />
-      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+      <div className="mx-auto max-w-shell px-4 pb-12 pt-14 sm:px-6 sm:pb-16 sm:pt-20 lg:px-8">
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
             {eyebrow && (
-              <p className="eyebrow">
-                <span aria-hidden className="h-px w-6 bg-current" />
-                {eyebrow}
+              <p className="flex items-center gap-4">
+                <span aria-hidden className="h-px w-10 bg-gold-foil" />
+                <span className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-noir/55">
+                  {eyebrow}
+                </span>
               </p>
             )}
-            <h1 className="mt-3 text-4xl leading-[1.1] text-ink sm:text-5xl">
+            <h1 className="mt-6 text-5xl font-light leading-[1.02] text-noir sm:text-6xl lg:text-7xl">
               {title}
             </h1>
             {description && (
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
+              <p className="mt-6 max-w-2xl text-lg leading-relaxed text-noir/65">
                 {description}
               </p>
             )}
           </div>
           {actions && <div className="shrink-0">{actions}</div>}
         </div>
-        {children && <div className="mt-6">{children}</div>}
+        {children && <div className="mt-8">{children}</div>}
       </div>
     </section>
   );

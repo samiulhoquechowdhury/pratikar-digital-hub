@@ -36,18 +36,15 @@
   }
 
   /**
-   * Titles take the display sans, set tight the way large geometric type
-   * wants to be. A single italic serif word (`.accent-serif`) is the one
-   * editorial flourish a headline may carry.
+   * Titles take the display serif — light, large and set a little tight,
+   * the way a printed deed sets its heading. Its italic is the one flourish
+   * a headline may wear (`.accent-serif`).
    */
   h1,
   h2 {
-    @apply font-display;
-    letter-spacing: -0.025em;
-  }
-
-  h1 {
-    @apply font-bold;
+    @apply font-display font-normal;
+    letter-spacing: -0.02em;
+    font-variation-settings: "SOFT" 30;
   }
 
   /**
@@ -99,16 +96,59 @@
   }
 }
 
+/* A page that ends on noir meets the noir footer without a gap. */
+main:has([data-flush-footer]) + footer {
+  margin-top: 0;
+}
+
+/* …and its own closing call already said what the footer's would. */
+main:has([data-flush-footer]) + footer [data-footer-cta] {
+  display: none;
+}
+
 @layer components {
   /** One serif word inside a sans headline — "drafted *right*". */
   .accent-serif {
-    @apply font-serif font-normal italic;
-    letter-spacing: -0.01em;
+    @apply font-display font-light italic;
+    letter-spacing: -0.015em;
+  }
+
+  /** Gold-foil text — the one metallic word on a dark band. */
+  .foil-text {
+    @apply bg-gold-foil bg-clip-text text-transparent;
+    background-size: 200% 100%;
   }
 
   /** The storefront's eyebrow: a short label above a section title. */
   .eyebrow {
-    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-gold-ink;
+    @apply inline-flex items-center gap-3 text-[0.6875rem] font-semibold uppercase tracking-[0.28em] text-gold-ink;
+  }
+
+  /**
+   * The storefront's buttons. Rectangular, small capitals, generous
+   * tracking — the typographic button of a luxury house rather than a
+   * rounded app pill. One primary per view.
+   */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2.5 whitespace-nowrap px-7 py-4 text-[0.75rem] font-semibold uppercase tracking-[0.18em] transition-[background-color,color,border-color,transform] duration-300 motion-reduce:transition-none;
+  }
+  .btn-gold {
+    @apply btn bg-gold-foil text-noir hover:-translate-y-0.5;
+    background-size: 200% 100%;
+  }
+  .btn-noir {
+    @apply btn bg-noir text-ivory hover:bg-noir-raised;
+  }
+  .btn-line {
+    @apply btn border border-current hover:bg-noir hover:text-ivory;
+  }
+  .btn-line-inverse {
+    @apply btn border border-ivory/30 text-ivory hover:border-ivory hover:bg-ivory hover:text-noir;
+  }
+
+  /** A text link whose underline draws in from the left on hover. */
+  .link-draw {
+    @apply bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-0.5 transition-[background-size] duration-500 hover:bg-[length:100%_1px];
   }
 
   /**

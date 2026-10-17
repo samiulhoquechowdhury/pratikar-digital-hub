@@ -19,14 +19,17 @@ const UTILITY = [
  */
 export function AnnouncementBar() {
   return (
-    <div data-surface="inverse" className="bg-surface-inverse">
-      <div className="mx-auto flex h-10 max-w-shell items-center justify-between gap-4 px-4 text-sm sm:px-6 lg:px-8">
+    <div
+      data-surface="inverse"
+      className="border-b border-noir-line bg-noir text-ivory"
+    >
+      <div className="mx-auto flex h-10 max-w-shell items-center justify-between gap-4 px-4 text-xs sm:px-6 lg:px-8">
         <Link
           href="/documents/custom"
-          className="group flex min-w-0 items-center gap-2.5 text-ink-inverse"
+          className="group flex min-w-0 items-center gap-3 tracking-wide text-ivory/85 hover:text-ivory"
         >
-          <span className="shrink-0 rounded-full bg-brand px-2 py-0.5 text-[0.6875rem] font-bold uppercase tracking-wider text-on-brand">
-            New
+          <span className="shrink-0 font-display text-sm italic text-brand">
+            New —
           </span>
           <span className="truncate">
             <span className="sm:hidden">AI drafting + advocate review</span>
@@ -46,7 +49,7 @@ export function AnnouncementBar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  className="text-ink-inverse-muted transition-colors hover:text-ink-inverse"
+                  className="uppercase tracking-[0.2em] text-ivory/55 transition-colors hover:text-ivory"
                 >
                   {link.label}
                 </Link>

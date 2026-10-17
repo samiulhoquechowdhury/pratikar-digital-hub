@@ -18,8 +18,6 @@ const MODES: Record<
   Mode,
   {
     label: string;
-    /** What a phone shows, where three full labels won't fit on one line. */
-    short: string;
     icon: LucideIcon;
     placeholder: string;
     action: string;
@@ -30,27 +28,24 @@ const MODES: Record<
 > = {
   find: {
     label: "Find a document",
-    short: "Find",
     icon: Search,
-    placeholder: "e.g. rent agreement, affidavit, legal notice",
+    placeholder: "Rent agreement, affidavit, legal notice…",
     action: "Search",
     href: (text) => `/search?q=${encodeURIComponent(text)}`,
     suggestions: ["Rent agreement", "Affidavit", "Legal notice", "GST"],
   },
   draft: {
     label: "Draft with AI",
-    short: "Draft with AI",
     icon: FilePenLine,
-    placeholder: "e.g. Partnership deed for two partners in Pune",
+    placeholder: "A partnership deed for two partners in Pune…",
     action: "Start drafting",
     href: (text) => `/documents/custom?type=${encodeURIComponent(text)}`,
     suggestions: ["Partnership deed", "Power of attorney", "NDA", "Will"],
   },
   ask: {
     label: "Ask a question",
-    short: "Ask",
     icon: MessageCircle,
-    placeholder: "e.g. My tenant hasn't paid rent for 3 months",
+    placeholder: "My tenant hasn't paid rent for three months…",
     action: "Ask",
     href: (text) => `/assistant?q=${encodeURIComponent(text)}`,
     suggestions: [
@@ -66,6 +61,9 @@ const MODES: Record<
  * pay"), or needing something the catalogue doesn't have — each mode sends
  * the same words to the place that can act on them: search, the assistant,
  * or AI drafting.
+ *
+ * Set for noir: the modes are small-capital tabs with a gold rule under the
+ * chosen one, and the field is a single hairline, like a line on a form.
  */
 export function IntentSearch() {
   const router = useRouter();
@@ -80,11 +78,11 @@ export function IntentSearch() {
   };
 
   return (
-    <div className="flex w-full max-w-2xl flex-col items-center">
+    <div className="w-full max-w-2xl">
       <div
         role="radiogroup"
         aria-label="What would you like to do?"
-        className="inline-flex justify-center gap-1 rounded-full border border-line bg-surface/80 p-1 shadow-card backdrop-blur"
+        className="flex gap-6 sm:gap-8"
       >
         {(Object.keys(MODES) as Mode[]).map((key) => {
           const selected = key === mode;
@@ -94,17 +92,18 @@ export function IntentSearch() {
               type="button"
               role="radio"
               aria-checked={selected}
-              aria-label={MODES[key].label}
               onClick={() => setMode(key)}
-              className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold sm:px-3.5 transition-colors motion-reduce:transition-none ${
-                selected
-                  ? "bg-primary text-ink-inverse shadow-raised"
-                  : "text-ink-muted hover:text-ink"
+              className={`relative pb-3 text-[0.65rem] font-semibold uppercase tracking-[0.22em] transition-colors sm:text-[0.7rem] ${
+                selected ? "text-ivory" : "text-ivory/45 hover:text-ivory/80"
               }`}
             >
-              <Icon icon={MODES[key].icon} size="xs" />
-              <span className="sm:hidden">{MODES[key].short}</span>
-              <span className="hidden sm:inline">{MODES[key].label}</span>
+              {MODES[key].label}
+              <span
+                aria-hidden
+                className={`absolute inset-x-0 bottom-0 h-px bg-gold-foil transition-transform duration-500 ${
+                  selected ? "scale-x-100" : "scale-x-0"
+                } origin-left`}
+              />
             </button>
           );
         })}
@@ -116,13 +115,9 @@ export function IntentSearch() {
           event.preventDefault();
           go(text);
         }}
-        className="mt-4 flex w-full items-center gap-2 rounded-full border border-line-strong bg-surface p-1.5 pl-4 text-left shadow-float transition-[border-color] focus-within:border-primary sm:pl-5"
+        className="mt-6 flex items-center gap-3 border border-ivory/15 bg-white/[0.04] p-2 pl-5 backdrop-blur transition-colors focus-within:border-brand/70"
       >
-        <Icon
-          icon={current.icon}
-          size="md"
-          className="shrink-0 text-ink-subtle"
-        />
+        <Icon icon={current.icon} size="md" className="shrink-0 text-brand" />
         <label htmlFor={inputId} className="sr-only">
           {current.label}
         </label>
@@ -132,31 +127,26 @@ export function IntentSearch() {
           value={text}
           onChange={(event) => setText(event.target.value)}
           placeholder={current.placeholder}
-          className="h-12 min-w-0 flex-1 bg-transparent text-base text-ink placeholder:text-ink-subtle"
+          className="h-12 min-w-0 flex-1 bg-transparent text-base text-ivory placeholder:text-ivory/40"
         />
         <button
           type="submit"
-          className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-brand text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover sm:w-auto sm:px-7"
+          aria-label={current.action}
+          className="btn-gold h-12 shrink-0 !px-4 sm:!px-6"
         >
-          {/* An arrow on a phone, so the field keeps room for the words. */}
-          <Icon
-            icon={ArrowRight}
-            size="md"
-            className="sm:hidden"
-            label={current.action}
-          />
           <span className="hidden sm:inline">{current.action}</span>
+          <Icon icon={ArrowRight} size="sm" />
         </button>
       </form>
 
-      <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-        <span className="text-sm text-ink-subtle">Try:</span>
+      <div className="mt-5 flex flex-wrap items-center gap-x-5 gap-y-2">
+        <span className="font-display text-sm italic text-ivory/45">Try</span>
         {current.suggestions.map((suggestion) => (
           <button
             key={suggestion}
             type="button"
             onClick={() => go(suggestion)}
-            className="rounded-full border border-line bg-surface/70 px-3 py-1 text-sm text-ink-muted transition-colors hover:border-primary hover:text-primary"
+            className="link-draw text-sm text-ivory/75 transition-colors hover:text-ivory"
           >
             {suggestion}
           </button>

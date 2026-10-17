@@ -1,8 +1,8 @@
 "use client";
 
-import { Menu, X } from "lucide-react";
+import { ArrowUpRight, Menu, Search, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { NotificationBell } from "@/features/notifications";
@@ -11,74 +11,127 @@ import { COURSES_LIVE } from "../lib/features";
 import { useAuth } from "../providers/AuthProvider";
 
 import { AccountMenu } from "./AccountMenu";
-import { AiButton } from "./AiButton";
 import { ExploreMenu, OFFERINGS, TOPICS } from "./ExploreMenu";
 import { Icon } from "./Icon";
 import { SiteLogo } from "./SiteLogo";
 import { SiteSearch } from "./SiteSearch";
 
-/** The category bar under the header — the catalogue's sections, Udemy-style. */
-const CATEGORY_BAR = [
-  { href: "/documents", label: "Document generator" },
-  { href: "/documents/custom", label: "AI drafting" },
-  { href: "/content-library?shelf=forms", label: "Legal forms" },
-  { href: "/content-library?shelf=checklists", label: "Checklists" },
-  { href: "/content-library?shelf=ebooks", label: "E-books" },
-  { href: "/courses", label: COURSES_LIVE ? "Courses" : "Courses (soon)" },
-  { href: "/assistant", label: "AI assistant" },
-  { href: "/verify", label: "Verify a certificate" },
+/** The header's own links — the catalogue's front doors, in reading order. */
+const NAV = [
+  { href: "/documents", label: "Documents" },
+  { href: "/documents/custom", label: "AI Drafting" },
+  { href: "/content-library", label: "Library" },
+  { href: "/courses", label: COURSES_LIVE ? "Courses" : "Courses" },
+  { href: "/assistant", label: "Assistant" },
+];
+
+/** Searches offered under the search panel, as ready-made starting points. */
+const POPULAR = [
+  "Rent agreement",
+  "Affidavit",
+  "Legal notice",
+  "Partnership deed",
+  "Power of attorney",
 ];
 
 /**
- * The site header, laid out the way Coursera lays its own out: the brand, an
- * Explore mega-menu holding the whole catalogue, a wide pill search — the
- * main way people arrive at a legal form — and the account. A slim bar
- * beneath lists the catalogue's sections on wide screens.
+ * The site header: noir, quiet, and the same on every page — the brand, the
+ * catalogue's front doors set in small capitals, and on the right the search,
+ * the account and one gold invitation.
  *
- * Gold is spent on one thing only, "Join for free", so the action that
- * matters most is the one thing in the header with colour.
+ * Search opens as a full-width panel under the bar rather than living as a
+ * field in it: the bar stays calm, and the search gets the room a serious
+ * search deserves — a large field and the searches people run most.
  *
- * A client component because it reflects sign-in state; the rest of the shell
- * stays server-rendered.
+ * A client component because it reflects sign-in state; the rest of the
+ * shell stays server-rendered.
  */
 export function SiteHeader() {
   const { user, isRestoring, logout } = useAuth();
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  // Without this the drawer stays open behind the page you just navigated to.
-  useEffect(() => setMenuOpen(false), [pathname]);
+  // Without this the drawer or search stays open over the page you just
+  // navigated to.
+  useEffect(() => {
+    setMenuOpen(false);
+    setSearchOpen(false);
+  }, [pathname]);
+
+  // Escape closes the search panel, as it would a dialog.
+  useEffect(() => {
+    if (!searchOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [searchOpen]);
+
+  const current = (href: string) =>
+    href === "/documents"
+      ? pathname === "/documents" ||
+        (pathname.startsWith("/documents/") &&
+          !pathname.startsWith("/documents/custom"))
+      : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-line/80 bg-surface/95 backdrop-blur-xl supports-[backdrop-filter]:bg-surface/80">
-      <div className="mx-auto flex h-16 max-w-shell items-center gap-3 px-4 sm:px-6 lg:gap-5 lg:px-8">
-        <SiteLogo />
+    <header
+      data-surface="inverse"
+      className="sticky top-0 z-40 border-b border-noir-line bg-noir text-ivory"
+    >
+      <div className="mx-auto flex h-20 max-w-shell items-center gap-2 px-4 sm:gap-6 sm:px-6 lg:px-8">
+        <SiteLogo tone="dark" />
 
-        <div className="hidden lg:block">
-          <ExploreMenu />
-        </div>
+        <nav aria-label="Main" className="ml-4 hidden xl:block">
+          <ul className="flex items-center gap-7">
+            {NAV.map((item) => (
+              <li key={item.href}>
+                <Link
+                  href={item.href}
+                  aria-current={current(item.href) ? "page" : undefined}
+                  className={`link-draw text-[0.7rem] font-semibold uppercase tracking-[0.2em] transition-colors ${
+                    current(item.href)
+                      ? "bg-[length:100%_1px] text-brand"
+                      : "text-ivory/75 hover:text-ivory"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+            <li>
+              <ExploreMenu />
+            </li>
+          </ul>
+        </nav>
 
-        <Suspense fallback={<div className="hidden flex-1 md:block" />}>
-          <SiteSearch className="hidden flex-1 md:block" />
-        </Suspense>
-
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
-          <AiButton className="hidden sm:inline-flex" />
+        <div className="ml-auto flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            aria-expanded={searchOpen}
+            aria-controls="site-search-panel"
+            onClick={() => setSearchOpen((open) => !open)}
+            className="grid h-10 w-10 place-items-center text-ivory/80 sm:h-11 sm:w-11 transition-colors hover:text-ivory"
+          >
+            <Icon
+              icon={searchOpen ? X : Search}
+              size="md"
+              label={searchOpen ? "Close search" : "Search"}
+            />
+          </button>
 
           {isRestoring ? (
             // The session is recovered from an httpOnly cookie on load, so for
             // one moment we genuinely don't know. Holding the space keeps the
-            // header from offering "Sign up" to someone already signed in and
-            // then swapping it out under their cursor.
-            <div
-              aria-hidden
-              className="h-10 w-32 rounded-full bg-surface-sunken"
-            />
+            // header from offering "Get started" to someone already signed in.
+            <div aria-hidden className="hidden h-11 w-36 bg-white/5 sm:block" />
           ) : user ? (
             <>
               <Link
                 href="/dashboard"
-                className="hidden whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:inline-block"
+                className="link-draw hidden text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ivory/75 hover:text-ivory lg:inline-block"
               >
                 My account
               </Link>
@@ -87,19 +140,17 @@ export function SiteHeader() {
             </>
           ) : (
             <>
-              {/* Two actions, not one. "Log in" alone reads as a members-only
-                  site; the pair is what signals you can join. */}
               <Link
                 href="/login"
-                className="hidden whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken sm:inline-block"
+                className="link-draw hidden px-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ivory/75 hover:text-ivory sm:inline-block"
               >
-                Log in
+                Sign in
               </Link>
               <Link
                 href="/signup"
-                className="whitespace-nowrap rounded-full bg-brand px-4 py-2.5 text-sm font-semibold text-on-brand shadow-card transition-colors hover:bg-brand-hover sm:px-5"
+                className="btn-gold hidden !px-5 !py-3 sm:inline-flex"
               >
-                Join for free
+                Get started
               </Link>
             </>
           )}
@@ -109,7 +160,7 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="-mr-2 grid h-11 w-11 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink lg:hidden"
+            className="-mr-2 grid h-10 w-10 place-items-center sm:h-11 sm:w-11 text-ivory/80 transition-colors hover:text-ivory xl:hidden"
           >
             <Icon
               icon={menuOpen ? X : Menu}
@@ -120,61 +171,94 @@ export function SiteHeader() {
         </div>
       </div>
 
-      {/* The bar reads the shelf from the query string, which Next only
-          allows inside a Suspense boundary; the fallback is the same bar
-          with nothing marked, so the header never shifts. */}
-      <Suspense fallback={<CategoryBar shelf={null} pathname={pathname} />}>
-        <CategoryBarWithShelf pathname={pathname} />
-      </Suspense>
+      {searchOpen && (
+        <div
+          id="site-search-panel"
+          className="border-t border-noir-line bg-noir-soft motion-safe:animate-fade-up"
+        >
+          <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
+            <Suspense fallback={null}>
+              <SiteSearch
+                autoFocus
+                variant="panel"
+                onSubmitted={() => setSearchOpen(false)}
+              />
+            </Suspense>
+            <div className="mt-6 flex flex-wrap items-center gap-2">
+              <span className="mr-2 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
+                Popular
+              </span>
+              {POPULAR.map((term) => (
+                <Link
+                  key={term}
+                  href={`/search?q=${encodeURIComponent(term)}`}
+                  className="border border-noir-line px-3.5 py-1.5 text-sm text-ivory/80 transition-colors hover:border-brand hover:text-ivory"
+                >
+                  {term}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {menuOpen && (
         <div
           id="mobile-nav"
-          className="max-h-[calc(100dvh-4rem)] overflow-y-auto border-t border-line bg-surface shadow-raised lg:hidden"
+          className="max-h-[calc(100dvh-5rem)] overflow-y-auto border-t border-noir-line bg-noir xl:hidden"
         >
-          <div className="mx-auto max-w-shell space-y-5 px-4 py-4 sm:px-6">
-            <Suspense fallback={null}>
-              <SiteSearch
-                className="md:hidden"
-                onSubmitted={() => setMenuOpen(false)}
-              />
-            </Suspense>
-
+          <div className="mx-auto max-w-shell px-4 pb-10 pt-6 sm:px-6">
             <nav aria-label="Main">
-              <p className="px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-                What we offer
-              </p>
-              <ul className="space-y-0.5">
-                {OFFERINGS.map((item) => (
+              <ul className="divide-y divide-noir-line border-y border-noir-line">
+                {NAV.map((item, index) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors hover:bg-surface-sunken"
+                      className="group flex items-center justify-between py-4"
                     >
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary-subtle text-primary">
-                        <Icon icon={item.icon} />
-                      </span>
-                      <span>
-                        <span className="block text-base font-medium text-ink">
+                      <span className="flex items-baseline gap-4">
+                        <span className="font-display text-xs italic text-brand">
+                          0{index + 1}
+                        </span>
+                        <span className="font-display text-3xl font-light text-ivory">
                           {item.label}
                         </span>
-                        <span className="block text-sm text-ink-muted">
-                          {item.hint}
-                        </span>
                       </span>
+                      <Icon
+                        icon={ArrowUpRight}
+                        className="text-ivory/40 transition-colors group-hover:text-brand"
+                      />
                     </Link>
                   </li>
                 ))}
               </ul>
-              <p className="mt-4 px-3 pb-1 text-xs font-semibold uppercase tracking-wider text-ink-subtle">
-                Browse by topic
+
+              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
+                Everything we offer
               </p>
-              <ul className="flex flex-wrap gap-2 px-3">
+              <ul className="mt-3 grid gap-1 sm:grid-cols-2">
+                {OFFERINGS.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="flex items-center gap-3 py-2 text-sm text-ivory/80 hover:text-ivory"
+                    >
+                      <Icon icon={item.icon} className="text-brand" />
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+
+              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
+                By area of law
+              </p>
+              <ul className="mt-3 flex flex-wrap gap-2">
                 {TOPICS.map((topic) => (
                   <li key={topic.href}>
                     <Link
                       href={topic.href}
-                      className="inline-block rounded-full border border-line px-3 py-1.5 text-sm text-ink hover:border-line-strong"
+                      className="inline-block border border-noir-line px-3 py-1.5 text-sm text-ivory/80 hover:border-brand hover:text-ivory"
                     >
                       {topic.label}
                     </Link>
@@ -183,92 +267,24 @@ export function SiteHeader() {
               </ul>
             </nav>
 
-            <div className="flex flex-wrap items-center gap-2 border-t border-line pt-4">
-              {user && (
-                <Link
-                  href="/dashboard"
-                  className="rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink"
-                >
-                  My account
+            {!user && !isRestoring && (
+              <div className="mt-10 grid gap-3 sm:grid-cols-2">
+                <Link href="/signup" className="btn-gold w-full">
+                  Get started
                 </Link>
-              )}
-              {!user && !isRestoring && (
-                <Link
-                  href="/login"
-                  className="rounded-full border border-line-strong px-4 py-2 text-sm font-semibold text-ink sm:hidden"
-                >
-                  Log in
+                <Link href="/login" className="btn-line-inverse w-full">
+                  Sign in
                 </Link>
-              )}
-            </div>
+              </div>
+            )}
+            {user && (
+              <Link href="/dashboard" className="btn-line-inverse mt-10 w-full">
+                My account
+              </Link>
+            )}
           </div>
         </div>
       )}
     </header>
-  );
-}
-
-function CategoryBarWithShelf({ pathname }: { pathname: string }) {
-  const shelf = useSearchParams().get("shelf");
-  return <CategoryBar shelf={shelf} pathname={pathname} />;
-}
-
-function CategoryBar({
-  shelf,
-  pathname,
-}: {
-  shelf: string | null;
-  pathname: string;
-}) {
-  const pathOf = (href: string) => href.split("?")[0]!;
-  const under = (path: string) =>
-    pathname === path || pathname.startsWith(`${path}/`);
-
-  /**
-   * Current when its path — and its shelf, if it names one — match, and no
-   * longer item matches better: /documents/custom is "AI drafting", not
-   * also "Document generator".
-   */
-  const isCurrent = (href: string) => {
-    const [path, query] = [pathOf(href), href.split("?")[1]];
-    if (!under(path)) return false;
-    const deeper = CATEGORY_BAR.some(
-      (item) =>
-        pathOf(item.href).length > path.length && under(pathOf(item.href)),
-    );
-    if (deeper) return false;
-    const wanted = new URLSearchParams(query ?? "").get("shelf");
-    return wanted ? shelf === wanted : true;
-  };
-
-  return (
-    <nav aria-label="Sections" className="hidden border-t border-line lg:block">
-      <ul className="mx-auto flex h-11 max-w-shell items-center gap-1 px-4 sm:px-6 lg:px-8">
-        {CATEGORY_BAR.map((item) => {
-          const current = isCurrent(item.href);
-          return (
-            <li key={item.href} className="h-full">
-              <Link
-                href={item.href}
-                aria-current={current ? "page" : undefined}
-                className={`relative inline-flex h-full items-center whitespace-nowrap px-3 text-sm transition-colors ${
-                  current
-                    ? "font-semibold text-ink"
-                    : "text-ink-muted hover:text-ink"
-                }`}
-              >
-                {item.label}
-                {current && (
-                  <span
-                    aria-hidden
-                    className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-primary"
-                  />
-                )}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
   );
 }

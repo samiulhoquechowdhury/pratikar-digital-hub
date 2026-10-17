@@ -26,13 +26,15 @@ export function CatalogueHeader({
     <PageIntro eyebrow={eyebrow} title={title} description={description}>
       {popular.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-ink-muted">Popular:</span>
+          <span className="mr-2 font-display text-sm italic text-noir/50">
+            Popular
+          </span>
           {popular.map((term) => (
             <Link
               key={term}
               href={`${basePath}?q=${encodeURIComponent(term)}`}
               scroll={false}
-              className="rounded-full border border-line-strong bg-surface px-3.5 py-1.5 text-sm font-medium text-ink shadow-card transition-colors hover:border-primary hover:text-primary"
+              className="border border-noir/15 bg-surface px-3.5 py-1.5 text-sm text-noir transition-colors hover:border-noir hover:bg-noir hover:text-ivory"
             >
               {term}
             </Link>

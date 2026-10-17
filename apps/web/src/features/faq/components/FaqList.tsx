@@ -35,17 +35,20 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
     <div className="space-y-10">
       {groups.map((group) => (
         <section key={group.category} aria-labelledby={`faq-${group.category}`}>
-          <h2 id={`faq-${group.category}`} className="text-2xl font-bold">
+          <h2
+            id={`faq-${group.category}`}
+            className="text-3xl font-light text-noir"
+          >
             {group.category}
           </h2>
-          <ul className="mt-5 space-y-3">
+          <ul className="mt-6">
             {group.items.map((item) => {
               const isOpen = open === item.id;
               return (
                 <li
                   key={item.id}
                   id={item.id}
-                  className={`scroll-mt-36 rounded-2xl border border-line bg-surface transition-shadow ${isOpen ? "shadow-float" : ""}`}
+                  className="scroll-mt-28 border-b border-noir/15 first:border-t"
                 >
                   <h3>
                     <button
@@ -53,7 +56,7 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
                       aria-expanded={isOpen}
                       aria-controls={`${item.id}-answer`}
                       onClick={() => setOpen(isOpen ? null : item.id)}
-                      className="flex w-full items-center justify-between gap-4 rounded-2xl px-6 py-5 text-left font-display text-base font-bold text-ink transition-colors hover:bg-paper"
+                      className="flex w-full items-center justify-between gap-6 py-6 text-left font-display text-xl font-light text-noir"
                     >
                       {item.question}
                       <Icon
@@ -65,7 +68,7 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
                   <div
                     id={`${item.id}-answer`}
                     hidden={!isOpen}
-                    className="whitespace-pre-line px-6 pb-6 text-sm leading-relaxed text-ink-muted"
+                    className="whitespace-pre-line pb-7 pr-12 text-base leading-relaxed text-noir/65"
                   >
                     {item.answer}
                   </div>

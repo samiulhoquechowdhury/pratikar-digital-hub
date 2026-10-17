@@ -33,14 +33,14 @@ const WAYS_ON: { href: string; label: string; icon: LucideIcon }[] = [
  */
 export default function NotFound() {
   return (
-    <section className="relative isolate overflow-hidden bg-paper">
+    <section className="relative isolate overflow-hidden bg-ivory">
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/55%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/55%)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_60%_70%_at_20%_0%,black,transparent_80%)]"
       />
       <div className="mx-auto max-w-shell px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="max-w-2xl">
-          <p className="font-display text-7xl font-extrabold tracking-tight text-gold-ink sm:text-8xl">
+          <p className="font-display text-8xl font-light italic text-gold-ink sm:text-9xl">
             404
           </p>
           <h1 className="mt-4 text-4xl sm:text-5xl">
@@ -60,9 +60,9 @@ export default function NotFound() {
             <li key={way.href}>
               <Link
                 href={way.href}
-                className="group flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:border-line-strong hover:shadow-float"
+                className="group flex items-center gap-3 border border-ivory-line bg-surface p-5 transition-colors hover:border-noir"
               >
-                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-brand">
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-noir text-brand">
                   <Icon icon={way.icon} size="md" />
                 </span>
                 <span className="flex-1 text-sm font-semibold text-ink">

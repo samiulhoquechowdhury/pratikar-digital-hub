@@ -4,26 +4,31 @@ import type {
   Course,
   Template,
 } from "@pratikar/types";
+import { grossPaise } from "@pratikar/utils";
 import type { Metadata } from "next";
 
 import {
-  Assurances,
+  AreasOfLaw,
+  AssistantFeature,
   Audiences,
   CatalogueTabs,
-  ClosingBanner,
+  ClosingCall,
+  CoursesFeature,
   FaqTeaser,
-  FeatureRows,
-  HowItWorks,
-  ImpactBand,
   LandingHero,
-  PlatformOverview,
+  PracticeIndex,
+  PriceGuide,
+  Process,
+  SignatureDrafting,
   summariseCatalogue,
-  TopicExplorer,
-  TrustMarquee,
+  TheStandard,
+  TitleMarquee,
   type FaqPreviewItem,
+  type PriceFloor,
   type Shelf,
 } from "@/features/home";
 import { COURSES_LIVE } from "@/shared/lib/features";
+import { formatPrice } from "@/shared/lib/format";
 import {
   CONTENT_CATEGORY_LABELS,
   CONTENT_KIND,
@@ -108,11 +113,80 @@ function buildShelves({
 }
 
 /**
+ * The lowest real price of each kind, GST included — for the fees section.
+ * A kind with nothing on sale is left out rather than given a number.
+ */
+function buildPrices({
+  templates,
+  courses,
+  library,
+}: {
+  templates: Template[];
+  courses: Course[];
+  library: ContentLibraryItem[];
+}): PriceFloor[] {
+  const floor = (prices: number[]) =>
+    prices.length > 0 ? formatPrice(grossPaise(Math.min(...prices))) : null;
+  const ofType = (type: ContentType) =>
+    library.filter((item) => item.type === type).map((i) => i.priceInPaise);
+
+  const rows: (PriceFloor | null)[] = [
+    (() => {
+      const from = floor(ofType("FORM"));
+      return from
+        ? {
+            label: "Legal forms",
+            from,
+            note: "Ready to fill in and file — download once, keep forever.",
+            href: shelfHref("FORM"),
+          }
+        : null;
+    })(),
+    (() => {
+      const from = floor([...ofType("CHECKLIST"), ...ofType("EBOOK")]);
+      return from
+        ? {
+            label: "Checklists & e-books",
+            from,
+            note: "Plain-language guides to what to check, and why.",
+            href: "/content-library",
+          }
+        : null;
+    })(),
+    (() => {
+      const from = floor(templates.map((t) => t.priceInPaise));
+      return from
+        ? {
+            label: "Ready templates",
+            from,
+            note: "Your answers in; a finished Word and PDF out. Preview free.",
+            href: "/documents",
+          }
+        : null;
+    })(),
+    (() => {
+      const from = floor(courses.map((c) => c.priceInPaise));
+      return from
+        ? {
+            label: "Courses",
+            from,
+            note: "Video lessons ending in a certificate anyone can verify.",
+            href: "/courses",
+          }
+        : null;
+    })(),
+  ];
+  return rows.filter((row): row is PriceFloor => row !== null);
+}
+
+/**
  * The landing page, in the order a first-time visitor's questions come:
- * what is this (hero, and what it's built on), what's in it (the platform),
- * show me (the catalogue), how does each part work (feature rows), is it
- * for me (audiences), by topic, why trust it, how it works, quick answers,
- * and a last nudge.
+ * what is this (hero, and the advocate-written library it stands on),
+ * everything it does (the practice), the one thing nobody else does (AI
+ * drafting with an advocate), show me (the catalogue), by area of law,
+ * what if I don't know what I need (the assistant), is it for me, courses,
+ * what it costs, why trust it, how it works, quick answers — and a last
+ * invitation. Sections are numbered so the long page reads as one document.
  *
  * The catalogue is read on the server so counts and titles are in the HTML
  * — for search engines, and so the page never opens on placeholders. If
@@ -139,17 +213,19 @@ export default async function HomePage() {
   return (
     <>
       <LandingHero summary={summary} />
-      <TrustMarquee summary={summary} />
-      <PlatformOverview summary={summary} />
+      <TitleMarquee summary={summary} />
+      <PracticeIndex summary={summary} />
+      <SignatureDrafting />
       <CatalogueTabs shelves={buildShelves(catalogue)} />
-      <FeatureRows />
+      <AreasOfLaw summary={summary} />
+      <AssistantFeature />
       <Audiences />
-      <TopicExplorer summary={summary} />
-      <ImpactBand summary={summary} />
-      <HowItWorks />
-      <Assurances />
+      <CoursesFeature />
+      <PriceGuide prices={buildPrices(catalogue)} />
+      <TheStandard />
+      <Process />
       <FaqTeaser items={faqItems} />
-      <ClosingBanner />
+      <ClosingCall />
     </>
   );
 }

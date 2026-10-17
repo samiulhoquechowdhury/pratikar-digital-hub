@@ -129,8 +129,28 @@ module.exports = {
          * page reads as stationery rather than a grey dashboard. Ink on it
          * keeps the same contrast as on white (17.3:1).
          */
-        paper: "#fbf8f1",
-        "paper-deep": "#f4eee0",
+        paper: "#f7f2e8",
+        "paper-deep": "#eee6d5",
+
+        /**
+         * The storefront's luxury pair. Noir is brand navy taken almost to
+         * black — the ground for the hero, signature bands and the footer —
+         * and ivory is the warm page it sits against. Hairlines are drawn in
+         * each one's own tint rather than grey, so rules read as engraving.
+         * Ivory text on noir: 17.9:1. Noir text on ivory: 17.1:1.
+         */
+        noir: {
+          DEFAULT: "#060c17",
+          soft: "#0b1424",
+          raised: "#111d33",
+          line: "rgb(255 255 255 / 0.09)",
+        },
+        ivory: {
+          DEFAULT: "#f7f2e8",
+          deep: "#eee6d5",
+          line: "#dfd3bb",
+          muted: "#b9ab8e",
+        },
         surface: "#ffffff",
         "surface-sunken": PALETTE.gray[100],
 
@@ -278,6 +298,8 @@ module.exports = {
         // Marketing display sizes — the home hero and section titles only.
         "6xl": ["3.75rem", { lineHeight: "1.04" }],
         "7xl": ["4.5rem", { lineHeight: "1.02" }],
+        "8xl": ["6rem", { lineHeight: "0.98" }],
+        "9xl": ["7.5rem", { lineHeight: "0.95" }],
       },
 
       borderRadius: {
@@ -302,6 +324,12 @@ module.exports = {
 
       // The brand sheet's hero treatment: deep navy with a subtle warm lift.
       backgroundImage: {
+        // Gold foil — a metallic sweep for rules, seals and the one primary
+        // button. Decoration only: text on it is noir (8.1:1 at the lightest).
+        "gold-foil":
+          "linear-gradient(115deg, #f4e4a8 0%, #d4af37 32%, #a9852b 58%, #e8cd78 82%, #c9a23a 100%)",
+        "noir-glow":
+          "radial-gradient(ellipse 70% 55% at 75% 20%, rgb(26 61 107 / 0.55), transparent 65%), radial-gradient(ellipse 50% 40% at 10% 90%, rgb(212 175 55 / 0.10), transparent 70%), linear-gradient(180deg, #060c17 0%, #0b1424 100%)",
         // Catalogue covers, one ground per kind — see CatalogueCover.
         "cover-course": `linear-gradient(135deg, ${PALETTE.navy[950]}, ${PALETTE.navy[600]})`,
         "cover-ebook": `linear-gradient(135deg, ${PALETTE.gold[100]}, ${PALETTE.gold[300]})`,
@@ -328,6 +356,11 @@ module.exports = {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" },
         },
+        // The foil's light, travelling across it.
+        sheen: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "200% 50%" },
+        },
       },
       animation: {
         float: "float 6s ease-in-out infinite",
@@ -335,6 +368,8 @@ module.exports = {
         "float-delayed": "float 7s ease-in-out infinite 2.5s",
         "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
         marquee: "marquee 50s linear infinite",
+        "marquee-slow": "marquee 90s linear infinite",
+        sheen: "sheen 6s linear infinite",
       },
 
       // Reading measure. Legal copy past ~75 characters per line is genuinely
