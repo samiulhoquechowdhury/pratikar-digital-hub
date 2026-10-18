@@ -80,7 +80,7 @@ export function AccountShell({ children }: { children: ReactNode }) {
           </span>
           <div className="min-w-0">
             <p className="eyebrow">Your account</p>
-            <h1 className="mt-2 truncate text-4xl font-light text-noir sm:text-5xl">
+            <h1 className="mt-1 truncate text-3xl font-bold text-noir sm:text-4xl">
               {user?.name
                 ? `Welcome back, ${user.name.split(" ")[0]}`
                 : "Welcome"}
@@ -170,7 +170,7 @@ export function AccountPageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-5">
       <div>
-        <h2 className="text-3xl font-light text-noir">{title}</h2>
+        <h2 className="text-3xl font-bold text-noir">{title}</h2>
         <p className="mt-1 text-sm text-ink-muted">{description}</p>
       </div>
       {action}

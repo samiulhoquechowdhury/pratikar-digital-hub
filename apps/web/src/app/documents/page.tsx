@@ -45,7 +45,7 @@ export default async function DocumentsPage() {
             <Icon icon={FilePenLine} size="md" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-2xl font-light">
+            <span className="block font-display text-2xl font-bold">
               Need a document that isn&apos;t here?
             </span>
             <span className="mt-0.5 block text-sm text-ink-inverse-muted">

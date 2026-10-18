@@ -35,12 +35,12 @@ export function AccountMenu({
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => setIsOpen((open) => !open)}
-        className="flex items-center gap-1 p-0.5 text-ivory/75 sm:gap-1.5 sm:pr-2 transition-colors hover:text-ivory"
+        className="flex items-center gap-1 rounded-full p-0.5 text-noir/70 transition-colors hover:bg-ivory hover:text-noir sm:gap-1.5 sm:pr-2"
       >
         <span className="sr-only">Account menu</span>
         <span
           aria-hidden
-          className="grid h-9 w-9 place-items-center rounded-full bg-gold-foil font-display text-sm font-semibold text-noir"
+          className="grid h-9 w-9 place-items-center rounded-full bg-noir font-display text-sm font-bold text-white"
         >
           {initial(user)}
         </span>

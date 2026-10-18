@@ -40,7 +40,7 @@ export default function NotFound() {
       />
       <div className="mx-auto max-w-shell px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="max-w-2xl">
-          <p className="font-display text-8xl font-light italic text-gold-ink sm:text-9xl">
+          <p className="font-display text-8xl font-bold text-gold-ink sm:text-9xl">
             404
           </p>
           <h1 className="mt-4 text-4xl sm:text-5xl">

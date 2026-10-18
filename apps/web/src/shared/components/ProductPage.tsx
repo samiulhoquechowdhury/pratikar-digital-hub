@@ -21,7 +21,7 @@ export function Breadcrumbs({
 }) {
   return (
     <nav aria-label="Breadcrumb">
-      <ol className="flex flex-wrap items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-noir/50">
+      <ol className="flex flex-wrap items-center gap-2 text-sm font-semibold text-noir/50">
         {trail.map((crumb) => (
           <li key={crumb.href} className="flex items-center gap-1.5">
             <Link
@@ -102,11 +102,11 @@ export function ProductHeading({
   const { label, icon } = CATALOGUE_KINDS[kind];
   return (
     <header className="mt-6">
-      <p className="inline-flex items-center gap-2 text-[0.65rem] font-semibold uppercase tracking-[0.26em] text-gold-ink">
+      <p className="inline-flex items-center gap-2 text-sm font-semibold text-gold-ink">
         <Icon icon={icon} size="xs" />
         {label}
       </p>
-      <h1 className="mt-5 text-5xl font-light leading-[1.04] text-noir sm:text-6xl">
+      <h1 className="mt-4 text-4xl font-bold leading-tight text-noir sm:text-5xl">
         {title}
       </h1>
       {description && (
@@ -131,7 +131,7 @@ export function ProductHeading({
           {meta.map((fact) => (
             <li
               key={fact}
-              className="px-5 py-3.5 text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-noir"
+              className="px-5 py-3.5 text-sm font-semibold text-noir"
             >
               {fact}
             </li>
@@ -152,7 +152,7 @@ export function ProductSection({
 }) {
   return (
     <section className="mt-14 border-t border-ivory-line pt-12 first:mt-12 first:border-t-0 first:pt-0">
-      <h2 className="text-3xl font-light text-noir">{title}</h2>
+      <h2 className="text-3xl font-bold text-noir">{title}</h2>
       <div className="mt-5">{children}</div>
     </section>
   );

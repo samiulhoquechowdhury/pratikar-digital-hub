@@ -129,27 +129,39 @@ module.exports = {
          * page reads as stationery rather than a grey dashboard. Ink on it
          * keeps the same contrast as on white (17.3:1).
          */
-        paper: "#f7f2e8",
-        "paper-deep": "#eee6d5",
+        paper: "#f5f7fa",
+        "paper-deep": "#eaeef4",
 
         /**
-         * The storefront's luxury pair. Noir is brand navy taken almost to
-         * black — the ground for the hero, signature bands and the footer —
-         * and ivory is the warm page it sits against. Hairlines are drawn in
-         * each one's own tint rather than grey, so rules read as engraving.
-         * Ivory text on noir: 17.9:1. Noir text on ivory: 17.1:1.
+         * The storefront's working pair. `noir` is the brand navy family —
+         * the colour of primary buttons, dark banners and the header's text —
+         * and `ivory` is the cool light grey that separates sections on an
+         * otherwise white page. (The names outlived an earlier design; the
+         * roles are what matter.) White on noir: 16.5:1. Noir on ivory: 15.6:1.
          */
         noir: {
-          DEFAULT: "#060c17",
-          soft: "#0b1424",
-          raised: "#111d33",
-          line: "rgb(255 255 255 / 0.09)",
+          DEFAULT: PALETTE.navy[800],
+          soft: PALETTE.navy[700],
+          raised: PALETTE.navy[600],
+          line: "rgb(255 255 255 / 0.14)",
         },
         ivory: {
-          DEFAULT: "#f7f2e8",
-          deep: "#eee6d5",
-          line: "#dfd3bb",
-          muted: "#b9ab8e",
+          DEFAULT: "#f5f7fa",
+          deep: "#eaeef4",
+          line: "#e1e6ee",
+          muted: "#94a3b8",
+        },
+
+        /**
+         * Banner grounds — the soft tints Coursera sets its hero slides on.
+         * Text on all of them is noir (≥ 13:1).
+         */
+        banner: {
+          sky: "#e8f1fb",
+          sand: "#fbf3dc",
+          mint: "#e6f4ee",
+          blush: "#fbeaea",
+          lilac: "#eeeaf9",
         },
         surface: "#ffffff",
         "surface-sunken": PALETTE.gray[100],
@@ -329,7 +341,7 @@ module.exports = {
         "gold-foil":
           "linear-gradient(115deg, #f4e4a8 0%, #d4af37 32%, #a9852b 58%, #e8cd78 82%, #c9a23a 100%)",
         "noir-glow":
-          "radial-gradient(ellipse 70% 55% at 75% 20%, rgb(26 61 107 / 0.55), transparent 65%), radial-gradient(ellipse 50% 40% at 10% 90%, rgb(212 175 55 / 0.10), transparent 70%), linear-gradient(180deg, #060c17 0%, #0b1424 100%)",
+          "radial-gradient(ellipse 70% 60% at 85% 10%, rgb(58 107 168 / 0.55), transparent 60%), radial-gradient(ellipse 50% 50% at 0% 100%, rgb(212 175 55 / 0.14), transparent 70%), linear-gradient(135deg, #0b1f3a 0%, #122e52 100%)",
         // Catalogue covers, one ground per kind — see CatalogueCover.
         "cover-course": `linear-gradient(135deg, ${PALETTE.navy[950]}, ${PALETTE.navy[600]})`,
         "cover-ebook": `linear-gradient(135deg, ${PALETTE.gold[100]}, ${PALETTE.gold[300]})`,
@@ -355,6 +367,11 @@ module.exports = {
         marquee: {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" },
+        },
+        // A carousel dot filling while its banner is shown.
+        progress: {
+          from: { width: "0%" },
+          to: { width: "100%" },
         },
         // The foil's light, travelling across it.
         sheen: {

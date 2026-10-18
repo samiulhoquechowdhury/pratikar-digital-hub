@@ -108,8 +108,8 @@ export function ExploreMenu() {
         aria-expanded={isOpen}
         aria-controls="explore-menu"
         onClick={() => setIsOpen((open) => !open)}
-        className={`inline-flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-[0.2em] transition-colors ${
-          isOpen ? "text-brand" : "text-ivory/75 hover:text-ivory"
+        className={`inline-flex h-10 items-center gap-1.5 rounded-md px-3 text-[0.9375rem] font-semibold transition-colors ${
+          isOpen ? "bg-banner-sky text-noir" : "text-noir hover:bg-ivory"
         }`}
       >
         Explore
@@ -123,7 +123,7 @@ export function ExploreMenu() {
       {isOpen && (
         <div
           id="explore-menu"
-          className="absolute inset-x-0 top-full z-50 border-b border-ivory-line bg-ivory text-ink shadow-float motion-safe:animate-fade-up"
+          className="absolute inset-x-0 top-full z-50 border-b border-ivory-line bg-white text-ink shadow-float motion-safe:animate-fade-up"
         >
           <div className="mx-auto grid max-w-shell grid-cols-[1.25fr_1fr_1fr] px-8 py-6">
             <div className="p-4">
@@ -134,7 +134,7 @@ export function ExploreMenu() {
                     <Link
                       href={item.href}
                       onClick={close}
-                      className="group flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-ivory-deep"
+                      className="group flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-ivory"
                     >
                       <span className="grid h-9 w-9 shrink-0 place-items-center bg-primary-subtle text-primary transition-colors group-hover:bg-primary group-hover:text-brand">
                         <Icon icon={item.icon} />
@@ -161,7 +161,7 @@ export function ExploreMenu() {
                     <Link
                       href={topic.href}
                       onClick={close}
-                      className="block px-3 py-2 text-sm text-ink transition-colors hover:bg-ivory-deep"
+                      className="block px-3 py-2 text-sm text-ink transition-colors hover:bg-ivory"
                     >
                       {topic.label}
                     </Link>
@@ -171,14 +171,14 @@ export function ExploreMenu() {
               <Link
                 href="/content-library"
                 onClick={close}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-primary hover:bg-ivory-deep"
+                className="mt-2 inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-primary hover:bg-ivory"
               >
                 The whole library
                 <Icon icon={ArrowRight} size="xs" />
               </Link>
             </div>
 
-            <div className="flex flex-col gap-4 bg-ivory-deep p-5">
+            <div className="flex flex-col gap-4 rounded-xl bg-banner-sky p-5">
               <Link
                 href="/documents/custom"
                 onClick={close}

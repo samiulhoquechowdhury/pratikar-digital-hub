@@ -83,9 +83,9 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           <p className="text-sm font-semibold text-brand">
             Har Ghar Mein Kanooni Gyaan
           </p>
-          <p className="mt-6 font-display text-5xl font-light leading-[1.04] text-ivory xl:text-6xl">
+          <p className="mt-6 font-display text-5xl font-bold leading-[1.04] text-ivory xl:text-6xl">
             Legal knowledge in{" "}
-            <em className="foil-text font-light italic">every home.</em>
+            <em className="foil-text font-bold">every home.</em>
           </p>
           <ul className="mt-10 space-y-4">
             {PROMISES.map((promise) => (
@@ -129,7 +129,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
             aria-hidden
             className="-mx-7 -mt-7 mb-8 h-0.5 bg-gold-foil sm:-mx-11 sm:-mt-11"
           />
-          <h1 className="text-4xl font-light text-noir">{copy.heading}</h1>
+          <h1 className="text-3xl font-bold text-noir">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             {copy.sub}
           </p>

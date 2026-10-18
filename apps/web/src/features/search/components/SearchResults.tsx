@@ -85,7 +85,7 @@ export function SearchResults() {
         // A misspelt search still gets an answer — and says so, so nobody
         // wonders why "afidavit" shows affidavits.
         <div className="border-l-2 border-brand bg-ivory px-6 py-5">
-          <p className="font-display text-xl font-light text-noir">
+          <p className="font-display text-xl font-bold text-noir">
             Showing {total} {total === 1 ? "result" : "results"} for{" "}
             <span className="font-semibold">
               “{results.correction ?? query}”

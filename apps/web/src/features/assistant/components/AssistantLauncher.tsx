@@ -141,7 +141,7 @@ export function AssistantLauncher() {
         onClick={() => (present ? close() : openPanel())}
         aria-expanded={present}
         aria-haspopup="dialog"
-        className="group fixed bottom-4 right-4 z-50 inline-flex h-14 w-14 items-center justify-center gap-2 rounded-full border border-brand/40 bg-noir text-sm sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:py-3 sm:pl-4 sm:pr-5 font-semibold uppercase tracking-[0.14em] text-ivory shadow-float transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-noir-raised active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+        className="group fixed bottom-4 right-4 z-50 inline-flex h-14 w-14 items-center justify-center gap-2 rounded-full bg-noir text-sm sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:py-3 sm:pl-4 sm:pr-5 font-semibold text-white shadow-float transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-noir-raised active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         {/*
           Navy, not gold: gold is the site's one primary-action colour ("Sign

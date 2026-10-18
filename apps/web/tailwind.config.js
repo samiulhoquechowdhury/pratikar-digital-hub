@@ -11,12 +11,12 @@ module.exports = {
   ],
   theme: {
     extend: {
-      // The storefront is set square — engraved rules and sharp paper, not
-      // app-rounded corners — so the shared components (buttons, alerts,
-      // cards) follow it here without changing the admin panel's.
+      // The storefront's corners, Coursera's: cards a little rounded,
+      // controls a little less — shared components follow here without
+      // changing the admin panel's.
       borderRadius: {
-        card: "0.125rem",
-        control: "0.125rem",
+        card: "0.75rem",
+        control: "0.375rem",
       },
     },
   },

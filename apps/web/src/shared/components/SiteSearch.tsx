@@ -79,11 +79,11 @@ export function SiteSearch({
             // No `focus:outline-none`: the border change is the aesthetic
             // treatment; the global focus-visible outline is the
             // accessibility guarantee.
-            className="h-12 w-full border border-ivory-line bg-surface pl-4 pr-14 text-sm text-ink placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-noir"
+            className="h-11 w-full rounded-full border border-noir/25 bg-white pl-5 pr-12 text-[0.9375rem] text-noir placeholder:text-noir/50 transition-colors hover:border-noir/50 focus:border-noir"
           />
           <button
             type="submit"
-            className="absolute right-1 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center bg-noir text-ivory transition-colors hover:bg-noir-raised"
+            className="absolute right-1 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full bg-noir text-white transition-colors hover:bg-noir-raised"
           >
             <Icon icon={Search} size="sm" label="Search" />
           </button>

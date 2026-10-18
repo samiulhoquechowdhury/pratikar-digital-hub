@@ -1,13 +1,12 @@
 "use client";
 
-import { ArrowUpRight, Menu, Search, X } from "lucide-react";
+import { ChevronRight, Menu, Search, Sparkles, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 
 import { NotificationBell } from "@/features/notifications";
 
-import { COURSES_LIVE } from "../lib/features";
 import { useAuth } from "../providers/AuthProvider";
 
 import { AccountMenu } from "./AccountMenu";
@@ -16,32 +15,14 @@ import { Icon } from "./Icon";
 import { SiteLogo } from "./SiteLogo";
 import { SiteSearch } from "./SiteSearch";
 
-/** The header's own links — the catalogue's front doors, in reading order. */
-const NAV = [
-  { href: "/documents", label: "Documents" },
-  { href: "/documents/custom", label: "AI Drafting" },
-  { href: "/content-library", label: "Library" },
-  { href: "/courses", label: COURSES_LIVE ? "Courses" : "Courses" },
-  { href: "/assistant", label: "Assistant" },
-];
-
-/** Searches offered under the search panel, as ready-made starting points. */
-const POPULAR = [
-  "Rent agreement",
-  "Affidavit",
-  "Legal notice",
-  "Partnership deed",
-  "Power of attorney",
-];
-
 /**
- * The site header: noir, quiet, and the same on every page — the brand, the
- * catalogue's front doors set in small capitals, and on the right the search,
- * the account and one gold invitation.
+ * The site header, laid out the way Coursera lays out its own: white, the
+ * brand, an Explore menu holding the whole catalogue, a wide search — the
+ * main way people arrive at a legal form — and on the right the assistant,
+ * the account, and one filled button.
  *
- * Search opens as a full-width panel under the bar rather than living as a
- * field in it: the bar stays calm, and the search gets the room a serious
- * search deserves — a large field and the searches people run most.
+ * On a phone the search folds into an icon that opens it full width, and
+ * the menu opens as a sheet.
  *
  * A client component because it reflects sign-in state; the rest of the
  * shell stays server-rendered.
@@ -52,60 +33,25 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
 
-  // Without this the drawer or search stays open over the page you just
+  // Without this the sheet or search stays open over the page you just
   // navigated to.
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
   }, [pathname]);
 
-  // Escape closes the search panel, as it would a dialog.
-  useEffect(() => {
-    if (!searchOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setSearchOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [searchOpen]);
-
-  const current = (href: string) =>
-    href === "/documents"
-      ? pathname === "/documents" ||
-        (pathname.startsWith("/documents/") &&
-          !pathname.startsWith("/documents/custom"))
-      : pathname === href || pathname.startsWith(`${href}/`);
-
   return (
-    <header
-      data-surface="inverse"
-      className="sticky top-0 z-40 border-b border-noir-line bg-noir text-ivory"
-    >
-      <div className="mx-auto flex h-20 max-w-shell items-center gap-2 px-4 sm:gap-6 sm:px-6 lg:px-8">
-        <SiteLogo tone="dark" />
+    <header className="sticky top-0 z-40 border-b border-ivory-line bg-white">
+      <div className="mx-auto flex h-[4.5rem] max-w-shell items-center gap-3 px-4 sm:px-6 lg:gap-6 lg:px-8">
+        <SiteLogo />
 
-        <nav aria-label="Main" className="ml-4 hidden xl:block">
-          <ul className="flex items-center gap-7">
-            {NAV.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  aria-current={current(item.href) ? "page" : undefined}
-                  className={`link-draw text-[0.7rem] font-semibold uppercase tracking-[0.2em] transition-colors ${
-                    current(item.href)
-                      ? "bg-[length:100%_1px] text-brand"
-                      : "text-ivory/75 hover:text-ivory"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-            <li>
-              <ExploreMenu />
-            </li>
-          </ul>
-        </nav>
+        <div className="hidden lg:block">
+          <ExploreMenu />
+        </div>
+
+        <Suspense fallback={<div className="hidden flex-1 md:block" />}>
+          <SiteSearch className="hidden max-w-xl flex-1 md:block" />
+        </Suspense>
 
         <div className="ml-auto flex items-center gap-1 sm:gap-2">
           <button
@@ -113,7 +59,7 @@ export function SiteHeader() {
             aria-expanded={searchOpen}
             aria-controls="site-search-panel"
             onClick={() => setSearchOpen((open) => !open)}
-            className="grid h-10 w-10 place-items-center text-ivory/80 sm:h-11 sm:w-11 transition-colors hover:text-ivory"
+            className="grid h-10 w-10 place-items-center rounded-full text-noir transition-colors hover:bg-ivory md:hidden"
           >
             <Icon
               icon={searchOpen ? X : Search}
@@ -122,16 +68,27 @@ export function SiteHeader() {
             />
           </button>
 
+          <Link
+            href="/assistant"
+            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-[0.9375rem] font-semibold text-noir transition-colors hover:bg-ivory xl:inline-flex"
+          >
+            <Icon icon={Sparkles} className="text-gold-ink" />
+            Ask AI
+          </Link>
+
           {isRestoring ? (
             // The session is recovered from an httpOnly cookie on load, so for
             // one moment we genuinely don't know. Holding the space keeps the
-            // header from offering "Get started" to someone already signed in.
-            <div aria-hidden className="hidden h-11 w-36 bg-white/5 sm:block" />
+            // header from offering "Join for free" to someone signed in.
+            <div
+              aria-hidden
+              className="hidden h-11 w-40 rounded-md bg-ivory sm:block"
+            />
           ) : user ? (
             <>
               <Link
                 href="/dashboard"
-                className="link-draw hidden text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ivory/75 hover:text-ivory lg:inline-block"
+                className="hidden rounded-md px-3 py-2 text-[0.9375rem] font-semibold text-noir transition-colors hover:bg-ivory lg:inline-block"
               >
                 My account
               </Link>
@@ -142,15 +99,15 @@ export function SiteHeader() {
             <>
               <Link
                 href="/login"
-                className="link-draw hidden px-2 text-[0.7rem] font-semibold uppercase tracking-[0.2em] text-ivory/75 hover:text-ivory sm:inline-block"
+                className="hidden rounded-md px-3 py-2 text-[0.9375rem] font-semibold text-noir transition-colors hover:bg-ivory sm:inline-block"
               >
-                Sign in
+                Log in
               </Link>
               <Link
                 href="/signup"
-                className="btn-gold hidden !px-5 !py-3 sm:inline-flex"
+                className="btn-noir hidden !px-5 !py-2.5 !text-[0.9375rem] sm:inline-flex"
               >
-                Get started
+                Join for free
               </Link>
             </>
           )}
@@ -160,7 +117,7 @@ export function SiteHeader() {
             aria-expanded={menuOpen}
             aria-controls="mobile-nav"
             onClick={() => setMenuOpen((open) => !open)}
-            className="-mr-2 grid h-10 w-10 place-items-center sm:h-11 sm:w-11 text-ivory/80 transition-colors hover:text-ivory xl:hidden"
+            className="-mr-2 grid h-10 w-10 place-items-center rounded-full text-noir transition-colors hover:bg-ivory lg:hidden"
           >
             <Icon
               icon={menuOpen ? X : Menu}
@@ -174,91 +131,66 @@ export function SiteHeader() {
       {searchOpen && (
         <div
           id="site-search-panel"
-          className="border-t border-noir-line bg-noir-soft motion-safe:animate-fade-up"
+          className="border-t border-ivory-line bg-white px-4 py-4 md:hidden"
         >
-          <div className="mx-auto max-w-shell px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-            <Suspense fallback={null}>
-              <SiteSearch
-                autoFocus
-                variant="panel"
-                onSubmitted={() => setSearchOpen(false)}
-              />
-            </Suspense>
-            <div className="mt-6 flex flex-wrap items-center gap-2">
-              <span className="mr-2 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
-                Popular
-              </span>
-              {POPULAR.map((term) => (
-                <Link
-                  key={term}
-                  href={`/search?q=${encodeURIComponent(term)}`}
-                  className="border border-noir-line px-3.5 py-1.5 text-sm text-ivory/80 transition-colors hover:border-brand hover:text-ivory"
-                >
-                  {term}
-                </Link>
-              ))}
-            </div>
-          </div>
+          <Suspense fallback={null}>
+            <SiteSearch autoFocus onSubmitted={() => setSearchOpen(false)} />
+          </Suspense>
         </div>
       )}
 
       {menuOpen && (
         <div
           id="mobile-nav"
-          className="max-h-[calc(100dvh-5rem)] overflow-y-auto border-t border-noir-line bg-noir xl:hidden"
+          className="max-h-[calc(100dvh-4.5rem)] overflow-y-auto border-t border-ivory-line bg-white lg:hidden"
         >
-          <div className="mx-auto max-w-shell px-4 pb-10 pt-6 sm:px-6">
-            <nav aria-label="Main">
-              <ul className="divide-y divide-noir-line border-y border-noir-line">
-                {NAV.map((item, index) => (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      className="group flex items-center justify-between py-4"
-                    >
-                      <span className="flex items-baseline gap-4">
-                        <span className="font-display text-xs italic text-brand">
-                          0{index + 1}
-                        </span>
-                        <span className="font-display text-3xl font-light text-ivory">
-                          {item.label}
-                        </span>
-                      </span>
-                      <Icon
-                        icon={ArrowUpRight}
-                        className="text-ivory/40 transition-colors group-hover:text-brand"
-                      />
-                    </Link>
-                  </li>
-                ))}
-              </ul>
+          <div className="mx-auto max-w-shell px-4 pb-8 pt-4 sm:px-6">
+            {!user && !isRestoring && (
+              <div className="grid grid-cols-2 gap-3 pb-5">
+                <Link href="/signup" className="btn-noir">
+                  Join for free
+                </Link>
+                <Link href="/login" className="btn-line">
+                  Log in
+                </Link>
+              </div>
+            )}
 
-              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
-                Everything we offer
-              </p>
-              <ul className="mt-3 grid gap-1 sm:grid-cols-2">
+            <nav aria-label="Main">
+              <p className="pb-2 text-sm font-semibold text-noir/60">Explore</p>
+              <ul className="divide-y divide-ivory-line border-y border-ivory-line">
                 {OFFERINGS.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
-                      className="flex items-center gap-3 py-2 text-sm text-ivory/80 hover:text-ivory"
+                      className="flex items-center gap-3 py-3.5"
                     >
-                      <Icon icon={item.icon} className="text-brand" />
-                      {item.label}
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-banner-sky text-noir">
+                        <Icon icon={item.icon} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-semibold text-noir">
+                          {item.label}
+                        </span>
+                        <span className="block text-sm text-noir/60">
+                          {item.hint}
+                        </span>
+                      </span>
+                      <Icon icon={ChevronRight} className="text-noir/40" />
                     </Link>
                   </li>
                 ))}
               </ul>
 
-              <p className="mt-8 text-[0.65rem] font-semibold uppercase tracking-[0.24em] text-ivory/50">
-                By area of law
+              <p className="mt-6 pb-2 text-sm font-semibold text-noir/60">
+                Browse by area of law
               </p>
-              <ul className="mt-3 flex flex-wrap gap-2">
+              <ul className="flex flex-wrap gap-2">
                 {TOPICS.map((topic) => (
                   <li key={topic.href}>
                     <Link
                       href={topic.href}
-                      className="inline-block border border-noir-line px-3 py-1.5 text-sm text-ivory/80 hover:border-brand hover:text-ivory"
+                      className="inline-block rounded-full border border-ivory-line px-3.5 py-1.5 text-sm text-noir hover:border-noir"
                     >
                       {topic.label}
                     </Link>
@@ -267,18 +199,8 @@ export function SiteHeader() {
               </ul>
             </nav>
 
-            {!user && !isRestoring && (
-              <div className="mt-10 grid gap-3 sm:grid-cols-2">
-                <Link href="/signup" className="btn-gold w-full">
-                  Get started
-                </Link>
-                <Link href="/login" className="btn-line-inverse w-full">
-                  Sign in
-                </Link>
-              </div>
-            )}
             {user && (
-              <Link href="/dashboard" className="btn-line-inverse mt-10 w-full">
+              <Link href="/dashboard" className="btn-line mt-8 w-full">
                 My account
               </Link>
             )}

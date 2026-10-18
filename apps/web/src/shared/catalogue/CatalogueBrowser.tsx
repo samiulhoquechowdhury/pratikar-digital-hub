@@ -145,7 +145,7 @@ export function CatalogueBrowser<T>({
       <div className="min-w-0">
         <div
           ref={resultsTop}
-          className="sticky top-20 z-20 -mx-4 scroll-mt-24 border-b border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:-mx-6 sm:px-6 lg:top-20 lg:mx-0 lg:scroll-mt-32 lg:border-b-0 lg:px-0"
+          className="sticky top-[4.5rem] z-20 -mx-4 scroll-mt-24 border-b border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:-mx-6 sm:px-6 lg:top-[4.5rem] lg:mx-0 lg:scroll-mt-32 lg:border-b-0 lg:px-0"
         >
           <div className="flex gap-2">
             <SearchBox

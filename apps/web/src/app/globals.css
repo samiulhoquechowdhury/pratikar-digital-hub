@@ -42,9 +42,8 @@
    */
   h1,
   h2 {
-    @apply font-display font-normal;
+    @apply font-display font-bold;
     letter-spacing: -0.02em;
-    font-variation-settings: "SOFT" 30;
   }
 
   /**
@@ -107,43 +106,49 @@ main:has([data-flush-footer]) + footer [data-footer-cta] {
 }
 
 @layer components {
-  /** One serif word inside a sans headline — "drafted *right*". */
+  /**
+   * The highlighted words of a headline: a gold marker stroke under them,
+   * the way a reader underlines the line that matters.
+   */
   .accent-serif {
-    @apply font-display font-light italic;
-    letter-spacing: -0.015em;
+    @apply bg-no-repeat;
+    background-image: linear-gradient(
+      transparent 62%,
+      rgb(212 175 55 / 0.38) 62%,
+      rgb(212 175 55 / 0.38) 92%,
+      transparent 92%
+    );
   }
 
-  /** Gold-foil text — the one metallic word on a dark band. */
+  /** The same emphasis on a dark banner: the words in gold. */
   .foil-text {
-    @apply bg-gold-foil bg-clip-text text-transparent;
-    background-size: 200% 100%;
+    @apply text-brand;
   }
 
   /** The storefront's eyebrow: a short label above a section title. */
   .eyebrow {
-    @apply inline-flex items-center gap-3 text-[0.6875rem] font-semibold uppercase tracking-[0.28em] text-gold-ink;
+    @apply inline-flex items-center gap-2 text-sm font-semibold text-gold-ink;
   }
 
   /**
-   * The storefront's buttons. Rectangular, small capitals, generous
-   * tracking — the typographic button of a luxury house rather than a
-   * rounded app pill. One primary per view.
+   * The storefront's buttons — Coursera's: medium-rounded, sentence case,
+   * semibold. Navy is the primary action; gold is for the one action a
+   * dark banner leads to. One primary per view.
    */
   .btn {
-    @apply inline-flex items-center justify-center gap-2.5 whitespace-nowrap px-7 py-4 text-[0.75rem] font-semibold uppercase tracking-[0.18em] transition-[background-color,color,border-color,transform] duration-300 motion-reduce:transition-none;
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-3 text-base font-semibold transition-[background-color,color,border-color,box-shadow] duration-200 motion-reduce:transition-none;
   }
   .btn-gold {
-    @apply btn bg-gold-foil text-noir hover:-translate-y-0.5;
-    background-size: 200% 100%;
+    @apply btn bg-brand text-on-brand hover:bg-brand-hover;
   }
   .btn-noir {
-    @apply btn bg-noir text-ivory hover:bg-noir-raised;
+    @apply btn bg-noir text-white hover:bg-noir-raised;
   }
   .btn-line {
-    @apply btn border border-current hover:bg-noir hover:text-ivory;
+    @apply btn border border-noir text-noir hover:bg-noir/5;
   }
   .btn-line-inverse {
-    @apply btn border border-ivory/30 text-ivory hover:border-ivory hover:bg-ivory hover:text-noir;
+    @apply btn border border-white/70 text-white hover:bg-white/10;
   }
 
   /** A text link whose underline draws in from the left on hover. */

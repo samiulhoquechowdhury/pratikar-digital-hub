@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Cinzel, Fraunces, Manrope } from "next/font/google";
+import { Cinzel, Plus_Jakarta_Sans, Source_Sans_3 } from "next/font/google";
 
 import { AssistantLauncher } from "@/features/assistant";
 import { AnnouncementBar } from "@/shared/components/AnnouncementBar";
@@ -14,26 +14,24 @@ import "./globals.css";
 // Google — one less third party, and no layout shift while it loads.
 
 /**
- * Body, labels and controls: a refined grotesk with open counters, quieter
- * than Inter at small sizes and a better partner for a high-contrast serif.
+ * Body, labels and controls: Source Sans 3 — the humanist sans Coursera's
+ * own face descends from. Built for reading on screens, with clear
+ * numerals for prices and counts.
  */
-const sans = Manrope({
+const sans = Source_Sans_3({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
 });
 
 /**
- * The display face: an editorial serif with optical sizing, so it is
- * delicate at 96px and still sturdy at 20px. Contracts, deeds and
- * certificates are set in serif — the headline carries that authority,
- * and its italic is the one flourish a title may wear.
+ * Titles and big numbers: a confident geometric sans that keeps its
+ * shape at banner sizes, where a text face starts to look thin.
  */
-const display = Fraunces({
+const display = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  style: ["normal", "italic"],
-  axes: ["opsz", "SOFT"],
+  weight: ["500", "600", "700", "800"],
   variable: "--font-display",
 });
 

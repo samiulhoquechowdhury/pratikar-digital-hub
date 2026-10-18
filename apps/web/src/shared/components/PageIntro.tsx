@@ -38,12 +38,12 @@ export function PageIntro({
             {eyebrow && (
               <p className="flex items-center gap-4">
                 <span aria-hidden className="h-px w-10 bg-gold-foil" />
-                <span className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-noir/55">
+                <span className="text-sm font-semibold text-noir/55">
                   {eyebrow}
                 </span>
               </p>
             )}
-            <h1 className="mt-6 text-5xl font-light leading-[1.02] text-noir sm:text-6xl lg:text-7xl">
+            <h1 className="mt-4 text-4xl font-bold leading-tight text-noir sm:text-5xl">
               {title}
             </h1>
             {description && (

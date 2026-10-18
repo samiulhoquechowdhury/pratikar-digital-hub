@@ -65,41 +65,39 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
   };
 
   return (
-    <section aria-labelledby={`${baseId}-title`} className="bg-ivory">
-      <div className="mx-auto max-w-shell px-4 py-28 sm:px-6 sm:py-36 lg:px-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-3xl">
-            <p className="flex items-center gap-4">
-              <span className="font-display text-lg italic text-brand">03</span>
-              <span aria-hidden className="h-px w-10 bg-noir/20" />
-              <span className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-noir/55">
-                The catalogue
-              </span>
-            </p>
+    <section aria-labelledby={`${baseId}-title`} className="bg-white">
+      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
             <h2
               id={`${baseId}-title`}
-              className="mt-6 text-4xl font-light leading-[1.04] text-noir sm:text-6xl"
+              className="text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
             >
-              Most sought <span className="accent-serif">this season.</span>
+              New and popular
             </h2>
+            <p className="mt-2 text-lg text-noir/70">
+              Ready-made documents, forms and guides — written by advocates.
+            </p>
           </div>
           <Link
             href={active.href}
-            className="group inline-flex shrink-0 items-center gap-3 text-[0.7rem] font-semibold uppercase tracking-[0.22em] text-noir"
+            className="group inline-flex shrink-0 items-center gap-1.5 font-semibold text-noir-raised"
           >
             <span className="link-draw">
               View all {active.label.toLowerCase()}
             </span>
-            <span className="grid h-10 w-10 place-items-center rounded-full border border-noir/20 transition-colors group-hover:border-noir group-hover:bg-noir group-hover:text-ivory">
-              <Icon icon={ArrowRight} size="xs" />
-            </span>
+            <Icon
+              icon={ArrowRight}
+              size="xs"
+              className="transition-transform group-hover:translate-x-0.5"
+            />
           </Link>
         </div>
 
         <div
           role="tablist"
           aria-label="Kinds of product"
-          className="relative mt-14 flex gap-8 overflow-x-auto border-b border-noir/15"
+          className="relative mt-6 flex gap-2 overflow-x-auto pb-1"
         >
           {live.map((shelf, index) => {
             const selected = shelf.id === active.id;
@@ -117,20 +115,18 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
                 tabIndex={selected ? 0 : -1}
                 onClick={() => setActiveId(shelf.id)}
                 onKeyDown={(event) => onTabKey(event, index)}
-                className={`relative shrink-0 pb-4 text-[0.7rem] font-semibold uppercase tracking-[0.22em] transition-colors ${
-                  selected ? "text-noir" : "text-noir/45 hover:text-noir/80"
+                className={`relative shrink-0 rounded-full px-4 py-2 text-[0.9375rem] font-semibold transition-colors ${
+                  selected
+                    ? "bg-noir text-white"
+                    : "border border-noir/20 text-noir hover:border-noir hover:bg-ivory"
                 }`}
               >
                 {shelf.label}
-                <sup className="ml-1.5 font-display text-xs normal-case italic tracking-normal text-gold-ink">
-                  {shelf.total}
-                </sup>
                 <span
-                  aria-hidden
-                  className={`absolute inset-x-0 -bottom-px h-0.5 origin-left bg-noir transition-transform duration-500 ${
-                    selected ? "scale-x-100" : "scale-x-0"
-                  }`}
-                />
+                  className={`ml-1.5 tabular-nums ${selected ? "text-brand" : "text-noir/50"}`}
+                >
+                  {shelf.total}
+                </span>
               </button>
             );
           })}
@@ -140,7 +136,7 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
           role="tabpanel"
           id={`${baseId}-panel`}
           aria-labelledby={`${baseId}-tab-${active.id}`}
-          className="mt-10"
+          className="mt-6"
         >
           <Carousel key={active.id} label={active.label} items={active.items} />
           <p className="sr-only" aria-live="polite">
@@ -215,7 +211,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
           type="button"
           onClick={() => page(arrow.direction)}
           disabled={arrow.hidden}
-          className={`absolute top-[30%] hidden h-14 w-14 place-items-center rounded-full border border-noir/15 bg-ivory text-noir shadow-float transition-[opacity,background-color,color] hover:bg-noir hover:text-ivory disabled:pointer-events-none disabled:opacity-0 lg:grid ${
+          className={`absolute top-[30%] hidden h-12 w-12 place-items-center rounded-full border border-ivory-line bg-white text-noir shadow-float transition-[opacity,background-color,color] hover:bg-ivory disabled:pointer-events-none disabled:opacity-0 lg:grid ${
             arrow.direction === -1 ? "-left-6" : "-right-6"
           }`}
         >

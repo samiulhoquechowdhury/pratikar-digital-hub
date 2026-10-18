@@ -37,7 +37,7 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
         <section key={group.category} aria-labelledby={`faq-${group.category}`}>
           <h2
             id={`faq-${group.category}`}
-            className="text-3xl font-light text-noir"
+            className="text-3xl font-bold text-noir"
           >
             {group.category}
           </h2>
@@ -56,7 +56,7 @@ export function FaqList({ groups }: { groups: FaqGroup[] }) {
                       aria-expanded={isOpen}
                       aria-controls={`${item.id}-answer`}
                       onClick={() => setOpen(isOpen ? null : item.id)}
-                      className="flex w-full items-center justify-between gap-6 py-6 text-left font-display text-xl font-light text-noir"
+                      className="flex w-full items-center justify-between gap-6 py-6 text-left font-display text-xl font-bold text-noir"
                     >
                       {item.question}
                       <Icon

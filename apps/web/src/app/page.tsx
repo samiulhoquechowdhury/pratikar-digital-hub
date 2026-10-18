@@ -8,24 +8,24 @@ import { grossPaise } from "@pratikar/utils";
 import type { Metadata } from "next";
 
 import {
-  AreasOfLaw,
-  AssistantFeature,
+  AreaStrip,
   Audiences,
   CatalogueTabs,
-  ClosingCall,
-  CoursesFeature,
+  ClosingBanner,
+  DraftingPromo,
+  ExploreChips,
   FaqTeaser,
   LandingHero,
-  PracticeIndex,
   PriceGuide,
   Process,
-  SignatureDrafting,
+  QuickStart,
   summariseCatalogue,
-  TheStandard,
-  TitleMarquee,
+  TrendingNow,
+  WhyPratikar,
   type FaqPreviewItem,
   type PriceFloor,
   type Shelf,
+  type TrendingColumn,
 } from "@/features/home";
 import { COURSES_LIVE } from "@/shared/lib/features";
 import { formatPrice } from "@/shared/lib/format";
@@ -179,14 +179,60 @@ function buildPrices({
   return rows.filter((row): row is PriceFloor => row !== null);
 }
 
+/** How many items each "Trending now" column lists. */
+const TRENDING_SIZE = 4;
+
+/**
+ * Coursera's "Trending now" columns, from the real catalogue: a few of each
+ * kind. There's no view count to rank by yet, so these are the first of
+ * each shelf rather than a claim about popularity.
+ */
+function buildTrending({
+  templates,
+  library,
+}: {
+  templates: Template[];
+  library: ContentLibraryItem[];
+}): TrendingColumn[] {
+  const shelf = (type: ContentType, title: string): TrendingColumn => ({
+    title,
+    href: shelfHref(type),
+    items: library
+      .filter((item) => item.type === type)
+      .slice(0, TRENDING_SIZE)
+      .map((item) => ({
+        id: item.id,
+        href: `/content-library/${item.id}`,
+        kind: CONTENT_KIND[item.type],
+        title: item.title,
+        meta: CONTENT_CATEGORY_LABELS[item.category],
+      })),
+  });
+  return [
+    {
+      title: "Ready templates",
+      href: "/documents",
+      items: templates.slice(0, TRENDING_SIZE).map((template) => ({
+        id: template.id,
+        href: `/documents/${template.id}`,
+        kind: "document" as const,
+        title: template.title,
+        meta: `${template.fieldSchema.length} questions`,
+      })),
+    },
+    shelf("FORM", "Legal forms"),
+    shelf("CHECKLIST", "Checklists"),
+    shelf("EBOOK", "E-books"),
+  ];
+}
+
 /**
  * The landing page, in the order a first-time visitor's questions come:
- * what is this (hero, and the advocate-written library it stands on),
- * everything it does (the practice), the one thing nobody else does (AI
- * drafting with an advocate), show me (the catalogue), by area of law,
- * what if I don't know what I need (the assistant), is it for me, courses,
- * what it costs, why trust it, how it works, quick answers — and a last
- * invitation. Sections are numbered so the long page reads as one document.
+ * the banners (what's new and what's here), three ways to begin, new and
+ * popular, the flagship promoted, the library by area of law, trending now,
+ * popular searches, why trust it, who it's for, prices, how it works,
+ * quick answers — and a last nudge. Coursera's home page, section for
+ * section, filled with this catalogue.
  *
  * The catalogue is read on the server so counts and titles are in the HTML
  * — for search engines, and so the page never opens on placeholders. If
@@ -213,19 +259,18 @@ export default async function HomePage() {
   return (
     <>
       <LandingHero summary={summary} />
-      <TitleMarquee summary={summary} />
-      <PracticeIndex summary={summary} />
-      <SignatureDrafting />
+      <QuickStart />
       <CatalogueTabs shelves={buildShelves(catalogue)} />
-      <AreasOfLaw summary={summary} />
-      <AssistantFeature />
+      <DraftingPromo />
+      <AreaStrip summary={summary} />
+      <TrendingNow columns={buildTrending(catalogue)} />
+      <ExploreChips />
+      <WhyPratikar />
       <Audiences />
-      <CoursesFeature />
       <PriceGuide prices={buildPrices(catalogue)} />
-      <TheStandard />
       <Process />
       <FaqTeaser items={faqItems} />
-      <ClosingCall />
+      <ClosingBanner />
     </>
   );
 }

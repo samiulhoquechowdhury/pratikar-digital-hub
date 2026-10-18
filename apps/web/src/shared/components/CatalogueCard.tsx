@@ -1,7 +1,6 @@
 import { BrandMark } from "@pratikar/ui";
 import { grossPaise } from "@pratikar/utils";
 import {
-  ArrowUpRight,
   BookOpen,
   FileSignature,
   FileText,
@@ -118,7 +117,7 @@ export function CatalogueCover({
       className={`relative aspect-[16/9] select-none overflow-hidden ${ground} ${className}`}
     >
       <span
-        className={`absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 text-[0.575rem] font-semibold uppercase tracking-[0.24em] ${
+        className={`absolute left-4 top-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold ${
           dark ? "text-brand" : "text-noir/70"
         }`}
       >
@@ -135,7 +134,7 @@ export function CatalogueCover({
             <span className="mt-2 line-clamp-4 font-display text-[0.75rem] leading-tight text-ivory">
               {title}
             </span>
-            <span className="mt-auto text-[0.5rem] font-bold uppercase tracking-[0.18em] text-brand">
+            <span className="mt-auto text-[0.5rem] font-bold text-brand">
               Pratikar
             </span>
           </span>
@@ -231,45 +230,40 @@ export function CatalogueCard({
   priceInPaise: number;
 }) {
   return (
-    <article className="group relative flex h-full flex-col border border-ivory-line bg-surface transition-[border-color,box-shadow,transform] duration-500 hover:-translate-y-1 hover:border-noir/40 hover:shadow-[0_30px_60px_-30px_rgb(6_12_23/0.35)] motion-reduce:transform-none">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-ivory-line bg-white transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-float motion-reduce:transform-none">
       <CatalogueCover kind={kind} title={title} />
 
-      <div className="flex flex-1 flex-col p-6">
-        <p className="flex items-center gap-2 text-[0.6rem] font-semibold uppercase tracking-[0.24em] text-noir/50">
-          <BrandMark className="h-3 w-auto text-gold-ink" />
-          Pratikar · Advocate-written
+      <div className="flex flex-1 flex-col p-4">
+        <p className="flex items-center gap-2 text-sm text-noir/70">
+          <span className="grid h-6 w-6 shrink-0 place-items-center rounded border border-ivory-line bg-white text-noir">
+            <BrandMark className="h-3.5 w-auto" />
+          </span>
+          Pratikar Digital Hub
         </p>
-        <h3 className="mt-4 font-display text-xl font-normal leading-snug tracking-normal">
+        <h3 className="mt-2.5 font-display text-base font-bold leading-snug tracking-normal">
           <Link
             href={href}
-            className="line-clamp-2 text-noir after:absolute after:inset-0 after:content-['']"
+            className="line-clamp-2 text-noir after:absolute after:inset-0 after:content-[''] group-hover:underline"
           >
             {title}
           </Link>
         </h3>
         {description && (
-          <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-noir/60">
+          <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-noir/65">
             {description}
           </p>
         )}
 
-        <div className="mt-auto pt-5">
-          {meta.length > 0 && (
-            <p className="text-xs text-noir/50">{meta.join(" · ")}</p>
-          )}
+        <div className="mt-auto pt-3">
+          <p className="text-sm text-noir/60">
+            {[CATALOGUE_KINDS[kind].label, ...meta].join(" · ")}
+          </p>
           {/* GST-inclusive on every card, matching what checkout charges. */}
-          <p className="mt-4 flex items-end justify-between gap-2 border-t border-ivory-line pt-4">
-            <span className="flex items-baseline gap-2">
-              <span className="font-display text-2xl font-light tabular-nums text-noir">
-                {formatPrice(grossPaise(priceInPaise))}
-              </span>
-              <span className="text-[0.6rem] uppercase tracking-[0.2em] text-noir/45">
-                incl. GST
-              </span>
+          <p className="mt-2 flex items-baseline gap-1.5">
+            <span className="text-lg font-bold tabular-nums text-noir">
+              {formatPrice(grossPaise(priceInPaise))}
             </span>
-            <span className="grid h-9 w-9 place-items-center rounded-full border border-noir/15 text-noir transition-[transform,background-color,color,border-color] duration-500 group-hover:rotate-45 group-hover:border-noir group-hover:bg-noir group-hover:text-ivory motion-reduce:transform-none">
-              <Icon icon={ArrowUpRight} size="xs" />
-            </span>
+            <span className="text-xs text-noir/55">incl. GST</span>
           </p>
         </div>
       </div>

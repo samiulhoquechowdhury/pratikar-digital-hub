@@ -56,7 +56,7 @@ export default async function AssistantPage({
           <ul className="grid gap-8 sm:grid-cols-3">
             {LIMITS.map((item) => (
               <li key={item.title}>
-                <h2 className="text-2xl font-light text-noir">{item.title}</h2>
+                <h2 className="text-2xl font-bold text-noir">{item.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {item.body}
                 </p>
