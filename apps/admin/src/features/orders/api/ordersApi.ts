@@ -12,6 +12,9 @@ export interface AdminOrder {
   itemType: OrderItemType;
   amount: number; // paise, excluding GST
   gstAmount: number; // paise
+  /** Taken off before GST; 0 without a coupon. */
+  discountAmount: number;
+  coupon: { code: string } | null;
   status: OrderStatus;
   razorpayOrderId: string | null;
   razorpayPaymentId: string | null;

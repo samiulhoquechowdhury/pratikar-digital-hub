@@ -23,6 +23,7 @@ import {
 import { Roles } from "../../common/decorators/roles.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 import { RolesGuard } from "../../common/guards/roles.guard";
+import { CouponQuoteDto } from "../coupons/dto/coupon.dto";
 
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { CreditNoteService } from "./invoice/credit-note.service";
@@ -43,6 +44,18 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   create(@Body() dto: CreateOrderDto, @CurrentUser() user: RequestUser) {
     return this.paymentsService.createOrder(user.id, dto);
+  }
+
+  /**
+   * "Does this code work, and what would I pay?" — asked by checkout before
+   * the customer commits. Throttled so codes can't be guessed by brute force.
+   */
+  @Post("quote")
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  quote(@Body() dto: CouponQuoteDto, @CurrentUser() user: RequestUser) {
+    return this.paymentsService.quote(user.id, dto);
   }
 
   // No JwtAuthGuard — this is called by Razorpay, not the logged-in user.

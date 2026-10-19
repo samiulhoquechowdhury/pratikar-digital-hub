@@ -17,7 +17,13 @@ describe("admin sections", () => {
   });
 
   it("gives Admins everything", () => {
-    expect(hrefs(Role.ADMIN)).toHaveLength(10);
+    expect(hrefs(Role.ADMIN)).toHaveLength(11);
+  });
+
+  it("keeps coupons — money terms — to Admins", () => {
+    expect(hrefs(Role.ADMIN)).toContain("/coupons");
+    expect(mayOpen(Role.SUPPORT, "/coupons")).toBe(false);
+    expect(mayOpen(Role.CONTENT_MANAGER, "/coupons")).toBe(false);
   });
 
   it("gates nested pages by their section", () => {

@@ -4,6 +4,7 @@ import type { OrderItemType } from "@pratikar/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { paymentsApi } from "../api/paymentsApi";
+import { couponMessage, couponProblemIn } from "../lib/couponMessages";
 import { openCheckout } from "../lib/razorpayCheckout";
 
 /**
@@ -105,12 +106,21 @@ export function useCheckout(onPaid?: () => void) {
   );
 
   const buy = useCallback(
-    async (itemType: OrderItemType, itemId: string, description: string) => {
+    async (
+      itemType: OrderItemType,
+      itemId: string,
+      description: string,
+      couponCode?: string,
+    ) => {
       setError(null);
       setStatus("creating");
 
       try {
-        const order = await paymentsApi.createOrder(itemType, itemId);
+        const order = await paymentsApi.createOrder(
+          itemType,
+          itemId,
+          couponCode,
+        );
         setStatus("open");
 
         await openCheckout({
@@ -124,11 +134,15 @@ export function useCheckout(onPaid?: () => void) {
       } catch (cause) {
         const message = (cause as Error).message;
         setError(
-          message.includes("RAZORPAY_KEY_ID_NOT_CONFIGURED")
-            ? "Payments aren't configured on this environment yet."
-            : message.includes("RAZORPAY_SCRIPT_FAILED")
-              ? "Couldn't reach the payment provider. Check your connection and try again."
-              : "Couldn't start the payment. Please try again.",
+          couponProblemIn(cause)
+            ? // The code was fine when quoted but not by the time the order
+              // was made — expired, or its last use taken meanwhile.
+              `${couponMessage(cause)} Remove it to buy at the full price.`
+            : message.includes("RAZORPAY_KEY_ID_NOT_CONFIGURED")
+              ? "Payments aren't configured on this environment yet."
+              : message.includes("RAZORPAY_SCRIPT_FAILED")
+                ? "Couldn't reach the payment provider. Check your connection and try again."
+                : "Couldn't start the payment. Please try again.",
         );
         setStatus("failed");
       }
