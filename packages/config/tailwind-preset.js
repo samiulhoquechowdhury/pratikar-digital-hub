@@ -198,6 +198,17 @@ module.exports = {
         },
         "on-brand": PALETTE.navy[900],
 
+        /**
+         * The primary button's colour. Gold by default (the admin panel); an
+         * app can repoint it — the storefront makes it navy, Coursera-style,
+         * keeping gold for accents. `on-action` is the text on it.
+         */
+        action: {
+          DEFAULT: PALETTE.gold[500],
+          hover: PALETTE.gold[400],
+        },
+        "on-action": PALETTE.navy[900],
+
         /** Gold as a *text* colour on light surfaces. 6.95:1 — see header note. */
         "gold-ink": PALETTE.gold[800],
 

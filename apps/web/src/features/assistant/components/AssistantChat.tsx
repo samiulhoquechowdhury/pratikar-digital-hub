@@ -99,7 +99,7 @@ export function AssistantChat({
    * the floating panel fills its parent instead, so the frame comes from
    * whichever container is using it rather than being baked in here.
    */
-  className = "h-[min(72vh,46rem)] rounded-panel border border-line shadow-float",
+  className = "h-[min(72vh,46rem)] rounded-xl border border-line shadow-float",
   autoFocus = false,
   initialQuestion,
 }: {
@@ -307,7 +307,7 @@ export function AssistantChat({
           e.preventDefault();
           send(draft);
         }}
-        className="border-t border-line bg-paper p-3 sm:p-4"
+        className="border-t border-line bg-ivory p-3 sm:p-4"
       >
         <div className="flex items-end gap-2 rounded-2xl border border-line-strong bg-surface p-2 shadow-card focus-within:border-primary">
           <label htmlFor="assistant-input" className="sr-only">

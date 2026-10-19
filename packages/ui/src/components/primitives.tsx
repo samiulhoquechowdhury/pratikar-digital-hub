@@ -23,9 +23,9 @@ const BUTTON_BASE =
   "inline-flex items-center justify-center gap-2 rounded-control font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
-  // Gold with near-black text (8.44:1). White on gold would fail, so the
-  // foreground here is `on-brand`, never `ink-inverse`.
-  primary: "bg-brand text-on-brand hover:bg-brand-hover",
+  // The app's action colour (preset: gold with near-black text, 8.44:1; the
+  // storefront repoints it to navy with white). Text is always `on-action`.
+  primary: "bg-action text-on-action hover:bg-action-hover",
   secondary:
     "border border-line-strong bg-surface text-ink hover:bg-surface-sunken",
   // Gold is unreadable as text on light surfaces, so the quiet variant leans

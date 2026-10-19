@@ -39,7 +39,7 @@ export default async function DocumentsPage() {
         <Link
           href="/documents/custom"
           data-surface="inverse"
-          className="group relative flex flex-col gap-5 overflow-hidden bg-noir-glow px-6 py-7 text-ivory transition-transform hover:-translate-y-0.5 motion-reduce:transform-none sm:flex-row sm:items-center sm:px-10"
+          className="group relative flex flex-col gap-5 overflow-hidden rounded-xl bg-noir-glow px-6 py-7 text-white transition-transform hover:-translate-y-0.5 motion-reduce:transform-none sm:flex-row sm:items-center sm:px-10"
         >
           <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-brand/60 text-brand">
             <Icon icon={FilePenLine} size="md" />

@@ -18,6 +18,12 @@ module.exports = {
         card: "0.75rem",
         control: "0.375rem",
       },
+      // Primary buttons are navy on the storefront (white text, 16.5:1);
+      // gold stays the accent.
+      colors: {
+        action: { DEFAULT: "#0b1f3a", hover: "#1a3d6b" },
+        "on-action": "#ffffff",
+      },
     },
   },
 };

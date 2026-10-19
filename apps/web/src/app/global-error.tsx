@@ -38,7 +38,7 @@ export default function GlobalError({
             <button
               type="button"
               onClick={reset}
-              className="rounded-control bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand hover:bg-brand-hover"
+              className="rounded-control bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover"
             >
               Try again
             </button>

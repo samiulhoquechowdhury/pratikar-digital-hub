@@ -124,11 +124,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
       </section>
 
       <section className="flex items-center justify-center bg-paper px-4 py-12 sm:px-6">
-        <div className="w-full max-w-md border border-ivory-line bg-surface p-7 shadow-[0_40px_80px_-40px_rgb(6_12_23/0.35)] sm:p-11">
-          <div
-            aria-hidden
-            className="-mx-7 -mt-7 mb-8 h-0.5 bg-gold-foil sm:-mx-11 sm:-mt-11"
-          />
+        <div className="w-full max-w-md rounded-2xl border border-ivory-line bg-white p-7 shadow-float sm:p-10">
           <h1 className="text-3xl font-bold text-noir">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             {copy.sub}

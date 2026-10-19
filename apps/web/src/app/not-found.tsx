@@ -33,14 +33,18 @@ const WAYS_ON: { href: string; label: string; icon: LucideIcon }[] = [
  */
 export default function NotFound() {
   return (
-    <section className="relative isolate overflow-hidden bg-ivory">
-      <div
+    <section className="relative isolate overflow-hidden bg-banner-sky">
+      <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/55%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/55%)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_60%_70%_at_20%_0%,black,transparent_80%)]"
+        className="pointer-events-none absolute -right-24 -top-24 -z-10 h-96 w-96 rounded-full bg-white/70"
+      />
+      <span
+        aria-hidden
+        className="pointer-events-none absolute -bottom-16 right-48 -z-10 hidden h-48 w-48 rounded-full bg-brand/20 sm:block"
       />
       <div className="mx-auto max-w-shell px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
         <div className="max-w-2xl">
-          <p className="font-display text-8xl font-bold text-gold-ink sm:text-9xl">
+          <p className="font-display text-7xl font-extrabold text-noir sm:text-8xl">
             404
           </p>
           <h1 className="mt-4 text-4xl sm:text-5xl">

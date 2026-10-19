@@ -66,15 +66,19 @@ export function AccountShell({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <section className="relative isolate overflow-hidden border-b border-ivory-line bg-ivory">
-        <div
+      <section className="relative isolate overflow-hidden bg-banner-sky">
+        <span
           aria-hidden
-          className="pointer-events-none absolute -right-24 -top-32 -z-10 h-80 w-80 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.18),transparent)]"
+          className="pointer-events-none absolute -right-24 -top-24 -z-10 h-72 w-72 rounded-full bg-white/70"
+        />
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -bottom-20 right-40 -z-10 hidden h-36 w-36 rounded-full bg-brand/20 sm:block"
         />
         <div className="mx-auto flex max-w-shell items-center gap-4 px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
           <span
             aria-hidden
-            className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-noir font-display text-xl text-brand"
+            className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-noir font-display text-xl font-bold text-white"
           >
             {user ? initialsOf(user.name) : <Icon icon={UserRound} size="lg" />}
           </span>

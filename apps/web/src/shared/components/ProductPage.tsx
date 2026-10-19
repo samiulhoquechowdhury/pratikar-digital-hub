@@ -69,7 +69,7 @@ export function ProductLayout({
     <div className="overflow-x-clip">
       <div className="mx-auto max-w-shell px-4 pb-8 sm:px-6 lg:px-8">
         <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_22rem] lg:gap-x-16 lg:gap-y-0">
-          <div className="relative min-w-0 py-10 before:absolute before:inset-y-0 before:-left-[100vw] before:-right-[100vw] before:-z-10 before:border-b before:border-ivory-line before:bg-ivory lg:col-start-1 lg:row-start-1 lg:py-16">
+          <div className="relative min-w-0 py-10 before:absolute before:inset-y-0 before:-left-[100vw] before:-right-[100vw] before:-z-10 before:bg-banner-sky lg:col-start-1 lg:row-start-1 lg:py-16">
             {header}
           </div>
           {/* Sticky below the header, so the price and the button stay in
@@ -127,7 +127,7 @@ export function ProductHeading({
       {meta.length > 0 && (
         // Coursera's fact strip: the numbers someone weighs before buying,
         // in one white card rather than scattered through the text.
-        <ul className="mt-8 flex flex-wrap divide-x divide-ivory-line border border-ivory-line bg-surface">
+        <ul className="mt-8 flex flex-wrap divide-x divide-ivory-line overflow-hidden rounded-xl border border-ivory-line bg-white shadow-card">
           {meta.map((fact) => (
             <li
               key={fact}
@@ -180,8 +180,7 @@ export function FeatureList({ items }: { items: string[] }) {
  */
 export function PurchaseCard({ children }: { children: ReactNode }) {
   return (
-    <div className="border border-ivory-line bg-surface p-7 shadow-[0_40px_80px_-40px_rgb(6_12_23/0.35)]">
-      <div aria-hidden className="-mx-7 -mt-7 mb-6 h-0.5 bg-gold-foil" />
+    <div className="rounded-xl border border-ivory-line bg-white p-6 shadow-float">
       {children}
       <ul className="mt-6 space-y-2 border-t border-ivory-line pt-5 text-sm text-noir/60">
         <li className="flex items-center gap-2">
