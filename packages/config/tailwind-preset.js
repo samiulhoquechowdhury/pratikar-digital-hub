@@ -129,8 +129,40 @@ module.exports = {
          * page reads as stationery rather than a grey dashboard. Ink on it
          * keeps the same contrast as on white (17.3:1).
          */
-        paper: "#fbf8f1",
-        "paper-deep": "#f4eee0",
+        paper: "#f5f7fa",
+        "paper-deep": "#eaeef4",
+
+        /**
+         * The storefront's working pair. `noir` is the brand navy family —
+         * the colour of primary buttons, dark banners and the header's text —
+         * and `ivory` is the cool light grey that separates sections on an
+         * otherwise white page. (The names outlived an earlier design; the
+         * roles are what matter.) White on noir: 16.5:1. Noir on ivory: 15.6:1.
+         */
+        noir: {
+          DEFAULT: PALETTE.navy[800],
+          soft: PALETTE.navy[700],
+          raised: PALETTE.navy[600],
+          line: "rgb(255 255 255 / 0.14)",
+        },
+        ivory: {
+          DEFAULT: "#f5f7fa",
+          deep: "#eaeef4",
+          line: "#e1e6ee",
+          muted: "#94a3b8",
+        },
+
+        /**
+         * Banner grounds — the soft tints Coursera sets its hero slides on.
+         * Text on all of them is noir (≥ 13:1).
+         */
+        banner: {
+          sky: "#e8f1fb",
+          sand: "#fbf3dc",
+          mint: "#e6f4ee",
+          blush: "#fbeaea",
+          lilac: "#eeeaf9",
+        },
         surface: "#ffffff",
         "surface-sunken": PALETTE.gray[100],
 
@@ -165,6 +197,17 @@ module.exports = {
           border: PALETTE.gold[200],
         },
         "on-brand": PALETTE.navy[900],
+
+        /**
+         * The primary button's colour. Gold by default (the admin panel); an
+         * app can repoint it — the storefront makes it navy, Coursera-style,
+         * keeping gold for accents. `on-action` is the text on it.
+         */
+        action: {
+          DEFAULT: PALETTE.gold[500],
+          hover: PALETTE.gold[400],
+        },
+        "on-action": PALETTE.navy[900],
 
         /** Gold as a *text* colour on light surfaces. 6.95:1 — see header note. */
         "gold-ink": PALETTE.gold[800],
@@ -278,6 +321,8 @@ module.exports = {
         // Marketing display sizes — the home hero and section titles only.
         "6xl": ["3.75rem", { lineHeight: "1.04" }],
         "7xl": ["4.5rem", { lineHeight: "1.02" }],
+        "8xl": ["6rem", { lineHeight: "0.98" }],
+        "9xl": ["7.5rem", { lineHeight: "0.95" }],
       },
 
       borderRadius: {
@@ -302,6 +347,12 @@ module.exports = {
 
       // The brand sheet's hero treatment: deep navy with a subtle warm lift.
       backgroundImage: {
+        // Gold foil — a metallic sweep for rules, seals and the one primary
+        // button. Decoration only: text on it is noir (8.1:1 at the lightest).
+        "gold-foil":
+          "linear-gradient(115deg, #f4e4a8 0%, #d4af37 32%, #a9852b 58%, #e8cd78 82%, #c9a23a 100%)",
+        "noir-glow":
+          "radial-gradient(ellipse 70% 60% at 85% 10%, rgb(58 107 168 / 0.55), transparent 60%), radial-gradient(ellipse 50% 50% at 0% 100%, rgb(212 175 55 / 0.14), transparent 70%), linear-gradient(135deg, #0b1f3a 0%, #122e52 100%)",
         // Catalogue covers, one ground per kind — see CatalogueCover.
         "cover-course": `linear-gradient(135deg, ${PALETTE.navy[950]}, ${PALETTE.navy[600]})`,
         "cover-ebook": `linear-gradient(135deg, ${PALETTE.gold[100]}, ${PALETTE.gold[300]})`,
@@ -328,6 +379,16 @@ module.exports = {
           from: { transform: "translateX(0)" },
           to: { transform: "translateX(-50%)" },
         },
+        // A carousel dot filling while its banner is shown.
+        progress: {
+          from: { width: "0%" },
+          to: { width: "100%" },
+        },
+        // The foil's light, travelling across it.
+        sheen: {
+          "0%": { backgroundPosition: "0% 50%" },
+          "100%": { backgroundPosition: "200% 50%" },
+        },
       },
       animation: {
         float: "float 6s ease-in-out infinite",
@@ -335,6 +396,8 @@ module.exports = {
         "float-delayed": "float 7s ease-in-out infinite 2.5s",
         "fade-up": "fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both",
         marquee: "marquee 50s linear infinite",
+        "marquee-slow": "marquee 90s linear infinite",
+        sheen: "sheen 6s linear infinite",
       },
 
       // Reading measure. Legal copy past ~75 characters per line is genuinely

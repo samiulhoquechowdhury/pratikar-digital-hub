@@ -175,15 +175,6 @@ const AUDIENCES: Audience[] = [
   },
 ];
 
-const TAG_STYLE: Record<Tag, string> = {
-  Template: "bg-primary-subtle text-primary",
-  "AI draft": "bg-brand-subtle text-gold-ink",
-  Form: "bg-surface-sunken text-ink",
-  Checklist: "bg-success-subtle text-success-text",
-  "E-book": "bg-paper-deep text-ink",
-  Course: "bg-primary text-ink-inverse",
-};
-
 /**
  * Jasper's "by role" section: pick who you are, see what people like you
  * come here for. Tabs follow the ARIA pattern — arrow keys move between
@@ -207,117 +198,105 @@ export function Audiences() {
   };
 
   return (
-    <section
-      aria-labelledby={`${baseId}-title`}
-      className="mx-auto max-w-shell px-4 py-24 sm:px-6 lg:px-8"
-    >
-      <div className="mx-auto max-w-3xl text-center">
-        <p className="eyebrow">
-          <span aria-hidden className="h-px w-6 bg-current" />
-          Who it&apos;s for
-        </p>
-        <h2
-          id={`${baseId}-title`}
-          className="mt-4 text-3xl font-extrabold leading-[1.1] text-ink sm:text-5xl sm:leading-[1.06]"
-        >
-          Made for the people{" "}
-          <span className="accent-serif text-gold-ink">
-            behind the paperwork
-          </span>
-        </h2>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label="Who you are"
-        className="relative mx-auto mt-10 flex w-fit max-w-full gap-1 overflow-x-auto rounded-full border border-line bg-paper p-1"
-      >
-        {AUDIENCES.map((audience, index) => {
-          const selected = audience.id === active.id;
-          return (
-            <button
-              key={audience.id}
-              ref={(node) => {
-                tabRefs.current[index] = node;
-              }}
-              type="button"
-              role="tab"
-              id={`${baseId}-tab-${audience.id}`}
-              aria-selected={selected}
-              aria-controls={`${baseId}-panel`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setActiveId(audience.id)}
-              onKeyDown={(event) => onTabKey(event, index)}
-              className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition-colors ${
-                selected
-                  ? "bg-primary text-ink-inverse shadow-raised"
-                  : "text-ink-muted hover:text-ink"
-              }`}
-            >
-              <Icon
-                icon={audience.icon}
-                size="xs"
-                className={selected ? "text-brand" : ""}
-              />
-              {audience.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div
-        role="tabpanel"
-        id={`${baseId}-panel`}
-        aria-labelledby={`${baseId}-tab-${active.id}`}
-        className="mt-12 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[1fr_2fr]"
-      >
-        <div
-          data-surface="inverse"
-          className="relative flex flex-col overflow-hidden rounded-panel bg-hero-navy p-8 sm:p-10"
-        >
-          <div
-            aria-hidden
-            className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.2),transparent)]"
-          />
-          <span className="relative grid h-14 w-14 place-items-center rounded-2xl bg-brand text-on-brand">
-            <Icon icon={active.icon} size="lg" />
-          </span>
-          <h3 className="relative mt-8 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink-inverse">
-            {active.headline}
-          </h3>
-          <p className="relative mt-3 text-base leading-relaxed text-ink-inverse-muted">
-            {active.body}
+    <section aria-labelledby={`${baseId}-title`} className="bg-white">
+      <div className="mx-auto max-w-shell px-4 py-16 sm:px-6 lg:px-8">
+        <div className="max-w-3xl">
+          <h2
+            id={`${baseId}-title`}
+            className="text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
+          >
+            Find the right documents for you
+          </h2>
+          <p className="mt-3 text-lg text-noir/70">
+            Pick who you are — see what people like you come here for.
           </p>
         </div>
 
-        <ul className="grid gap-5 sm:grid-cols-2">
-          {active.cases.map((useCase) => (
-            <li key={useCase.title}>
-              <Link
-                href={useCase.href}
-                className="group flex h-full flex-col rounded-panel border border-line bg-surface p-6 transition-[transform,box-shadow,border-color] hover:-translate-y-1 hover:border-line-strong hover:shadow-float motion-reduce:transform-none"
+        <div
+          role="tablist"
+          aria-label="Who you are"
+          className="relative mt-6 flex max-w-full gap-2 overflow-x-auto pb-1"
+        >
+          {AUDIENCES.map((audience, index) => {
+            const selected = audience.id === active.id;
+            return (
+              <button
+                key={audience.id}
+                ref={(node) => {
+                  tabRefs.current[index] = node;
+                }}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${audience.id}`}
+                aria-selected={selected}
+                aria-controls={`${baseId}-panel`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveId(audience.id)}
+                onKeyDown={(event) => onTabKey(event, index)}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2 text-[0.9375rem] font-semibold transition-colors ${
+                  selected
+                    ? "bg-noir text-white"
+                    : "border border-noir/20 text-noir hover:border-noir hover:bg-ivory"
+                }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ${TAG_STYLE[useCase.tag]}`}
-                  >
-                    {useCase.tag}
-                  </span>
-                  <Icon
-                    icon={ArrowUpRight}
-                    className="text-ink-subtle transition-[color,transform] group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary motion-reduce:transform-none"
-                  />
-                </div>
-                <h4 className="mt-5 font-display text-lg font-bold tracking-tight text-ink">
-                  {useCase.title}
-                </h4>
-                <p className="mt-1 text-sm leading-relaxed text-ink-muted">
-                  {useCase.body}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+                {audience.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          role="tabpanel"
+          id={`${baseId}-panel`}
+          aria-labelledby={`${baseId}-tab-${active.id}`}
+          className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-4 lg:grid-cols-[1fr_2fr]"
+        >
+          <div
+            data-surface="inverse"
+            className="relative flex flex-col overflow-hidden rounded-2xl bg-noir-glow p-8 text-white sm:p-10"
+          >
+            <div
+              aria-hidden
+              className="pointer-events-none absolute -bottom-24 -right-24 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.2),transparent)]"
+            />
+            <span className="relative grid h-12 w-12 place-items-center rounded-lg bg-brand text-on-brand">
+              <Icon icon={active.icon} size="lg" />
+            </span>
+            <h3 className="relative mt-auto pt-12 font-display text-3xl font-bold leading-tight text-white">
+              {active.headline}
+            </h3>
+            <p className="relative mt-3 text-base leading-relaxed text-white/75">
+              {active.body}
+            </p>
+          </div>
+
+          <ul className="grid gap-4 sm:grid-cols-2">
+            {active.cases.map((useCase) => (
+              <li key={useCase.title}>
+                <Link
+                  href={useCase.href}
+                  className="group flex h-full flex-col rounded-xl border border-ivory-line bg-white p-6 transition-[border-color,box-shadow] hover:border-noir/30 hover:shadow-float"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="w-fit rounded bg-banner-sky px-2 py-0.5 text-xs font-bold text-noir">
+                      {useCase.tag}
+                    </span>
+                    <Icon
+                      icon={ArrowUpRight}
+                      className="text-noir/40 transition-colors group-hover:text-noir"
+                    />
+                  </div>
+                  <h4 className="mt-6 font-display text-lg font-bold text-noir group-hover:underline">
+                    {useCase.title}
+                  </h4>
+                  <p className="mt-1 text-[0.9375rem] leading-relaxed text-noir/65">
+                    {useCase.body}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

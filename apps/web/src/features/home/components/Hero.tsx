@@ -1,317 +1,346 @@
 import { BrandMark } from "@pratikar/ui";
 import {
+  ArrowRight,
   BadgeCheck,
-  Bell,
-  BookOpen,
   Check,
-  FileText,
-  FolderOpen,
-  Lock,
-  Receipt,
+  FilePenLine,
+  MessagesSquare,
   Sparkles,
-  UserCheck,
+  type LucideIcon,
 } from "lucide-react";
+import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { Icon } from "@/shared/components/Icon";
+import { COURSES_LIVE } from "@/shared/lib/features";
+import { shelfHref } from "@/shared/lib/navigation";
 
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
-import { IntentSearch } from "./IntentSearch";
-import { Seal } from "./illustrations";
+import { BannerCarousel, type Banner } from "./BannerCarousel";
+import {
+  CertificateArt,
+  DraftingArt,
+  FormArt,
+  PhoneChatArt,
+  Seal,
+  StampArt,
+} from "./illustrations";
 
 const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
-const TRUST = [
-  { icon: BadgeCheck, label: "Advocate review on every AI draft" },
-  { icon: Lock, label: "Secure Razorpay payments" },
-  { icon: Receipt, label: "GST invoice with every order" },
-];
+type Tone = "navy" | "sky" | "sand" | "mint" | "lilac";
+
+const TONES: Record<
+  Tone,
+  { ground: string; dark: boolean; blob: string; tag: string }
+> = {
+  navy: {
+    ground: "bg-noir-glow",
+    dark: true,
+    blob: "bg-white/[0.06]",
+    tag: "bg-brand text-on-brand",
+  },
+  sky: {
+    ground: "bg-banner-sky",
+    dark: false,
+    blob: "bg-white/70",
+    tag: "bg-noir text-white",
+  },
+  sand: {
+    ground: "bg-banner-sand",
+    dark: false,
+    blob: "bg-white/70",
+    tag: "bg-noir text-white",
+  },
+  mint: {
+    ground: "bg-banner-mint",
+    dark: false,
+    blob: "bg-white/70",
+    tag: "bg-noir text-white",
+  },
+  lilac: {
+    ground: "bg-banner-lilac",
+    dark: false,
+    blob: "bg-white/70",
+    tag: "bg-noir text-white",
+  },
+};
 
 /**
- * The hero, on warm paper the way Jasper opens: a big centred headline that
- * names the outcome, one input that takes people straight to it three ways,
- * and then the product itself — a full window of the drafting screen, not a
- * stock photo — so the first scroll already shows what you'd be using.
+ * One hero banner, Coursera's shape: a rounded tinted panel, the brand and
+ * a tag, a large headline, one line, one button — and on the right a picture
+ * of the thing itself, drawn rather than photographed.
  */
-export function LandingHero({ summary }: { summary: CatalogueSummary }) {
-  const stats = [
-    { value: summary.library.FORM.count, label: "Legal forms" },
-    { value: summary.library.CHECKLIST.count, label: "Checklists" },
-    { value: summary.library.EBOOK.count, label: "E-books" },
-    { value: summary.templates.count, label: "Ready templates" },
-  ].filter((stat) => stat.value > 0);
-
+function BannerPanel({
+  tone,
+  tag,
+  title,
+  body,
+  cta,
+  secondary,
+  art,
+}: {
+  tone: Tone;
+  tag: string;
+  title: ReactNode;
+  body: string;
+  cta: { href: string; label: string };
+  secondary?: { href: string; label: string };
+  art: ReactNode;
+}) {
+  const t = TONES[tone];
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative isolate overflow-hidden bg-paper"
+    <div
+      data-surface={t.dark ? "inverse" : undefined}
+      className={`relative isolate grid min-h-[26rem] grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl ${t.ground} lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]`}
     >
-      {/* A ruled grid that fades out, and two soft lights — gold behind the
-          headline, navy under the window. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/55%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/55%)_1px,transparent_1px)] [background-size:56px_56px] [mask-image:radial-gradient(ellipse_60%_55%_at_50%_0%,black,transparent_80%)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute left-1/2 top-[-12rem] -z-10 h-[36rem] w-[60rem] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.22),transparent)]"
-      />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute bottom-0 left-0 right-0 -z-10 h-1/2 bg-gradient-to-b from-transparent to-paper-deep"
-      />
-
-      <div className={`${FRAME} pb-16 pt-14 sm:pt-20 lg:pt-24`}>
-        <div className="mx-auto flex max-w-4xl flex-col items-center text-center motion-safe:animate-fade-up">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/80 py-1 pl-1 pr-3.5 text-sm font-medium text-ink shadow-card backdrop-blur">
-            <span className="grid h-6 w-6 place-items-center rounded-full bg-primary text-brand">
-              <BrandMark className="h-3 w-auto" />
-            </span>
-            Har Ghar Mein Kanooni Gyaan
-          </p>
-
-          <h1
-            id="hero-title"
-            className="mt-7 text-[2.6rem] font-extrabold leading-[1.04] text-ink sm:text-6xl lg:text-7xl"
+      <div className="relative z-10 flex flex-col justify-center px-6 py-10 sm:px-12 lg:py-12 lg:pl-14">
+        <p className="flex items-center gap-3">
+          <span
+            className={`grid h-8 w-8 place-items-center rounded-md ${t.dark ? "bg-white text-noir" : "bg-noir text-brand"}`}
           >
-            Every legal document,{" "}
-            <span className="relative whitespace-nowrap">
-              <span className="accent-serif text-gold-ink">drafted right</span>
-              <svg
-                aria-hidden
-                viewBox="0 0 300 12"
-                preserveAspectRatio="none"
-                className="absolute -bottom-1.5 left-0 h-3 w-full text-brand"
-              >
-                <path
-                  d="M2 9 C 80 2, 220 2, 298 7"
-                  stroke="currentColor"
-                  strokeWidth="3.5"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </span>{" "}
-            — and checked by an advocate.
-          </h1>
-
-          <p className="mt-7 max-w-2xl text-lg leading-relaxed text-ink-muted sm:text-xl">
-            Fill in a ready template, have AI draft anything from your own
-            words, or download from hundreds of forms, checklists and e-books —
-            in plain language, at fair prices.
-          </p>
-
-          <div className="mt-10 flex w-full justify-center">
-            <IntentSearch />
-          </div>
-
-          <ul className="mt-8 flex flex-col items-center gap-3 text-sm text-ink-muted sm:flex-row sm:flex-wrap sm:justify-center sm:gap-x-7">
-            {TRUST.map((item) => (
-              <li key={item.label} className="flex items-center gap-2">
-                <Icon icon={item.icon} className="text-gold-ink" />
-                {item.label}
-              </li>
-            ))}
-          </ul>
+            <BrandMark className="h-4 w-auto" />
+          </span>
+          <span
+            className={`rounded px-2 py-0.5 text-xs font-bold uppercase tracking-wide ${t.tag}`}
+          >
+            {tag}
+          </span>
+        </p>
+        <h2
+          className={`mt-5 max-w-xl text-3xl font-extrabold leading-[1.12] sm:text-[2.6rem] ${t.dark ? "text-white" : "text-noir"}`}
+        >
+          {title}
+        </h2>
+        <p
+          className={`mt-4 max-w-lg text-lg leading-relaxed ${t.dark ? "text-white/80" : "text-noir/75"}`}
+        >
+          {body}
+        </p>
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <Link href={cta.href} className={t.dark ? "btn-gold" : "btn-noir"}>
+            {cta.label}
+          </Link>
+          {secondary && (
+            <Link
+              href={secondary.href}
+              className={`group inline-flex items-center gap-1.5 font-semibold ${t.dark ? "text-white" : "text-noir"}`}
+            >
+              <span className="link-draw">{secondary.label}</span>
+              <Icon
+                icon={ArrowRight}
+                size="xs"
+                className="transition-transform group-hover:translate-x-0.5"
+              />
+            </Link>
+          )}
         </div>
-
-        <HeroWindow />
-
-        {stats.length > 0 && (
-          <dl className="mx-auto mt-16 grid max-w-4xl grid-cols-2 gap-y-8 sm:grid-cols-4">
-            {stats.map((stat) => (
-              <div
-                key={stat.label}
-                className="flex flex-col items-center text-center sm:border-l sm:border-line sm:first:border-l-0"
-              >
-                <dt className="mt-1 text-sm text-ink-muted">{stat.label}</dt>
-                <dd className="order-first font-display text-4xl font-extrabold tabular-nums tracking-tight text-ink sm:text-5xl">
-                  {countLabel(stat.value)}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        )}
       </div>
-    </section>
+
+      {/* The picture: a soft disc behind a drawn scene, bleeding off the
+          right edge like a photograph would. */}
+      <div
+        aria-hidden
+        className="relative hidden min-h-[20rem] select-none items-center justify-center lg:flex"
+      >
+        <span
+          className={`absolute -right-24 top-1/2 h-[30rem] w-[30rem] -translate-y-1/2 rounded-full ${t.blob}`}
+        />
+        <span
+          className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
+        />
+        <div className="relative">{art}</div>
+      </div>
+    </div>
   );
 }
 
-/* ───────────────────────────────────────────────────────── the window */
-
-const SIDEBAR = [
-  { icon: Sparkles, label: "AI drafting", active: true },
-  { icon: FileText, label: "Templates" },
-  { icon: BookOpen, label: "Library" },
-  { icon: FolderOpen, label: "My documents" },
-];
+/** A small white card floating on a banner's picture. */
+function Chip({
+  icon,
+  label,
+  sub,
+  className = "",
+}: {
+  icon: LucideIcon;
+  label: string;
+  sub?: string;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`absolute flex items-center gap-2.5 whitespace-nowrap rounded-xl bg-white px-3.5 py-2.5 text-left shadow-float motion-safe:animate-float ${className}`}
+    >
+      <span className="grid h-8 w-8 place-items-center rounded-lg bg-banner-sky text-noir">
+        <Icon icon={icon} size="sm" />
+      </span>
+      <span>
+        <span className="block text-sm font-semibold text-noir">{label}</span>
+        {sub && <span className="block text-xs text-noir/60">{sub}</span>}
+      </span>
+    </span>
+  );
+}
 
 /**
- * The drafting screen in a browser window: the sidebar, the customer's own
- * sentence and the AI's reply, the draft with an advocate's seal, and the
- * notification that it's ready. Built from the product's own pieces so it
- * shows what the customer will actually see. Decorative — the headline says
- * it in words.
+ * The top of the home page: Coursera's banner carousel. Counts come from
+ * the live catalogue.
  */
-function HeroWindow() {
+export function LandingHero({ summary }: { summary: CatalogueSummary }) {
+  const forms = summary.library.FORM.count;
+  const guides = summary.library.CHECKLIST.count + summary.library.EBOOK.count;
+
+  const banners: Banner[] = [
+    {
+      id: "drafting",
+      label: "AI drafting",
+      content: (
+        <BannerPanel
+          tone="navy"
+          tag="New"
+          title={
+            <>
+              Any legal document, drafted by AI —{" "}
+              <span className="text-brand">checked by an advocate</span>
+            </>
+          }
+          body="Describe what you need in your own words. A practising advocate reviews the draft before you download it."
+          cta={{ href: "/documents/custom", label: "Draft my document" }}
+          secondary={{ href: "#how-it-works", label: "How it works" }}
+          art={
+            <div className="relative">
+              <DraftingArt className="w-80 drop-shadow-2xl" />
+              <Seal className="absolute -bottom-6 -right-4 h-24 w-24 rotate-12 drop-shadow-xl" />
+              <Chip
+                icon={BadgeCheck}
+                label="Reviewed by an advocate"
+                sub="Ready to download"
+                className="-left-24 top-6"
+              />
+            </div>
+          }
+        />
+      ),
+    },
+    {
+      id: "templates",
+      label: "Ready templates",
+      content: (
+        <BannerPanel
+          tone="sky"
+          tag="Templates"
+          title="Your rent agreement, ready in five minutes"
+          body="Answer a few plain questions — on a form or by chat — and get a finished Word and PDF, ready to sign."
+          cta={{ href: "/documents", label: "Create a document" }}
+          secondary={{
+            href: "/search?q=rent%20agreement",
+            label: "See the rent agreement",
+          }}
+          art={
+            <div className="relative">
+              <FormArt className="h-64 w-auto drop-shadow-xl" />
+              <Chip
+                icon={MessagesSquare}
+                label="Fill it in by chat"
+                className="-left-28 top-4"
+              />
+              <Chip
+                icon={Check}
+                label="Word + PDF"
+                sub="Preview free"
+                className="-right-10 bottom-2 [animation-delay:1.5s]"
+              />
+            </div>
+          }
+        />
+      ),
+    },
+    {
+      id: "forms",
+      label: "Legal forms",
+      content: (
+        <BannerPanel
+          tone="sand"
+          tag="Library"
+          title={
+            forms > 0
+              ? `${countLabel(forms)} legal forms, written by advocates`
+              : "Legal forms, written by advocates"
+          }
+          body="Affidavits, notices, agreements and court formats — buy once, download whenever you need it."
+          cta={{ href: shelfHref("FORM"), label: "Browse legal forms" }}
+          secondary={{ href: "/content-library", label: "The whole library" }}
+          art={
+            <div className="relative">
+              <StampArt className="h-64 w-auto drop-shadow-xl" />
+              <Chip
+                icon={FilePenLine}
+                label={
+                  guides > 0 ? `${countLabel(guides)} guides too` : "Guides too"
+                }
+                sub="Checklists & e-books"
+                className="-left-24 bottom-6"
+              />
+            </div>
+          }
+        />
+      ),
+    },
+    {
+      id: "assistant",
+      label: "AI assistant",
+      content: (
+        <BannerPanel
+          tone="mint"
+          tag="Ask AI"
+          title="Not sure which document you need? Just ask."
+          body="Describe your situation in English or Hindi. The assistant points you to the right document, form or guide."
+          cta={{ href: "/assistant", label: "Ask a question" }}
+          art={
+            <div className="relative">
+              <PhoneChatArt className="w-56 translate-y-6 drop-shadow-2xl" />
+              <Chip
+                icon={Sparkles}
+                label="“My tenant hasn’t paid rent”"
+                className="-left-40 top-10"
+              />
+            </div>
+          }
+        />
+      ),
+    },
+    {
+      id: "courses",
+      label: "Courses",
+      content: (
+        <BannerPanel
+          tone="lilac"
+          tag={COURSES_LIVE ? "Courses" : "Coming soon"}
+          title="Learn the law you use — and earn a certificate"
+          body="Short video courses on GST, property and running a business, with a certificate anyone can verify."
+          cta={{
+            href: "/courses",
+            label: COURSES_LIVE ? "Explore courses" : "See what's coming",
+          }}
+          secondary={{ href: "/verify", label: "Verify a certificate" }}
+          art={
+            <CertificateArt className="w-96 rotate-[-4deg] drop-shadow-2xl" />
+          }
+        />
+      ),
+    },
+  ];
+
   return (
-    <div
-      aria-hidden
-      className="relative mx-auto mt-16 max-w-5xl select-none motion-safe:animate-fade-up sm:mt-20"
-      style={{ animationDelay: "150ms" }}
-    >
-      <div className="overflow-hidden rounded-2xl bg-surface shadow-float ring-1 ring-black/5 sm:rounded-3xl">
-        {/* Browser chrome */}
-        <div className="flex items-center gap-3 border-b border-line bg-canvas px-4 py-3">
-          <span className="flex gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-danger/40" />
-            <span className="h-2.5 w-2.5 rounded-full bg-brand/60" />
-            <span className="h-2.5 w-2.5 rounded-full bg-success/40" />
-          </span>
-          <span className="mx-auto flex min-w-0 items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1 text-xs text-ink-subtle">
-            <Icon icon={Lock} size="xs" />
-            <span className="truncate">pratikar.in/documents/custom</span>
-          </span>
-          <span className="hidden w-12 sm:block" />
-        </div>
-
-        <div className="grid min-h-[22rem] grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-cols-[11rem_minmax(0,1.05fr)_minmax(0,1fr)]">
-          {/* Sidebar */}
-          <div className="hidden border-r border-line bg-canvas p-3 lg:block">
-            <span className="flex items-center gap-2 px-2 py-1.5">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-primary text-brand">
-                <BrandMark className="h-3.5 w-auto" />
-              </span>
-              <span className="font-brand text-xs font-semibold tracking-wider text-gold-ink">
-                PRATIKAR
-              </span>
-            </span>
-            <ul className="mt-4 space-y-1">
-              {SIDEBAR.map((item) => (
-                <li
-                  key={item.label}
-                  className={`flex items-center gap-2 rounded-lg px-2 py-2 text-xs font-medium ${
-                    item.active
-                      ? "bg-primary text-ink-inverse"
-                      : "text-ink-muted"
-                  }`}
-                >
-                  <Icon
-                    icon={item.icon}
-                    size="xs"
-                    className={item.active ? "text-brand" : ""}
-                  />
-                  {item.label}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* The conversation */}
-          <div className="flex flex-col gap-4 p-5 sm:p-7">
-            <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-ink-subtle">
-              Describe your document
-            </p>
-            <div className="ml-auto max-w-[92%] rounded-2xl rounded-br-sm bg-primary px-4 py-3 text-left text-sm leading-relaxed text-ink-inverse">
-              Partnership deed for my bakery with my cousin in Pune — 60:40
-              profit share, ₹5 lakh capital, 3 months&apos; notice to exit.
-            </div>
-            <div className="flex max-w-[92%] gap-2.5">
-              <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-on-brand">
-                <Icon icon={Sparkles} size="xs" />
-              </span>
-              <div className="rounded-2xl rounded-tl-sm bg-paper px-4 py-3 text-left text-sm leading-relaxed text-ink">
-                Your draft is ready — in the format of our advocate-written
-                partnership deed. Preview it free, then send it for review.
-              </div>
-            </div>
-            <ol className="mt-auto grid grid-cols-3 gap-2 pt-2 text-left">
-              {[
-                { label: "Drafted", state: "done" },
-                { label: "Advocate review", state: "done" },
-                { label: "Ready", state: "now" },
-              ].map((step) => (
-                <li
-                  key={step.label}
-                  className={`rounded-xl border px-2.5 py-2 text-[0.7rem] font-semibold ${
-                    step.state === "now"
-                      ? "border-brand bg-brand-subtle text-gold-ink"
-                      : "border-line text-ink-muted"
-                  }`}
-                >
-                  <span className="mb-1 grid h-4 w-4 place-items-center rounded-full bg-success text-ink-inverse">
-                    <Icon icon={Check} size="xs" className="h-2.5 w-2.5" />
-                  </span>
-                  {step.label}
-                </li>
-              ))}
-            </ol>
-          </div>
-
-          {/* The draft */}
-          <div className="relative hidden border-l border-line bg-[linear-gradient(160deg,theme(colors.navy.50),theme(colors.paper))] p-6 md:block">
-            <div className="relative rotate-[1.5deg] rounded-lg bg-surface p-6 text-left shadow-overlay ring-1 ring-black/5">
-              <p className="text-[0.6rem] font-bold uppercase tracking-[0.2em] text-gold-ink">
-                Draft · v2
-              </p>
-              <p className="mt-1 font-serif text-xl font-semibold text-ink">
-                Partnership Deed
-              </p>
-              <p className="mt-0.5 text-[0.7rem] text-ink-subtle">
-                Pune · 2 partners · 60:40
-              </p>
-              <div className="mt-5 space-y-2">
-                {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
-                  (width, index) => (
-                    <div
-                      key={width + index}
-                      className={`h-1.5 ${width} rounded-full ${index === 2 ? "bg-brand/60" : "bg-navy-100"}`}
-                    />
-                  ),
-                )}
-              </div>
-              <div className="mt-6 grid grid-cols-2 gap-5">
-                {["First partner", "Second partner"].map((party) => (
-                  <div key={party}>
-                    <div className="h-px bg-ink/25" />
-                    <p className="mt-1 text-[0.55rem] uppercase tracking-wider text-ink-subtle">
-                      {party}
-                    </p>
-                  </div>
-                ))}
-              </div>
-              <Seal className="absolute -bottom-8 -right-5 h-24 w-24 rotate-12 drop-shadow-xl" />
-            </div>
-          </div>
-        </div>
+    <section aria-label="Featured" className="bg-white">
+      <div className={`${FRAME} pb-4 pt-6 sm:pt-8`}>
+        <h1 className="sr-only">
+          Pratikar Digital Hub — legal documents, forms and guides, drafted
+          right and checked by an advocate
+        </h1>
+        <BannerCarousel banners={banners} />
       </div>
-
-      {/* Floating notes around the window */}
-      <div className="absolute -left-3 bottom-24 hidden items-center gap-2.5 rounded-2xl bg-surface px-3.5 py-2.5 shadow-float ring-1 ring-black/5 motion-safe:animate-float sm:flex lg:-left-14">
-        <span className="grid h-8 w-8 place-items-center rounded-xl bg-success-subtle text-success-text">
-          <Icon icon={UserCheck} size="sm" />
-        </span>
-        <span className="text-left">
-          <span className="block text-sm font-semibold text-ink">
-            Advocate approved
-          </span>
-          <span className="block text-xs text-ink-muted">2 changes made</span>
-        </span>
-      </div>
-
-      <div className="absolute -bottom-7 right-2 flex max-w-[17rem] items-start gap-3 rounded-2xl bg-surface-inverse px-4 py-3 text-left shadow-float motion-safe:animate-float-delayed sm:-right-6 lg:-right-12">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-brand text-on-brand">
-          <Icon icon={Bell} size="sm" />
-        </span>
-        <span>
-          <span className="block text-sm font-semibold text-ink-inverse">
-            Your document is ready
-          </span>
-          <span className="block text-xs text-ink-inverse-muted">
-            Word + PDF · tap to download
-          </span>
-        </span>
-      </div>
-    </div>
+    </section>
   );
 }

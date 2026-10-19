@@ -108,7 +108,7 @@ export function AssistantLauncher() {
                 ? "cubic-bezier(0.16, 1, 0.3, 1)"
                 : "cubic-bezier(0.4, 0, 1, 1)",
             }}
-            className={`fixed inset-x-3 bottom-[5.5rem] z-50 flex max-h-[min(78vh,42rem)] origin-bottom-right flex-col overflow-hidden rounded-card border border-line bg-surface shadow-overlay transition-[opacity,transform] motion-reduce:transition-none sm:inset-x-auto sm:right-6 sm:w-[26rem] ${
+            className={`fixed inset-x-3 bottom-[5.5rem] z-50 flex max-h-[min(78vh,42rem)] origin-bottom-right flex-col overflow-hidden border border-ivory-line bg-surface shadow-float transition-[opacity,transform] motion-reduce:transition-none sm:inset-x-auto sm:right-6 sm:w-[26rem] ${
               open
                 ? "translate-y-0 scale-100 opacity-100"
                 : "pointer-events-none translate-y-3 scale-95 opacity-0"
@@ -141,7 +141,7 @@ export function AssistantLauncher() {
         onClick={() => (present ? close() : openPanel())}
         aria-expanded={present}
         aria-haspopup="dialog"
-        className="group fixed bottom-4 right-4 z-50 inline-flex h-14 w-14 ring-2 ring-white/80 items-center justify-center gap-2 rounded-full bg-primary text-sm sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:py-3 sm:pl-4 sm:pr-5 font-semibold text-ink-inverse shadow-overlay transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-primary-hover active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+        className="group fixed bottom-4 right-4 z-50 inline-flex h-14 w-14 items-center justify-center gap-2 rounded-full bg-noir text-sm sm:bottom-5 sm:right-5 sm:h-auto sm:w-auto sm:py-3 sm:pl-4 sm:pr-5 font-semibold text-white shadow-float transition-[transform,background-color] duration-200 hover:scale-105 hover:bg-noir-raised active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         {/*
           Navy, not gold: gold is the site's one primary-action colour ("Sign

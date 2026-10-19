@@ -1,9 +1,10 @@
 import type { ContentCategory } from "@pratikar/types";
+import { BrandMark } from "@pratikar/ui";
 import {
   ArrowRight,
   BadgeCheck,
   Briefcase,
-  Check,
+  FilePenLine,
   FileText,
   House,
   IndianRupee,
@@ -11,10 +12,10 @@ import {
   Laptop,
   ListChecks,
   Lock,
-  MessageCircle,
   MessagesSquare,
   Receipt,
   Scale,
+  Search,
   ShieldCheck,
   Sparkles,
   UserCheck,
@@ -23,582 +24,231 @@ import {
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import { CatalogueCover } from "@/shared/components/CatalogueCard";
+import {
+  CATALOGUE_KINDS,
+  type CatalogueKind,
+} from "@/shared/components/CatalogueCard";
 import { Icon } from "@/shared/components/Icon";
-import { COURSES_LIVE } from "@/shared/lib/features";
+import { Reveal } from "@/shared/components/Reveal";
 import { CONTENT_CATEGORY_LABELS } from "@/shared/lib/labels";
 import { categoryHref } from "@/shared/lib/navigation";
 
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
-import {
-  CertificateArt,
-  DraftingArt,
-  FormArt,
-  LibraryArt,
-  PhoneChatArt,
-  Seal,
-} from "./illustrations";
+import { FormArt, Seal } from "./illustrations";
 
 /** The page's horizontal frame — every section lines up on it. */
 export const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
-const GOLD_BUTTON =
-  "inline-flex items-center gap-2 rounded-full bg-brand px-6 py-3.5 text-sm font-semibold text-on-brand shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-brand-hover motion-reduce:transform-none";
-
-const NAVY_BUTTON =
-  "inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-ink-inverse shadow-raised transition-[background-color,transform] hover:-translate-y-0.5 hover:bg-primary-hover motion-reduce:transform-none";
-
-const OUTLINE_BUTTON =
-  "inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-6 py-3.5 text-sm font-semibold text-ink transition-colors hover:border-ink-subtle";
-
-const GHOST_INVERSE_BUTTON =
-  "inline-flex items-center gap-2 rounded-full border border-white/20 px-6 py-3.5 text-sm font-semibold text-ink-inverse transition-colors hover:bg-white/10";
-
 /**
- * A section's heading: a small eyebrow, a big sans title that may carry one
- * italic serif word, and one sentence of why. Centred for sections that
- * stand alone; left-aligned where it sits beside its content.
+ * A section's heading, Coursera's way: a bold title, an optional line under
+ * it, and a link to the rest on the far side.
  */
-export function SectionHeading({
-  eyebrow,
+export function SectionHead({
   title,
-  description,
+  intro,
   id,
-  align = "left",
-  tone = "light",
+  aside,
 }: {
-  eyebrow: string;
   title: ReactNode;
-  description?: string;
+  intro?: string;
   id: string;
-  align?: "left" | "center";
-  tone?: "light" | "dark";
+  aside?: ReactNode;
 }) {
-  const dark = tone === "dark";
   return (
-    <div
-      className={
-        align === "center" ? "mx-auto max-w-3xl text-center" : "max-w-2xl"
-      }
-    >
-      <p className={`eyebrow ${dark ? "text-brand" : ""}`}>
-        <span aria-hidden className="h-px w-6 bg-current" />
-        {eyebrow}
-      </p>
-      <h2
-        id={id}
-        className={`mt-4 text-3xl font-extrabold leading-[1.1] sm:text-5xl sm:leading-[1.06] ${dark ? "text-ink-inverse" : "text-ink"}`}
-      >
-        {title}
-      </h2>
-      {description && (
-        <p
-          className={`mt-5 text-lg leading-relaxed ${dark ? "text-ink-inverse-muted" : "text-ink-muted"}`}
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="max-w-3xl">
+        <h2
+          id={id}
+          className="text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
         >
-          {description}
-        </p>
-      )}
+          {title}
+        </h2>
+        {intro && (
+          <p className="mt-3 text-lg leading-relaxed text-noir/70">{intro}</p>
+        )}
+      </div>
+      {aside}
     </div>
   );
 }
 
-/** "Browse →", with the arrow nudging on hover. */
-function MoreLink({
-  children,
-  tone = "light",
-}: {
-  children: ReactNode;
-  tone?: "light" | "dark";
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 text-sm font-semibold ${tone === "dark" ? "text-brand" : "text-primary"}`}
-    >
-      {children}
-      <Icon
-        icon={ArrowRight}
-        size="xs"
-        className="transition-transform group-hover:translate-x-1 motion-reduce:transform-none"
-      />
-    </span>
-  );
-}
-
-/** A small "New" tag, gold. */
-function NewTag() {
-  return (
-    <span className="inline-flex w-fit items-center gap-1 rounded-full bg-brand px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-on-brand">
-      <Icon icon={Sparkles} size="xs" />
-      New
-    </span>
-  );
-}
-
-/* ───────────────────────────────────────────────────────── trust strip */
-
-/**
- * Jasper's "trusted by" logo strip, made honest: there are no client logos
- * to show yet, so the strip shows what the platform is actually built on —
- * the advocate-written documents themselves, their real titles sliding by.
- */
-export function TrustMarquee({ summary }: { summary: CatalogueSummary }) {
-  const library =
-    summary.library.FORM.count +
-    summary.library.CHECKLIST.count +
-    summary.library.EBOOK.count;
-  const titles = [
-    ...summary.templates.examples,
-    ...summary.categories.flatMap((entry) => entry.examples),
-  ];
-  if (library === 0 || titles.length < 4) return null;
-
-  return (
-    <section
-      aria-label="What the library holds"
-      className="border-y border-line bg-surface py-8"
-    >
-      <p className="px-4 text-center text-sm font-medium text-ink-muted">
-        Built on{" "}
-        <span className="font-semibold text-ink">
-          {countLabel(library)} documents
-        </span>{" "}
-        written by practising advocates
-      </p>
-      {/* The row twice over, slid by half its width, so the loop is
-          seamless. Paused on hover; still for reduced motion. */}
-      <div className="relative mt-6 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]">
-        <ul className="flex w-max gap-3 hover:[animation-play-state:paused] motion-safe:animate-marquee">
-          {[...titles, ...titles].map((title, index) => (
-            <li
-              key={`${title}-${index}`}
-              aria-hidden={index >= titles.length || undefined}
-              className="flex shrink-0 items-center gap-2 rounded-full border border-line bg-paper px-4 py-2 text-sm text-ink"
-            >
-              <Icon icon={FileText} size="xs" className="text-gold-ink" />
-              {title}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-/* ────────────────────────────────────────────────── platform overview */
-
-/**
- * The platform in three cards, the way Jasper introduces its own: one dark
- * card for the flagship (AI drafting with an advocate in the loop), two
- * light ones for the ready catalogue and for learning. Real counts only.
- */
-export function PlatformOverview({ summary }: { summary: CatalogueSummary }) {
-  const ready = summary.templates.count + summary.library.FORM.count;
-  const learn = summary.library.EBOOK.count + summary.library.CHECKLIST.count;
-
-  return (
-    <section aria-labelledby="platform-title" className={`${FRAME} py-24`}>
-      <SectionHeading
-        id="platform-title"
-        align="center"
-        eyebrow="The platform"
-        title={
-          <>
-            One place for the paperwork{" "}
-            <span className="accent-serif text-gold-ink">in your life</span>
-          </>
-        }
-        description="Renting a flat, hiring your first employee, going to court — start with the right document, then understand what it means."
-      />
-
-      <div className="mt-16 grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-3">
-        <Link
-          href="/documents/custom"
-          data-surface="inverse"
-          className="group relative flex min-h-[30rem] flex-col overflow-hidden rounded-panel bg-hero-navy p-8 text-ink-inverse shadow-float transition-transform hover:-translate-y-1 motion-reduce:transform-none"
-        >
-          <NewTag />
-          <h3 className="mt-6 font-display text-3xl font-extrabold leading-tight tracking-tight text-ink-inverse">
-            Draft anything with AI
-          </h3>
-          <p className="mt-3 text-base leading-relaxed text-ink-inverse-muted">
-            Describe it in your own words. The AI drafts it in the format of our
-            advocate-written documents — and an advocate reviews it.
-          </p>
-          <div className="mt-6">
-            <MoreLink tone="dark">Draft my document</MoreLink>
-          </div>
-          <DraftingArt className="pointer-events-none absolute -bottom-10 -right-8 w-[78%] max-w-[20rem] opacity-95 transition-transform duration-500 group-hover:scale-[1.04] motion-reduce:transform-none" />
-        </Link>
-
-        <PlatformCard
-          href="/documents"
-          badge={ready > 0 ? `${countLabel(ready)} ready` : undefined}
-          title="Ready documents"
-          body="Templates you fill in on a form or by chat, and legal forms to download — agreements, affidavits, notices."
-          points={[
-            "Finished Word and PDF",
-            "Plain-language questions",
-            "Optional advocate review",
-          ]}
-          cta="Create a document"
-          art={<FormArt className="h-40 w-auto" />}
-        />
-
-        <PlatformCard
-          href="/content-library"
-          badge={learn > 0 ? `${countLabel(learn)} guides` : undefined}
-          title="Learn the law you use"
-          body={`E-books and checklists in plain language${COURSES_LIVE ? ", and video courses with a certificate" : ""}.`}
-          points={[
-            "Property, business and courts",
-            "Checklists before you sign",
-            COURSES_LIVE ? "Verifiable certificates" : "Courses coming soon",
-          ]}
-          cta="Browse the library"
-          art={<LibraryArt className="h-40 w-auto" />}
-        />
-      </div>
-    </section>
-  );
-}
-
-function PlatformCard({
-  href,
-  badge,
-  title,
-  body,
-  points,
-  cta,
-  art,
-}: {
-  href: string;
-  badge?: string;
-  title: string;
-  body: string;
-  points: string[];
-  cta: string;
-  art: ReactNode;
-}) {
+/** "View all →" — Coursera's quiet link at the end of a section heading. */
+function ViewAll({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link
       href={href}
-      className="group flex min-h-[30rem] flex-col overflow-hidden rounded-panel border border-line bg-paper transition-[transform,box-shadow] hover:-translate-y-1 hover:shadow-float motion-reduce:transform-none"
+      className="group inline-flex shrink-0 items-center gap-1.5 font-semibold text-noir-raised"
     >
-      <div className="grid h-48 place-items-center bg-[radial-gradient(ellipse_at_50%_100%,theme(colors.navy.50),transparent_70%)]">
-        <div className="transition-transform duration-500 group-hover:scale-105 motion-reduce:transform-none">
-          {art}
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col p-8 pt-4">
-        {badge && (
-          <span className="w-fit rounded-full bg-surface px-2.5 py-1 text-xs font-semibold tabular-nums text-gold-ink ring-1 ring-brand-border">
-            {badge}
-          </span>
-        )}
-        <h3 className="mt-3 font-display text-2xl font-extrabold tracking-tight text-ink">
-          {title}
-        </h3>
-        <p className="mt-2 text-sm leading-relaxed text-ink-muted">{body}</p>
-        <ul className="mt-5 space-y-2 text-sm text-ink">
-          {points.map((point) => (
-            <li key={point} className="flex items-center gap-2">
-              <Icon icon={Check} size="xs" className="text-success" />
-              {point}
-            </li>
-          ))}
-        </ul>
-        <div className="mt-auto pt-6">
-          <MoreLink>{cta}</MoreLink>
-        </div>
-      </div>
+      <span className="link-draw">{children}</span>
+      <Icon
+        icon={ArrowRight}
+        size="xs"
+        className="transition-transform group-hover:translate-x-0.5"
+      />
     </Link>
   );
 }
 
-/* ───────────────────────────────────────────────────── feature rows */
+/* ─────────────────────────────────────────────────────────── quick start */
 
-/**
- * One feature, Jasper-style: copy on one side, the product on the other,
- * alternating down the page so it reads as a walk through the product.
- */
-function FeatureRow({
-  id,
-  eyebrow,
-  isNew = false,
-  title,
-  body,
-  points,
-  cta,
-  visual,
-  flip = false,
-}: {
-  id: string;
-  eyebrow: string;
-  isNew?: boolean;
-  title: ReactNode;
+const QUICK_START: {
+  href: string;
+  icon: LucideIcon;
+  title: string;
   body: string;
-  points: string[];
-  cta: { href: string; label: string };
-  visual: ReactNode;
-  flip?: boolean;
-}) {
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-2 lg:gap-20">
-      <div className={flip ? "lg:order-last" : ""}>
-        <div className="flex items-center gap-3">
-          <p className="eyebrow">{eyebrow}</p>
-          {isNew && <NewTag />}
-        </div>
-        <h3
-          id={id}
-          className="mt-4 font-display text-3xl font-extrabold leading-[1.1] tracking-tight text-ink sm:text-4xl"
-        >
-          {title}
-        </h3>
-        <p className="mt-4 text-lg leading-relaxed text-ink-muted">{body}</p>
-        <ul className="mt-6 space-y-3">
-          {points.map((point) => (
-            <li key={point} className="flex gap-3 text-base text-ink">
-              <span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary text-brand">
-                <Icon icon={Check} size="xs" className="h-3 w-3" />
-              </span>
-              {point}
-            </li>
-          ))}
-        </ul>
-        <Link href={cta.href} className={`${NAVY_BUTTON} mt-8`}>
-          {cta.label}
-          <Icon icon={ArrowRight} size="xs" />
-        </Link>
-      </div>
-      <div aria-hidden className="relative select-none">
-        {visual}
-      </div>
-    </div>
-  );
-}
-
-/** A soft panel the product pictures sit on. */
-function Stage({
-  children,
-  tone = "paper",
-  className = "",
-}: {
-  children: ReactNode;
-  tone?: "paper" | "navy";
-  className?: string;
-}) {
-  return (
-    <div
-      className={`relative overflow-hidden rounded-panel p-6 sm:p-10 ${
-        tone === "navy"
-          ? "bg-hero-navy"
-          : "bg-[linear-gradient(150deg,theme(colors.gold.50),theme(colors.paper)_45%,theme(colors.navy.50))] ring-1 ring-line"
-      } ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
-/** The drafting journey: the customer's sentence, the draft, the review. */
-function DraftingVisual() {
-  return (
-    <Stage>
-      <div className="space-y-5">
-        <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-sm bg-primary p-4 text-sm leading-relaxed text-ink-inverse shadow-overlay">
-          &ldquo;Rent agreement for my flat in Bandra — ₹45,000 a month, 11
-          months, two months&apos; deposit.&rdquo;
-        </div>
-        <div className="relative rounded-2xl bg-surface p-6 shadow-float ring-1 ring-line">
-          <p className="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-gold-ink">
-            Draft ready
-          </p>
-          <p className="mt-1 font-serif text-xl font-semibold text-ink">
-            Leave and Licence Agreement
-          </p>
-          <p className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium text-primary">
-            <Icon icon={BadgeCheck} size="xs" />
-            In the format of our advocate-written agreement
-          </p>
-          <div className="mt-5 space-y-2">
-            {["w-full", "w-11/12", "w-10/12", "w-full", "w-8/12"].map(
-              (width, index) => (
-                <div
-                  key={width + index}
-                  className={`h-2 ${width} rounded-full bg-navy-100`}
-                />
-              ),
-            )}
-          </div>
-          <Seal className="absolute -bottom-8 -right-5 h-24 w-24 rotate-12 drop-shadow-xl" />
-        </div>
-        <div className="flex max-w-[80%] items-center gap-3 rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-success-subtle text-success-text">
-            <Icon icon={UserCheck} size="md" />
-          </span>
-          <span>
-            <span className="block text-sm font-semibold text-ink">
-              Reviewed by an advocate
-            </span>
-            <span className="block text-xs text-ink-muted">
-              Ready to download · Word + PDF
-            </span>
-          </span>
-        </div>
-      </div>
-    </Stage>
-  );
-}
-
-/** A template being filled in by chat, with the form fields filling up. */
-function FillByChatVisual() {
-  const fields = [
-    ["Employee name", "Priya Sharma"],
-    ["Designation", "Senior Designer"],
-    ["Annual CTC", "₹9,60,000"],
-    ["Joining date", "1 November 2026"],
-  ];
-  return (
-    <Stage>
-      <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div className="space-y-3 rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <p className="flex items-center gap-2 text-xs font-semibold text-ink">
-            <Icon icon={MessagesSquare} size="xs" className="text-gold-ink" />
-            Fill by chat
-          </p>
-          <p className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-paper px-3 py-2 text-xs leading-relaxed text-ink">
-            What&apos;s the annual salary on offer?
-          </p>
-          <p className="ml-auto w-fit max-w-[90%] rounded-2xl rounded-br-sm bg-primary px-3 py-2 text-xs text-ink-inverse">
-            9.6 lakh a year
-          </p>
-          <p className="w-fit max-w-[90%] rounded-2xl rounded-tl-sm bg-paper px-3 py-2 text-xs leading-relaxed text-ink">
-            Got it — ₹9,60,000. And the joining date?
-          </p>
-        </div>
-        <div className="rounded-2xl bg-surface p-4 shadow-float ring-1 ring-line">
-          <p className="font-serif text-base font-semibold text-ink">
-            Employment Offer Letter
-          </p>
-          <dl className="mt-3 space-y-2.5">
-            {fields.map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-[0.65rem] uppercase tracking-wider text-ink-subtle">
-                  {label}
-                </dt>
-                <dd className="mt-0.5 flex items-center justify-between gap-2 rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-xs font-medium text-ink">
-                  {value}
-                  <Icon icon={Check} size="xs" className="text-success" />
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </div>
-    </Stage>
-  );
-}
+  link: string;
+  tone: string;
+}[] = [
+  {
+    href: "/documents/custom",
+    icon: FilePenLine,
+    title: "Draft any document with AI",
+    body: "Reviewed by a practising advocate before you download.",
+    link: "Start drafting",
+    tone: "bg-banner-sky",
+  },
+  {
+    href: "/documents",
+    icon: MessagesSquare,
+    title: "Fill a template by chat",
+    body: "Answer plain questions; get a finished Word and PDF.",
+    link: "Browse templates",
+    tone: "bg-banner-sand",
+  },
+  {
+    href: "/assistant",
+    icon: Sparkles,
+    title: "Ask the AI assistant",
+    body: "Describe your situation — it finds the right document.",
+    link: "Ask a question",
+    tone: "bg-banner-mint",
+  },
+];
 
 /**
- * The flagship and the three ways in, walked through one at a time:
- * AI drafting, templates by chat, the assistant, and courses.
+ * Three ways to begin, as Coursera sets three tiles under its hero:
+ * an icon, a title, a line, a link.
  */
-export function FeatureRows() {
+export function QuickStart() {
   return (
-    <section
-      aria-labelledby="features-title"
-      className="border-y border-line bg-surface"
-    >
-      <div className={`${FRAME} py-24`}>
-        <SectionHeading
-          id="features-title"
-          align="center"
-          eyebrow="How Pratikar helps"
-          title={
-            <>
-              Built for documents you&apos;ll{" "}
-              <span className="accent-serif text-gold-ink">actually sign</span>
-            </>
-          }
-          description="Every way in ends the same way: a document that's right, in your hands, ready to use."
-        />
+    <section aria-label="Ways to begin" className="bg-white">
+      <ul className={`${FRAME} grid gap-4 pb-14 pt-6 md:grid-cols-3`}>
+        {QUICK_START.map((tile, index) => (
+          <Reveal as="li" key={tile.href} delay={index * 70}>
+            <Link
+              href={tile.href}
+              className="group flex h-full items-start gap-4 rounded-xl border border-ivory-line bg-white p-5 transition-[border-color,box-shadow] hover:border-noir/30 hover:shadow-float"
+            >
+              <span
+                className={`grid h-12 w-12 shrink-0 place-items-center rounded-lg ${tile.tone} text-noir`}
+              >
+                <Icon icon={tile.icon} size="md" />
+              </span>
+              <span className="min-w-0">
+                <span className="block font-display text-lg font-bold text-noir">
+                  {tile.title}
+                </span>
+                <span className="mt-1 block text-[0.9375rem] text-noir/65">
+                  {tile.body}
+                </span>
+                <span className="mt-3 inline-flex items-center gap-1 font-semibold text-noir-raised">
+                  {tile.link}
+                  <Icon
+                    icon={ArrowRight}
+                    size="xs"
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </span>
+              </span>
+            </Link>
+          </Reveal>
+        ))}
+      </ul>
+    </section>
+  );
+}
 
-        <div className="mt-20 space-y-28">
-          <FeatureRow
-            id="feature-drafting"
-            eyebrow="AI drafting"
-            isNew
-            title="Your words in. A reviewed legal document out."
-            body="Can't find a template? Describe what you need. The AI drafts it in about a minute, using our advocate-written documents as its reference — and a practising advocate checks it before you download."
-            points={[
-              "Preview free, ask for changes",
-              "Advocate review before download",
-              "Notified by email, SMS and push when it's ready",
-            ]}
-            cta={{ href: "/documents/custom", label: "Draft my document" }}
-            visual={<DraftingVisual />}
-          />
-          <FeatureRow
-            id="feature-templates"
-            eyebrow="Ready templates"
-            title="Answer a few questions. Get the finished document."
-            body="Pick a template and fill it in on a form — or just chat, and the answers fill themselves in. Pay once and download Word and PDF."
-            points={[
-              "Plain-language questions, no jargon",
-              "Word and PDF, ready to print",
-              "Kept in your account to download again",
-            ]}
-            cta={{ href: "/documents", label: "Browse templates" }}
-            visual={<FillByChatVisual />}
-            flip
-          />
-          <FeatureRow
-            id="feature-assistant"
-            eyebrow="AI assistant"
-            title="Not sure what you need? Just ask."
-            body="Describe your situation in English or Hindi. The assistant searches everything on the site and points you to the right document, form, e-book or course."
-            points={[
-              "Understands your situation, not just keywords",
-              "Links straight to the right document",
-              "Explains — it doesn't give advice on your case",
-            ]}
-            cta={{ href: "/assistant", label: "Ask the assistant" }}
-            visual={
-              <Stage tone="navy" className="flex justify-center !pb-0">
-                <PhoneChatArt className="w-full max-w-[17rem] translate-y-6 drop-shadow-2xl" />
-              </Stage>
-            }
-          />
-          <FeatureRow
-            id="feature-courses"
-            eyebrow={COURSES_LIVE ? "Certificate courses" : "Coming soon"}
-            title="Learn the law — and prove it."
-            body="Short video courses on GST, property and running a business. Finish one and get a certificate with a code anyone can check."
-            points={[
-              "Short lessons at your own pace",
-              "A quick test after each lesson",
-              "A certificate anyone can verify",
-            ]}
-            cta={{
-              href: "/courses",
-              label: COURSES_LIVE ? "Explore courses" : "See what's coming",
-            }}
-            visual={
-              <Stage className="grid place-items-center">
-                <CertificateArt className="w-full max-w-md rotate-[-3deg] drop-shadow-2xl" />
-              </Stage>
-            }
-            flip
-          />
-        </div>
+/* ─────────────────────────────────────────────────────── drafting promo */
+
+/**
+ * The flagship, as Coursera promotes Coursera Plus: a wide gradient card
+ * with its own little logo, a headline, the steps, and one button.
+ */
+export function DraftingPromo() {
+  return (
+    <section aria-labelledby="promo-title" className="bg-white">
+      <div className={`${FRAME} py-12`}>
+        <Reveal>
+          <div
+            data-surface="inverse"
+            className="relative isolate grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl bg-noir-glow lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]"
+          >
+            <div className="px-6 py-10 sm:px-12 sm:py-14">
+              <p className="flex flex-wrap items-center gap-2 font-display text-lg font-bold text-white">
+                <span className="grid h-8 w-8 place-items-center rounded-md bg-white text-noir">
+                  <BrandMark className="h-4 w-auto" />
+                </span>
+                Pratikar
+                <span className="rounded bg-brand px-1.5 py-0.5 text-xs font-extrabold text-on-brand">
+                  AI DRAFTING
+                </span>
+              </p>
+              <h2
+                id="promo-title"
+                className="mt-6 max-w-xl text-3xl font-extrabold leading-tight text-white sm:text-4xl"
+              >
+                Can&apos;t find a template? Get it drafted — and checked by an
+                advocate.
+              </h2>
+              <ol className="mt-8 grid gap-4 sm:grid-cols-3">
+                {[
+                  ["Describe it", "In your own words"],
+                  ["AI drafts it", "In about a minute"],
+                  ["Advocate reviews", "Before you download"],
+                ].map(([title, body], index) => (
+                  <li key={title} className="flex gap-3">
+                    <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-brand text-sm font-bold text-on-brand">
+                      {index + 1}
+                    </span>
+                    <span>
+                      <span className="block font-semibold text-white">
+                        {title}
+                      </span>
+                      <span className="block text-sm text-white/70">
+                        {body}
+                      </span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <div className="mt-10 flex flex-wrap items-center gap-4">
+                <Link href="/documents/custom" className="btn-gold">
+                  Draft my document
+                </Link>
+                <span className="text-sm text-white/70">
+                  Preview free · pay only when you download
+                </span>
+              </div>
+            </div>
+            <div
+              aria-hidden
+              className="relative hidden select-none items-center justify-center lg:flex"
+            >
+              <span className="absolute -right-20 h-[26rem] w-[26rem] rounded-full bg-white/[0.06]" />
+              <div className="relative">
+                <FormArt className="h-72 w-auto drop-shadow-2xl" />
+                <Seal className="absolute -bottom-4 -right-6 h-24 w-24 rotate-12 drop-shadow-xl" />
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </div>
     </section>
   );
 }
 
-/* ────────────────────────────────────────────────────────── topics */
+/* ───────────────────────────────────────────────────────── area strip */
 
 const CATEGORY_ICONS: Record<ContentCategory, LucideIcon> = {
   PROPERTY_DOCUMENTATION: House,
@@ -608,16 +258,150 @@ const CATEGORY_ICONS: Record<ContentCategory, LucideIcon> = {
   CHECKLISTS_REFERENCE: ListChecks,
 };
 
-const CATEGORY_BLURBS: Record<ContentCategory, string> = {
-  PROPERTY_DOCUMENTATION: "Renting, buying, inheriting and registering",
-  BUSINESS_COMPLIANCE: "Contracts, employees, GST and company law",
-  LEGAL_PRACTICE: "Affidavits, notices, bail and court filings",
-  DIGITAL_CAREER: "Tech contracts, freelancing and your career",
-  CHECKLISTS_REFERENCE: "Step-by-step lists before you sign or file",
+const CATEGORY_TINTS: Record<ContentCategory, string> = {
+  PROPERTY_DOCUMENTATION: "bg-banner-sky",
+  BUSINESS_COMPLIANCE: "bg-banner-sand",
+  LEGAL_PRACTICE: "bg-banner-lilac",
+  DIGITAL_CAREER: "bg-banner-mint",
+  CHECKLISTS_REFERENCE: "bg-banner-blush",
 };
 
-/** Searches people run most — Coursera's "trending" row. */
-const TRENDING = [
+/**
+ * Coursera's "Learn from 350+ leading universities" strip, made honest:
+ * there are no partner logos to show, so the strip shows what the library
+ * is built on — documents by practising advocates — and its areas of law,
+ * each with a live count.
+ */
+export function AreaStrip({ summary }: { summary: CatalogueSummary }) {
+  const library =
+    summary.library.FORM.count +
+    summary.library.CHECKLIST.count +
+    summary.library.EBOOK.count;
+  if (summary.categories.length === 0) return null;
+
+  return (
+    <section aria-labelledby="areas-title" className="bg-ivory">
+      <div className={`${FRAME} py-14`}>
+        <h2
+          id="areas-title"
+          className="text-center text-xl font-bold text-noir sm:text-2xl"
+        >
+          {library > 0
+            ? `${countLabel(library)} documents written by practising advocates`
+            : "Documents written by practising advocates"}
+        </h2>
+        <ul className="mt-8 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {summary.categories.map((entry, index) => (
+            <Reveal as="li" key={entry.category} delay={index * 50}>
+              <Link
+                href={categoryHref(entry.category)}
+                className="flex h-full items-center gap-3 rounded-xl border border-ivory-line bg-white p-4 transition-[border-color,box-shadow] hover:border-noir/30 hover:shadow-float"
+              >
+                <span
+                  className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg ${CATEGORY_TINTS[entry.category]} text-noir`}
+                >
+                  <Icon icon={CATEGORY_ICONS[entry.category]} />
+                </span>
+                <span className="min-w-0">
+                  <span className="block font-semibold leading-snug text-noir">
+                    {CONTENT_CATEGORY_LABELS[entry.category]}
+                  </span>
+                  <span className="block text-sm text-noir/60">
+                    {entry.count} documents
+                  </span>
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── trending now */
+
+export interface TrendingItem {
+  id: string;
+  href: string;
+  kind: CatalogueKind;
+  title: string;
+  meta: string;
+}
+
+export interface TrendingColumn {
+  title: string;
+  href: string;
+  items: TrendingItem[];
+}
+
+/**
+ * Coursera's "Trending now": a few columns, each a short list of real items
+ * with a small thumbnail — fast to scan, one click to open.
+ */
+export function TrendingNow({ columns }: { columns: TrendingColumn[] }) {
+  const live = columns.filter((column) => column.items.length > 0);
+  if (live.length === 0) return null;
+
+  return (
+    <section aria-labelledby="trending-title" className="bg-white">
+      <div className={`${FRAME} py-14`}>
+        <SectionHead
+          id="trending-title"
+          title="Trending now"
+          intro="A few of the documents people open most."
+        />
+        <div
+          className={`mt-8 grid gap-5 sm:grid-cols-2 ${live.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+        >
+          {live.map((column, columnIndex) => (
+            <Reveal
+              key={column.title}
+              delay={columnIndex * 70}
+              className="rounded-xl border border-ivory-line bg-white p-5"
+            >
+              <h3 className="font-display text-lg font-bold text-noir">
+                {column.title}
+              </h3>
+              <ol className="mt-4 space-y-4">
+                {column.items.map((item) => {
+                  const kind = CATALOGUE_KINDS[item.kind];
+                  return (
+                    <li key={item.id}>
+                      <Link href={item.href} className="group flex gap-3">
+                        <span
+                          className={`grid h-12 w-12 shrink-0 place-items-center rounded-lg ${kind.dark ? "bg-noir text-brand" : "bg-banner-sky text-noir"}`}
+                        >
+                          <Icon icon={kind.icon} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="line-clamp-2 font-semibold leading-snug text-noir group-hover:underline">
+                            {item.title}
+                          </span>
+                          <span className="mt-0.5 block text-sm text-noir/60">
+                            {item.meta}
+                          </span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ol>
+              <div className="mt-5 border-t border-ivory-line pt-4">
+                <ViewAll href={column.href}>See all</ViewAll>
+              </div>
+            </Reveal>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────── explore chips */
+
+/** Searches people run most — Coursera's "Explore categories" chips. */
+const SEARCHES = [
   "Rent agreement",
   "Affidavit",
   "Legal notice",
@@ -625,93 +409,27 @@ const TRENDING = [
   "Power of attorney",
   "Offer letter",
   "Will",
+  "Bail application",
+  "Gift deed",
+  "GST",
   "NDA",
+  "Sale deed",
 ];
 
-/**
- * The library by area of law, Coursera's "Explore categories": trending
- * searches as chips, then a card per topic with its count and examples.
- */
-export function TopicExplorer({ summary }: { summary: CatalogueSummary }) {
-  if (summary.categories.length === 0) return null;
-
+export function ExploreChips() {
   return (
-    <section aria-labelledby="topics-title" className="bg-paper">
-      <div className={`${FRAME} py-24`}>
-        <div className="flex flex-wrap items-end justify-between gap-6">
-          <SectionHeading
-            id="topics-title"
-            eyebrow="Explore topics"
-            title="Find it by the area of law"
-            description="Every form, checklist and e-book is filed under the part of life it's for."
-          />
-          <Link href="/content-library" className={`${OUTLINE_BUTTON} group`}>
-            Browse the whole library
-            <Icon
-              icon={ArrowRight}
-              size="xs"
-              className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-            />
-          </Link>
-        </div>
-
-        <div className="mt-10 flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm font-semibold text-ink">Trending:</span>
-          {TRENDING.map((term) => (
-            <Link
-              key={term}
-              href={`/search?q=${encodeURIComponent(term)}`}
-              className="rounded-full border border-line-strong bg-surface px-4 py-1.5 text-sm text-ink transition-colors hover:border-primary hover:bg-primary hover:text-ink-inverse"
-            >
-              {term}
-            </Link>
-          ))}
-        </div>
-
-        <ul className="mt-10 grid grid-cols-[minmax(0,1fr)] gap-5 sm:grid-cols-2 lg:grid-cols-6">
-          {summary.categories.map((entry, index) => (
-            <li
-              key={entry.category}
-              className={index < 3 ? "lg:col-span-2" : "lg:col-span-3"}
-            >
+    <section aria-labelledby="explore-title" className="bg-white">
+      <div className={`${FRAME} pb-14`}>
+        <SectionHead id="explore-title" title="Explore popular searches" />
+        <ul className="mt-6 flex flex-wrap gap-3">
+          {SEARCHES.map((term) => (
+            <li key={term}>
               <Link
-                href={categoryHref(entry.category)}
-                className="group relative flex h-full flex-col overflow-hidden rounded-panel border border-line bg-surface p-7 transition-[transform,box-shadow,border-color] hover:-translate-y-1 hover:border-brand-border hover:shadow-float motion-reduce:transform-none"
+                href={`/search?q=${encodeURIComponent(term)}`}
+                className="inline-flex items-center gap-2 rounded-full border border-noir/20 px-4 py-2 font-semibold text-noir transition-colors hover:border-noir hover:bg-banner-sky"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <span className="grid h-14 w-14 place-items-center rounded-2xl bg-primary text-brand transition-transform duration-300 group-hover:-rotate-6 motion-reduce:transform-none">
-                    <Icon icon={CATEGORY_ICONS[entry.category]} size="lg" />
-                  </span>
-                  <span className="text-right">
-                    <span className="block font-display text-3xl font-extrabold tabular-nums tracking-tight text-ink">
-                      {entry.count}
-                    </span>
-                    <span className="block text-xs text-ink-subtle">items</span>
-                  </span>
-                </div>
-                <h3 className="mt-6 font-display text-xl font-bold tracking-tight text-ink">
-                  {CONTENT_CATEGORY_LABELS[entry.category]}
-                </h3>
-                <p className="mt-1 text-sm text-ink-muted">
-                  {CATEGORY_BLURBS[entry.category]}
-                </p>
-                {entry.examples.length > 0 && (
-                  <ul className="mt-5 space-y-1.5 border-t border-line pt-4 text-sm text-ink">
-                    {entry.examples.slice(0, 2).map((example) => (
-                      <li key={example} className="flex gap-2">
-                        <Icon
-                          icon={FileText}
-                          size="xs"
-                          className="mt-1 shrink-0 text-ink-subtle"
-                        />
-                        <span className="min-w-0 truncate">{example}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-                <div className="mt-auto pt-5">
-                  <MoreLink>Explore</MoreLink>
-                </div>
+                <Icon icon={Search} size="xs" className="text-noir/50" />
+                {term}
               </Link>
             </li>
           ))}
@@ -721,164 +439,21 @@ export function TopicExplorer({ summary }: { summary: CatalogueSummary }) {
   );
 }
 
-/* ───────────────────────────────────────────────────────── impact band */
+/* ─────────────────────────────────────────────────────── why pratikar */
 
 /**
- * Jasper's big-number band, with only numbers the catalogue backs up —
- * counted from the rows on sale — and two that are promises the product
- * enforces, not statistics.
+ * Coursera's outcome band, without invented numbers: one promise the
+ * product enforces, and the six things it does to keep it. No testimonials
+ * until there are real ones.
  */
-export function ImpactBand({ summary }: { summary: CatalogueSummary }) {
-  const library =
-    summary.library.FORM.count +
-    summary.library.CHECKLIST.count +
-    summary.library.EBOOK.count;
-  const stats = [
-    ...(library > 0
-      ? [
-          {
-            value: countLabel(library),
-            label: "advocate-written forms, checklists and e-books",
-          },
-        ]
-      : []),
-    ...(summary.categories.length > 0
-      ? [
-          {
-            value: String(summary.categories.length),
-            label: "areas of law, from property to the courts",
-          },
-        ]
-      : []),
-    { value: "100%", label: "of AI drafts reviewed by an advocate" },
-    { value: "₹0", label: "to browse, search or ask the assistant" },
-  ];
-
-  return (
-    <section
-      aria-labelledby="impact-title"
-      data-surface="inverse"
-      className="relative overflow-hidden bg-hero-navy"
-    >
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-32 top-0 h-[30rem] w-[30rem] rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.14),transparent)]"
-      />
-      <div
-        className={`${FRAME} relative grid grid-cols-[minmax(0,1fr)] gap-14 py-24 lg:grid-cols-[1fr_1.2fr] lg:items-center`}
-      >
-        <SectionHeading
-          id="impact-title"
-          tone="dark"
-          eyebrow="Why Pratikar"
-          title={
-            <>
-              Legal paperwork has to be{" "}
-              <span className="accent-serif text-brand">right.</span>
-            </>
-          }
-          description="So every document starts from one written by a practising advocate — and every AI draft is checked by one before it reaches you."
-        />
-        <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-panel bg-white/10 ring-1 ring-white/10">
-          {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className="flex flex-col bg-surface-inverse/60 p-6 sm:p-9"
-            >
-              <dt className="mt-2 text-sm leading-relaxed text-ink-inverse-muted">
-                {stat.label}
-              </dt>
-              <dd className="order-first font-display text-4xl font-extrabold tabular-nums tracking-tight text-brand sm:text-5xl">
-                {stat.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
-}
-
-/* ──────────────────────────────────────────────────────── how it works */
-
-const STEPS: { title: string; body: string; icon: LucideIcon }[] = [
-  {
-    title: "Find what you need",
-    body: "Search, browse by topic, or describe your situation to the assistant.",
-    icon: Sparkles,
-  },
-  {
-    title: "Fill in your details",
-    body: "Answer plain questions, or download a form to complete yourself.",
-    icon: FileText,
-  },
-  {
-    title: "Pay once, securely",
-    body: "One price with GST shown, through Razorpay. A GST invoice with every order.",
-    icon: IndianRupee,
-  },
-  {
-    title: "Download — or get it reviewed",
-    body: "Word and PDF, ready to sign. Add an advocate's review for a second pair of eyes.",
-    icon: UserCheck,
-  },
-];
-
-export function HowItWorks() {
-  return (
-    <section aria-labelledby="how-title" className={`${FRAME} py-24`}>
-      <SectionHeading
-        id="how-title"
-        align="center"
-        eyebrow="How it works"
-        title="From question to signed paper in four steps"
-        description="No appointments, no jargon — and you only pay for what you take."
-      />
-      <ol className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
-        {STEPS.map((step, index) => (
-          <li
-            key={step.title}
-            className="relative overflow-hidden rounded-panel border border-line bg-paper p-7"
-          >
-            <span
-              aria-hidden
-              className="absolute right-4 top-3 font-display text-7xl font-extrabold leading-none text-navy-100"
-            >
-              {index + 1}
-            </span>
-            <span className="relative grid h-12 w-12 place-items-center rounded-2xl bg-primary text-brand shadow-raised">
-              <Icon icon={step.icon} size="md" />
-            </span>
-            <h3 className="relative mt-6 font-display text-lg font-bold tracking-tight text-ink">
-              <span className="sr-only">Step {index + 1}: </span>
-              {step.title}
-            </h3>
-            <p className="relative mt-2 text-sm leading-relaxed text-ink-muted">
-              {step.body}
-            </p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────── trust */
-
-/**
- * Why someone should believe any of this. Only what the product actually
- * does — no customer counts, ratings or testimonials until there are real
- * ones. On a site selling legal material, an invented number is a worse
- * first impression than a plain one.
- */
-const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
+const PROMISES: { title: string; body: string; icon: LucideIcon }[] = [
   {
     title: "Advocate review",
     body: "Every AI draft — and any document you choose — is checked by a practising advocate.",
     icon: UserCheck,
   },
   {
-    title: "Reviewed before publishing",
+    title: "Written by advocates",
     body: "Templates and forms come from our advocate-written library and pass review first.",
     icon: ShieldCheck,
   },
@@ -894,45 +469,53 @@ const ASSURANCES: { title: string; body: string; icon: LucideIcon }[] = [
   },
   {
     title: "Private to your account",
-    body: "Your answers and documents stay yours, behind download links that expire. Delete your account any time.",
+    body: "Your documents stay yours, behind links that expire. Delete your account any time.",
     icon: KeyRound,
   },
   {
     title: "Certificates you can check",
-    body: "Each certificate carries a code anyone can verify here, no account needed.",
+    body: "Each certificate carries a code anyone can verify, no account needed.",
     icon: BadgeCheck,
   },
 ];
 
-export function Assurances() {
+export function WhyPratikar() {
   return (
-    <section
-      aria-labelledby="trust-title"
-      className="border-y border-line bg-paper"
-    >
-      <div className={`${FRAME} py-24`}>
-        <SectionHeading
-          id="trust-title"
-          align="center"
-          eyebrow="Our promise"
-          title="What we do to make sure it's right"
-        />
-        <ul className="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          {ASSURANCES.map((item) => (
-            <li
+    <section aria-labelledby="why-title" className="bg-ivory">
+      <div
+        className={`${FRAME} grid grid-cols-[minmax(0,1fr)] gap-12 py-16 lg:grid-cols-[0.9fr_1.6fr] lg:items-center`}
+      >
+        <Reveal>
+          <p className="font-display text-7xl font-extrabold text-noir">100%</p>
+          <h2
+            id="why-title"
+            className="mt-4 text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
+          >
+            of AI drafts are reviewed by a practising advocate.
+          </h2>
+          <p className="mt-4 text-lg text-noir/70">
+            Legal paperwork has to be right. Here is what we do to make sure it
+            is.
+          </p>
+        </Reveal>
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {PROMISES.map((item, index) => (
+            <Reveal
+              as="li"
               key={item.title}
-              className="rounded-panel border border-line bg-surface p-7 transition-shadow hover:shadow-float"
+              delay={(index % 2) * 70}
+              className="rounded-xl bg-white p-5 shadow-card"
             >
-              <span className="grid h-12 w-12 place-items-center rounded-2xl bg-brand-subtle text-gold-ink ring-1 ring-brand-border">
-                <Icon icon={item.icon} size="md" />
+              <span className="grid h-10 w-10 place-items-center rounded-lg bg-banner-sky text-noir">
+                <Icon icon={item.icon} />
               </span>
-              <h3 className="mt-5 font-display text-lg font-bold tracking-tight text-ink">
+              <h3 className="mt-4 font-display text-lg font-bold text-noir">
                 {item.title}
               </h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-muted">
+              <p className="mt-1 text-[0.9375rem] leading-relaxed text-noir/65">
                 {item.body}
               </p>
-            </li>
+            </Reveal>
           ))}
         </ul>
       </div>
@@ -940,7 +523,137 @@ export function Assurances() {
   );
 }
 
-/* ───────────────────────────────────────────────────────────── FAQ teaser */
+/* ───────────────────────────────────────────────────────────── prices */
+
+export interface PriceFloor {
+  label: string;
+  /** Formatted, GST-inclusive. */
+  from: string;
+  note: string;
+  href: string;
+}
+
+/**
+ * What things cost, before anyone has to ask: the lowest real price of each
+ * kind, GST included, read from the catalogue. Kinds with nothing on sale
+ * are left out rather than given a made-up number.
+ */
+export function PriceGuide({ prices }: { prices: PriceFloor[] }) {
+  if (prices.length === 0) return null;
+  return (
+    <section aria-labelledby="prices-title" className="bg-white">
+      <div className={`${FRAME} py-16`}>
+        <SectionHead
+          id="prices-title"
+          title="Simple, one-time prices"
+          intro="GST included and shown before you begin. No subscription — pay once for the document you take."
+        />
+        <ul
+          className={`mt-8 grid gap-4 sm:grid-cols-2 ${prices.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+        >
+          {prices.map((price, index) => (
+            <Reveal as="li" key={price.label} delay={index * 60}>
+              <Link
+                href={price.href}
+                className="group flex h-full flex-col rounded-xl border border-ivory-line p-6 transition-[border-color,box-shadow] hover:border-noir/30 hover:shadow-float"
+              >
+                <p className="font-semibold text-noir/70">{price.label}</p>
+                <p className="mt-3 text-sm text-noir/60">from</p>
+                <p className="font-display text-4xl font-extrabold tabular-nums text-noir">
+                  {price.from}
+                </p>
+                <p className="mt-3 flex-1 text-[0.9375rem] leading-relaxed text-noir/65">
+                  {price.note}
+                </p>
+                <span className="mt-5 inline-flex items-center gap-1 font-semibold text-noir-raised">
+                  Browse
+                  <Icon
+                    icon={ArrowRight}
+                    size="xs"
+                    className="transition-transform group-hover:translate-x-0.5"
+                  />
+                </span>
+              </Link>
+            </Reveal>
+          ))}
+        </ul>
+        <p className="mt-5 text-sm text-noir/60">
+          Generating and previewing a template is free — you pay only to
+          download. An advocate&apos;s review is quoted on each document page.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ──────────────────────────────────────────────────────── how it works */
+
+const STEPS: { title: string; body: string; icon: LucideIcon }[] = [
+  {
+    title: "Find what you need",
+    body: "Search, browse by area of law, or describe your situation to the assistant.",
+    icon: Search,
+  },
+  {
+    title: "Fill in your details",
+    body: "Answer plain questions — on a form, or simply by chatting.",
+    icon: FileText,
+  },
+  {
+    title: "Pay once, securely",
+    body: "One price with GST shown, through Razorpay, with a GST invoice.",
+    icon: IndianRupee,
+  },
+  {
+    title: "Download — or get it reviewed",
+    body: "Word and PDF, ready to sign. Add an advocate's review first if you like.",
+    icon: UserCheck,
+  },
+];
+
+export function Process() {
+  return (
+    <section
+      id="how-it-works"
+      aria-labelledby="process-title"
+      className="scroll-mt-24 bg-white"
+    >
+      <div className={`${FRAME} py-16`}>
+        <SectionHead
+          id="process-title"
+          title="How it works"
+          intro="From question to signed paper in four steps — no appointments, no jargon."
+        />
+        <ol className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {STEPS.map((step, index) => (
+            <Reveal
+              as="li"
+              key={step.title}
+              delay={index * 60}
+              className="relative rounded-xl border border-ivory-line p-6"
+            >
+              <span className="absolute right-5 top-4 font-display text-4xl font-extrabold text-ivory-deep">
+                {index + 1}
+              </span>
+              <span className="grid h-11 w-11 place-items-center rounded-lg bg-noir text-brand">
+                <Icon icon={step.icon} />
+              </span>
+              <h3 className="mt-5 font-display text-lg font-bold text-noir">
+                <span className="sr-only">Step {index + 1}: </span>
+                {step.title}
+              </h3>
+              <p className="mt-1.5 text-[0.9375rem] leading-relaxed text-noir/65">
+                {step.body}
+              </p>
+            </Reveal>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────── FAQ */
 
 export interface FaqPreviewItem {
   id: string;
@@ -949,43 +662,33 @@ export interface FaqPreviewItem {
 }
 
 /**
- * A few answers from the FAQ, for the questions that stop people buying.
- * Server-rendered <details>, so it works without JavaScript. Left out
- * entirely until the client has published FAQ entries.
+ * A few answers from the FAQ, Coursera-style — a plain list of questions
+ * that open in place. Server-rendered <details>, so it works without
+ * JavaScript; left out entirely until the client publishes FAQ entries.
  */
 export function FaqTeaser({ items }: { items: FaqPreviewItem[] }) {
   if (items.length === 0) return null;
   return (
-    <section aria-labelledby="faq-title" className={`${FRAME} py-24`}>
-      <div className="grid gap-12 lg:grid-cols-[0.8fr_1.2fr]">
-        <div>
-          <SectionHeading
-            id="faq-title"
-            eyebrow="Questions"
-            title="Good to know"
-            description="Quick answers about downloads, payments and reviews."
-          />
-          <Link href="/faq" className={`${OUTLINE_BUTTON} mt-8`}>
-            All questions
-            <Icon icon={ArrowRight} size="xs" />
-          </Link>
-        </div>
-        <div className="space-y-3">
+    <section aria-labelledby="faq-title" className="bg-white">
+      <div className={`${FRAME} py-16`}>
+        <SectionHead
+          id="faq-title"
+          title="Frequently asked questions"
+          aside={<ViewAll href="/faq">All questions</ViewAll>}
+        />
+        <div className="mt-8 divide-y divide-ivory-line border-y border-ivory-line">
           {items.map((item) => (
-            <details
-              key={item.id}
-              className="group/faq rounded-2xl border border-line bg-surface transition-shadow open:shadow-float"
-            >
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-6 py-5 font-display text-base font-bold text-ink [&::-webkit-details-marker]:hidden">
+            <details key={item.id} className="group/faq">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 py-5 text-lg font-semibold text-noir [&::-webkit-details-marker]:hidden">
                 {item.question}
                 <span
                   aria-hidden
-                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-paper text-lg text-primary transition-transform group-open/faq:rotate-45"
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-xl text-noir transition-transform group-open/faq:rotate-45 group-hover/faq:bg-ivory"
                 >
                   +
                 </span>
               </summary>
-              <p className="whitespace-pre-line px-6 pb-6 text-sm leading-relaxed text-ink-muted">
+              <p className="whitespace-pre-line pb-6 pr-12 text-base leading-relaxed text-noir/70">
                 {item.answer}
               </p>
             </details>
@@ -996,91 +699,86 @@ export function FaqTeaser({ items }: { items: FaqPreviewItem[] }) {
   );
 }
 
-/* ──────────────────────────────────────────────────────── closing band */
+/* ──────────────────────────────────────────────────────── closing banner */
 
-const COLLAGE = [
+const PAPERS = [
   {
-    kind: "document" as const,
-    title: "Leave and Licence Agreement",
-    place: "left-0 top-4 -rotate-6",
+    title: "Rent Agreement",
+    kind: "Template",
+    place: "left-6 top-2 -rotate-6",
   },
+  { title: "General Affidavit", kind: "Form", place: "right-4 top-8 rotate-6" },
   {
-    kind: "ebook" as const,
-    title: "Buying Your First Home",
-    place: "right-0 top-0 rotate-6",
-  },
-  {
-    kind: "checklist" as const,
     title: "Before You Sign a Lease",
-    place: "bottom-0 left-8 rotate-3",
-  },
-  {
-    kind: "form" as const,
-    title: "General Affidavit",
-    place: "bottom-6 right-6 -rotate-3",
+    kind: "Checklist",
+    place: "bottom-0 left-16 rotate-2",
   },
 ];
 
 /**
- * The last invitation, Jasper's way: a headline and buttons over a collage
- * — here, catalogue covers fanned out like papers on a desk.
+ * Coursera's last word — "Take the next step toward your goals" — over a
+ * tinted panel with a picture on the side.
  */
 export function ClosingBanner() {
   return (
-    <section aria-labelledby="closing-title" className={`${FRAME} pt-24`}>
-      <div
-        data-surface="inverse"
-        className="relative overflow-hidden rounded-[2.25rem] bg-hero-navy px-6 py-16 shadow-float sm:px-14 lg:py-20"
-      >
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -bottom-40 -right-20 h-[34rem] w-[34rem] rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.2),transparent)]"
-        />
-        <div className="relative grid grid-cols-[minmax(0,1fr)] items-center gap-12 lg:grid-cols-[1.5fr_1fr]">
-          <div>
-            <h2
-              id="closing-title"
-              className="text-4xl font-extrabold leading-[1.06] text-ink-inverse sm:text-5xl lg:text-[3.4rem]"
+    <section aria-labelledby="closing-title" className="bg-white">
+      <div className={`${FRAME} pb-6 pt-6`}>
+        <Reveal>
+          <div className="relative isolate grid grid-cols-[minmax(0,1fr)] items-center gap-8 overflow-hidden rounded-2xl bg-banner-sky px-6 py-12 sm:px-12 lg:grid-cols-[1.3fr_1fr]">
+            <span
+              aria-hidden
+              className="absolute -right-16 -top-16 -z-10 h-72 w-72 rounded-full bg-white/70"
+            />
+            <span
+              aria-hidden
+              className="absolute -bottom-20 right-48 -z-10 h-48 w-48 rounded-full bg-brand/20"
+            />
+            <div>
+              <h2
+                id="closing-title"
+                className="text-3xl font-extrabold leading-tight text-noir sm:text-4xl"
+              >
+                Take the next step with the{" "}
+                <span className="accent-serif">right document</span>.
+              </h2>
+              <p className="mt-4 max-w-lg text-lg text-noir/70">
+                Browse everything freely — sign in only when you&apos;re ready
+                to make or buy something.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Link href="/signup" className="btn-noir">
+                  Join for free
+                </Link>
+                <Link href="/documents" className="btn-line">
+                  Browse documents
+                </Link>
+              </div>
+            </div>
+            <div
+              aria-hidden
+              className="relative hidden h-56 select-none lg:block"
             >
-              Start with the document{" "}
-              <span className="accent-serif text-brand">you need today.</span>
-            </h2>
-            <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-inverse-muted">
-              Browse everything freely — sign in only when you&apos;re ready to
-              make or buy something.
-            </p>
-            <div className="mt-9 flex flex-wrap gap-3">
-              <Link href="/documents/custom" className={GOLD_BUTTON}>
-                <Icon icon={Sparkles} size="xs" />
-                Draft with AI
-              </Link>
-              <Link href="/documents" className={GHOST_INVERSE_BUTTON}>
-                Browse templates
-              </Link>
-              <Link href="/assistant" className={GHOST_INVERSE_BUTTON}>
-                <Icon icon={MessageCircle} size="xs" />
-                Ask a question
-              </Link>
+              {PAPERS.map((paper) => (
+                <div
+                  key={paper.title}
+                  className={`absolute w-52 rounded-xl bg-white p-4 shadow-float ${paper.place}`}
+                >
+                  <p className="text-xs font-bold uppercase tracking-wide text-gold-ink">
+                    {paper.kind}
+                  </p>
+                  <p className="mt-1 font-display font-bold text-noir">
+                    {paper.title}
+                  </p>
+                  <div className="mt-3 space-y-1.5">
+                    <div className="h-1.5 w-full rounded-full bg-ivory-deep" />
+                    <div className="h-1.5 w-4/5 rounded-full bg-ivory-deep" />
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-
-          <div
-            aria-hidden
-            className="relative mx-auto hidden h-80 w-full max-w-md select-none sm:block"
-          >
-            {COLLAGE.map((cover) => (
-              <CatalogueCover
-                key={cover.title}
-                kind={cover.kind}
-                title={cover.title}
-                className={`!absolute w-60 rounded-2xl shadow-float ring-1 ring-white/10 ${cover.place}`}
-              />
-            ))}
-          </div>
-        </div>
+        </Reveal>
       </div>
     </section>
   );
 }
-
-export { GHOST_INVERSE_BUTTON, GOLD_BUTTON, NAVY_BUTTON, OUTLINE_BUTTON };

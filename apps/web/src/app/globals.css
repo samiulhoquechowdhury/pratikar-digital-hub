@@ -36,18 +36,14 @@
   }
 
   /**
-   * Titles take the display sans, set tight the way large geometric type
-   * wants to be. A single italic serif word (`.accent-serif`) is the one
-   * editorial flourish a headline may carry.
+   * Titles take the display serif — light, large and set a little tight,
+   * the way a printed deed sets its heading. Its italic is the one flourish
+   * a headline may wear (`.accent-serif`).
    */
   h1,
   h2 {
-    @apply font-display;
-    letter-spacing: -0.025em;
-  }
-
-  h1 {
-    @apply font-bold;
+    @apply font-display font-bold;
+    letter-spacing: -0.02em;
   }
 
   /**
@@ -99,16 +95,65 @@
   }
 }
 
+/* A page that ends on noir meets the noir footer without a gap. */
+main:has([data-flush-footer]) + footer {
+  margin-top: 0;
+}
+
+/* …and its own closing call already said what the footer's would. */
+main:has([data-flush-footer]) + footer [data-footer-cta] {
+  display: none;
+}
+
 @layer components {
-  /** One serif word inside a sans headline — "drafted *right*". */
+  /**
+   * The highlighted words of a headline: a gold marker stroke under them,
+   * the way a reader underlines the line that matters.
+   */
   .accent-serif {
-    @apply font-serif font-normal italic;
-    letter-spacing: -0.01em;
+    @apply bg-no-repeat;
+    background-image: linear-gradient(
+      transparent 62%,
+      rgb(212 175 55 / 0.38) 62%,
+      rgb(212 175 55 / 0.38) 92%,
+      transparent 92%
+    );
+  }
+
+  /** The same emphasis on a dark banner: the words in gold. */
+  .foil-text {
+    @apply text-brand;
   }
 
   /** The storefront's eyebrow: a short label above a section title. */
   .eyebrow {
-    @apply inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em] text-gold-ink;
+    @apply inline-flex items-center gap-2 text-sm font-semibold text-gold-ink;
+  }
+
+  /**
+   * The storefront's buttons — Coursera's: medium-rounded, sentence case,
+   * semibold. Navy is the primary action; gold is for the one action a
+   * dark banner leads to. One primary per view.
+   */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-6 py-3 text-base font-semibold transition-[background-color,color,border-color,box-shadow] duration-200 motion-reduce:transition-none;
+  }
+  .btn-gold {
+    @apply btn bg-brand text-on-brand hover:bg-brand-hover;
+  }
+  .btn-noir {
+    @apply btn bg-noir text-white hover:bg-noir-raised;
+  }
+  .btn-line {
+    @apply btn border border-noir text-noir hover:bg-noir/5;
+  }
+  .btn-line-inverse {
+    @apply btn border border-white/70 text-white hover:bg-white/10;
+  }
+
+  /** A text link whose underline draws in from the left on hover. */
+  .link-draw {
+    @apply bg-[linear-gradient(currentColor,currentColor)] bg-[length:0%_1px] bg-left-bottom bg-no-repeat pb-0.5 transition-[background-size] duration-500 hover:bg-[length:100%_1px];
   }
 
   /**

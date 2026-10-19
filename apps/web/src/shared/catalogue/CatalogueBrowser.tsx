@@ -137,7 +137,7 @@ export function CatalogueBrowser<T>({
     <div className="lg:grid lg:grid-cols-[15rem_minmax(0,1fr)] lg:gap-10">
       {/* Filters beside the results, held in view while they scroll. */}
       <aside aria-label="Filters" className="hidden lg:block">
-        <div className="sticky top-[8.5rem] max-h-[calc(100dvh-10rem)] overflow-y-auto pb-6 pr-2">
+        <div className="sticky top-28 max-h-[calc(100dvh-8rem)] overflow-y-auto pb-6 pr-2">
           {facetPanel}
         </div>
       </aside>
@@ -145,7 +145,7 @@ export function CatalogueBrowser<T>({
       <div className="min-w-0">
         <div
           ref={resultsTop}
-          className="sticky top-16 z-20 -mx-4 scroll-mt-24 border-b border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:-mx-6 sm:px-6 lg:top-[6.75rem] lg:mx-0 lg:scroll-mt-32 lg:border-b-0 lg:px-0"
+          className="sticky top-[4.5rem] z-20 -mx-4 scroll-mt-24 border-b border-line bg-surface/95 px-4 pb-3 pt-3 backdrop-blur supports-[backdrop-filter]:bg-surface/85 sm:-mx-6 sm:px-6 lg:top-[4.5rem] lg:mx-0 lg:scroll-mt-32 lg:border-b-0 lg:px-0"
         >
           <div className="flex gap-2">
             <SearchBox
@@ -156,7 +156,7 @@ export function CatalogueBrowser<T>({
             <button
               type="button"
               onClick={() => setSheetOpen(true)}
-              className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-line-strong bg-surface px-4 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:hidden"
+              className="inline-flex h-12 shrink-0 items-center gap-2 rounded-full border border-noir/25 bg-white px-4 text-sm font-semibold text-ink transition-colors hover:bg-surface-sunken lg:hidden"
             >
               <Icon icon={SlidersHorizontal} />
               Filters
@@ -200,7 +200,7 @@ export function CatalogueBrowser<T>({
             />
           </div>
         ) : params.view === "list" ? (
-          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface">
+          <ul className="mt-4 divide-y divide-line overflow-hidden rounded-xl border border-ivory-line bg-white">
             {result.items.map((item) => (
               <li key={keyOf(item)}>{renderRow(item)}</li>
             ))}
@@ -282,7 +282,7 @@ function SearchBox({
         onChange={(event) => setText(event.target.value)}
         placeholder={placeholder}
         autoComplete="off"
-        className="h-12 w-full rounded-full border border-line-strong bg-surface pl-12 pr-5 text-base text-ink shadow-card placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-primary"
+        className="h-12 w-full rounded-full border border-noir/25 bg-white pl-12 pr-5 text-base text-ink shadow-card placeholder:text-ink-subtle transition-colors hover:border-ink-subtle focus:border-noir"
       />
     </div>
   );

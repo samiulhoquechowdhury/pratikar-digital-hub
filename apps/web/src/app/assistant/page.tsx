@@ -52,11 +52,11 @@ export default async function AssistantPage({
       </section>
 
       <section className="mx-auto max-w-shell px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl rounded-panel border border-line bg-paper px-6 py-10 sm:px-10">
+        <div className="mx-auto max-w-4xl border border-ivory-line bg-ivory px-6 py-10 sm:px-10">
           <ul className="grid gap-8 sm:grid-cols-3">
             {LIMITS.map((item) => (
               <li key={item.title}>
-                <h2 className="text-lg font-bold">{item.title}</h2>
+                <h2 className="text-2xl font-bold text-noir">{item.title}</h2>
                 <p className="mt-2 text-sm leading-relaxed text-ink-muted">
                   {item.body}
                 </p>

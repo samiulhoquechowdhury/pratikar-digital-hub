@@ -39,13 +39,13 @@ export default async function DocumentsPage() {
         <Link
           href="/documents/custom"
           data-surface="inverse"
-          className="group relative flex flex-col gap-4 overflow-hidden rounded-panel bg-hero-navy px-6 py-6 text-ink-inverse shadow-float transition-transform hover:-translate-y-0.5 motion-reduce:transform-none sm:flex-row sm:items-center sm:px-8"
+          className="group relative flex flex-col gap-5 overflow-hidden rounded-xl bg-noir-glow px-6 py-7 text-white transition-transform hover:-translate-y-0.5 motion-reduce:transform-none sm:flex-row sm:items-center sm:px-10"
         >
-          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-brand text-on-brand">
+          <span className="grid h-12 w-12 shrink-0 place-items-center rounded-full border border-brand/60 text-brand">
             <Icon icon={FilePenLine} size="md" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-lg font-bold tracking-tight">
+            <span className="block font-display text-2xl font-bold">
               Need a document that isn&apos;t here?
             </span>
             <span className="mt-0.5 block text-sm text-ink-inverse-muted">
@@ -53,9 +53,7 @@ export default async function DocumentsPage() {
               practising advocate reviews it before you download.
             </span>
           </span>
-          <span className="w-fit whitespace-nowrap rounded-full bg-brand px-5 py-2.5 text-sm font-semibold text-on-brand transition-colors group-hover:bg-brand-hover">
-            Draft it with AI
-          </span>
+          <span className="btn-gold w-fit">Draft it with AI</span>
         </Link>
       </PageSection>
       <PageSection className="pb-12">

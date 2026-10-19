@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+import { CertificateArt } from "@/features/home/components/illustrations";
 import { Icon } from "@/shared/components/Icon";
 
 const WHAT_TO_EXPECT: { icon: LucideIcon; title: string; body: string }[] = [
@@ -37,38 +38,40 @@ const WHAT_TO_EXPECT: { icon: LucideIcon; title: string; body: string }[] = [
 export function CoursesComingSoon() {
   return (
     <>
-      <section className="relative overflow-hidden bg-surface-inverse">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(50rem_28rem_at_80%_-10%,theme(colors.navy.600),transparent_70%)]"
-        />
-        <div className="relative mx-auto max-w-shell px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-          <p className="inline-flex items-center gap-2 rounded-full border border-line-inverse bg-surface-inverse-raised/60 px-3 py-1 text-sm font-semibold text-brand">
-            <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-brand" />
-            Coming soon
-          </p>
-          <h1 className="mt-6 max-w-3xl text-4xl leading-tight text-ink-inverse sm:text-6xl sm:leading-[1.05]">
-            Certificate courses are on their way.
-          </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-relaxed text-ink-inverse-muted sm:text-xl">
-            We&apos;re recording short video courses on the law people use every
-            day, each ending in a certificate you can share. Until then,
-            everything else on Pratikar is ready to use.
-          </p>
-          <div className="mt-10 flex flex-wrap gap-3">
-            <Link
-              href="/content-library"
-              className="inline-flex items-center gap-2 rounded-control bg-brand px-5 py-3 text-sm font-semibold text-on-brand transition-colors hover:bg-brand-hover"
-            >
-              Explore the library
-              <Icon icon={ArrowRight} />
-            </Link>
-            <Link
-              href="/documents"
-              className="inline-flex items-center gap-2 rounded-control border border-line-inverse px-5 py-3 text-sm font-semibold text-ink-inverse transition-colors hover:bg-surface-inverse-raised"
-            >
-              Create a document
-            </Link>
+      {/* The home page's banner, for the one section still to come. */}
+      <section className="mx-auto max-w-shell px-4 pt-6 sm:px-6 sm:pt-8 lg:px-8">
+        <div className="relative isolate grid grid-cols-[minmax(0,1fr)] overflow-hidden rounded-2xl bg-banner-lilac lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+          <span
+            aria-hidden
+            className="absolute -right-24 top-1/2 -z-10 hidden h-[30rem] w-[30rem] -translate-y-1/2 rounded-full bg-white/70 lg:block"
+          />
+          <div className="px-6 py-12 sm:px-12 lg:py-16 lg:pl-14">
+            <p className="inline-flex rounded bg-noir px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
+              Coming soon
+            </p>
+            <h1 className="mt-5 max-w-xl text-[2.25rem] font-extrabold leading-tight text-noir sm:text-[2.75rem]">
+              Certificate courses are on their way.
+            </h1>
+            <p className="mt-4 max-w-lg text-lg leading-relaxed text-noir/75">
+              We&apos;re recording short video courses on the law people use
+              every day, each ending in a certificate you can share. Until then,
+              everything else on Pratikar is ready to use.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/content-library" className="btn-noir">
+                Explore the library
+                <Icon icon={ArrowRight} />
+              </Link>
+              <Link href="/documents" className="btn-line">
+                Create a document
+              </Link>
+            </div>
+          </div>
+          <div
+            aria-hidden
+            className="relative hidden items-center justify-center p-10 lg:flex"
+          >
+            <CertificateArt className="w-full max-w-md rotate-[-4deg] drop-shadow-2xl" />
           </div>
         </div>
       </section>
@@ -80,7 +83,7 @@ export function CoursesComingSoon() {
         <p className="text-sm font-semibold text-gold-ink">What to expect</p>
         <h2
           id="expect-title"
-          className="mt-2 font-display text-3xl font-semibold sm:text-4xl"
+          className="mt-2 text-[1.75rem] font-bold sm:text-[2.125rem]"
         >
           Learn it properly, and prove it
         </h2>

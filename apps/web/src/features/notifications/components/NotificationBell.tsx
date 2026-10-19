@@ -39,7 +39,7 @@ export function NotificationBell() {
         aria-expanded={isOpen}
         aria-haspopup="true"
         onClick={() => setIsOpen((open) => !open)}
-        className="relative grid h-10 w-10 place-items-center rounded-full text-ink-muted transition-colors hover:bg-surface-sunken hover:text-ink"
+        className="relative grid h-10 w-10 place-items-center rounded-full text-noir/70 transition-colors hover:bg-ivory hover:text-noir"
       >
         <Icon icon={Bell} size="md" />
         <span className="sr-only">

@@ -67,7 +67,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           itself below the fold, which is the only thing anyone came for. */}
       <section
         data-surface="inverse"
-        className="relative hidden overflow-hidden bg-hero-navy lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
+        className="relative hidden overflow-hidden bg-noir-glow lg:flex lg:flex-col lg:justify-center lg:px-12 xl:px-20"
       >
         {/* The hero's light and grid, so signing in feels like the same
             place as the home page rather than a utility screen. */}
@@ -83,9 +83,9 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           <p className="text-sm font-semibold text-brand">
             Har Ghar Mein Kanooni Gyaan
           </p>
-          <p className="mt-4 font-display text-4xl font-extrabold leading-[1.08] tracking-tight text-ink-inverse xl:text-5xl">
+          <p className="mt-6 font-display text-5xl font-bold leading-[1.04] text-ivory xl:text-6xl">
             Legal knowledge in{" "}
-            <span className="accent-serif text-brand">every home.</span>
+            <em className="foil-text font-bold">every home.</em>
           </p>
           <ul className="mt-10 space-y-4">
             {PROMISES.map((promise) => (
@@ -106,9 +106,9 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
           {/* What signing in leads to — the moment the product is for. */}
           <div
             aria-hidden
-            className="mt-12 flex max-w-xs items-start gap-3 rounded-2xl bg-surface px-4 py-3 shadow-float motion-safe:animate-float"
+            className="mt-14 flex max-w-xs items-start gap-3 bg-ivory px-4 py-3 shadow-float motion-safe:animate-float"
           >
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary text-brand">
+            <span className="grid h-9 w-9 shrink-0 place-items-center bg-noir text-brand">
               <Icon icon={Bell} size="sm" />
             </span>
             <span>
@@ -124,8 +124,8 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
       </section>
 
       <section className="flex items-center justify-center bg-paper px-4 py-12 sm:px-6">
-        <div className="w-full max-w-md rounded-panel border border-line bg-surface p-6 shadow-float sm:p-10">
-          <h1 className="text-3xl">{copy.heading}</h1>
+        <div className="w-full max-w-md rounded-2xl border border-ivory-line bg-white p-7 shadow-float sm:p-10">
+          <h1 className="text-3xl font-bold text-noir">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
             {copy.sub}
           </p>

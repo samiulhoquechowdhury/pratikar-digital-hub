@@ -3,9 +3,9 @@ import type { ReactNode } from "react";
 /**
  * The top of every page: what this is, in a sentence, and what you can do.
  *
- * Warm paper with a faint ruled grid and a gold glow — the same on every
- * page (catalogue, assistant, legal) so the site reads as one product, and
- * compact enough that what the page is *for* starts high on the screen.
+ * A tinted banner like the home page's hero slides — a tag, a bold title,
+ * one line — the same on every page (catalogue, assistant, legal) so the
+ * site reads as one product.
  *
  * Web-only on purpose. The shared PageHeader in @pratikar/ui is also the
  * admin panel's, and a storefront title wants more presence than a tool's.
@@ -26,29 +26,30 @@ export function PageIntro({
   children?: ReactNode;
 }) {
   return (
-    <section className="relative isolate mb-10 overflow-hidden border-b border-line bg-paper">
-      <div
+    <section className="relative isolate mb-10 overflow-hidden bg-banner-sky">
+      {/* The home banners' shapes: a white disc and a gold one, off the
+          right edge — so every page opens like a slide from the hero. */}
+      <span
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(to_right,theme(colors.navy.100/45%)_1px,transparent_1px),linear-gradient(to_bottom,theme(colors.navy.100/45%)_1px,transparent_1px)] [background-size:48px_48px] [mask-image:radial-gradient(ellipse_70%_90%_at_85%_0%,black,transparent_75%)]"
+        className="pointer-events-none absolute -right-24 -top-24 -z-10 h-80 w-80 rounded-full bg-white/70 sm:h-[26rem] sm:w-[26rem]"
       />
-      <div
+      <span
         aria-hidden
-        className="pointer-events-none absolute -right-24 -top-32 -z-10 h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgb(212_175_55/0.18),transparent)]"
+        className="pointer-events-none absolute -bottom-16 right-40 -z-10 hidden h-40 w-40 rounded-full bg-brand/20 sm:block"
       />
       <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-3xl">
             {eyebrow && (
-              <p className="eyebrow">
-                <span aria-hidden className="h-px w-6 bg-current" />
+              <p className="inline-flex rounded bg-noir px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-white">
                 {eyebrow}
               </p>
             )}
-            <h1 className="mt-3 text-4xl leading-[1.1] text-ink sm:text-5xl">
+            <h1 className="mt-4 text-[2.25rem] font-extrabold leading-tight text-noir sm:text-[2.75rem]">
               {title}
             </h1>
             {description && (
-              <p className="mt-4 max-w-2xl text-base leading-relaxed text-ink-muted sm:text-lg">
+              <p className="mt-3 max-w-2xl text-lg leading-relaxed text-noir/75">
                 {description}
               </p>
             )}

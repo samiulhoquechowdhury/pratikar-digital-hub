@@ -65,84 +65,84 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
   };
 
   return (
-    <section
-      aria-labelledby={`${baseId}-title`}
-      className="mx-auto max-w-shell px-4 py-24 sm:px-6 lg:px-8"
-    >
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div className="max-w-2xl">
-          <p className="eyebrow">
-            <span aria-hidden className="h-px w-6 bg-current" />
-            The catalogue
-          </p>
-          <h2
-            id={`${baseId}-title`}
-            className="mt-4 text-3xl font-extrabold leading-[1.1] text-ink sm:text-5xl sm:leading-[1.06]"
-          >
-            Popular right now
-          </h2>
-        </div>
-        <Link
-          href={active.href}
-          className="group inline-flex items-center gap-2 rounded-full border border-line-strong bg-surface px-5 py-3 text-sm font-semibold text-ink transition-colors hover:border-ink-subtle"
-        >
-          View all {active.label.toLowerCase()}
-          <Icon
-            icon={ArrowRight}
-            size="xs"
-            className="transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none"
-          />
-        </Link>
-      </div>
-
-      <div
-        role="tablist"
-        aria-label="Kinds of product"
-        className="relative mt-8 flex gap-2 overflow-x-auto pb-1"
-      >
-        {live.map((shelf, index) => {
-          const selected = shelf.id === active.id;
-          return (
-            <button
-              key={shelf.id}
-              ref={(node) => {
-                tabRefs.current[index] = node;
-              }}
-              type="button"
-              role="tab"
-              id={`${baseId}-tab-${shelf.id}`}
-              aria-selected={selected}
-              aria-controls={`${baseId}-panel`}
-              tabIndex={selected ? 0 : -1}
-              onClick={() => setActiveId(shelf.id)}
-              onKeyDown={(event) => onTabKey(event, index)}
-              className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition-colors ${
-                selected
-                  ? "bg-primary text-ink-inverse"
-                  : "border border-line-strong bg-surface text-ink hover:border-ink-subtle"
-              }`}
+    <section aria-labelledby={`${baseId}-title`} className="bg-white">
+      <div className="mx-auto max-w-shell px-4 py-10 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2
+              id={`${baseId}-title`}
+              className="text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
             >
-              {shelf.label}
-              <span
-                className={`ml-2 tabular-nums ${selected ? "text-brand" : "text-ink-subtle"}`}
-              >
-                {shelf.total}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+              New and popular
+            </h2>
+            <p className="mt-2 text-lg text-noir/70">
+              Ready-made documents, forms and guides — written by advocates.
+            </p>
+          </div>
+          <Link
+            href={active.href}
+            className="group inline-flex shrink-0 items-center gap-1.5 font-semibold text-noir-raised"
+          >
+            <span className="link-draw">
+              View all {active.label.toLowerCase()}
+            </span>
+            <Icon
+              icon={ArrowRight}
+              size="xs"
+              className="transition-transform group-hover:translate-x-0.5"
+            />
+          </Link>
+        </div>
 
-      <div
-        role="tabpanel"
-        id={`${baseId}-panel`}
-        aria-labelledby={`${baseId}-tab-${active.id}`}
-        className="mt-8"
-      >
-        <Carousel key={active.id} label={active.label} items={active.items} />
-        <p className="sr-only" aria-live="polite">
-          Showing {active.label}, tab {activeIndex + 1} of {live.length}
-        </p>
+        <div
+          role="tablist"
+          aria-label="Kinds of product"
+          className="relative mt-6 flex gap-2 overflow-x-auto pb-1"
+        >
+          {live.map((shelf, index) => {
+            const selected = shelf.id === active.id;
+            return (
+              <button
+                key={shelf.id}
+                ref={(node) => {
+                  tabRefs.current[index] = node;
+                }}
+                type="button"
+                role="tab"
+                id={`${baseId}-tab-${shelf.id}`}
+                aria-selected={selected}
+                aria-controls={`${baseId}-panel`}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setActiveId(shelf.id)}
+                onKeyDown={(event) => onTabKey(event, index)}
+                className={`relative shrink-0 rounded-full px-4 py-2 text-[0.9375rem] font-semibold transition-colors ${
+                  selected
+                    ? "bg-noir text-white"
+                    : "border border-noir/20 text-noir hover:border-noir hover:bg-ivory"
+                }`}
+              >
+                {shelf.label}
+                <span
+                  className={`ml-1.5 tabular-nums ${selected ? "text-brand" : "text-noir/50"}`}
+                >
+                  {shelf.total}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div
+          role="tabpanel"
+          id={`${baseId}-panel`}
+          aria-labelledby={`${baseId}-tab-${active.id}`}
+          className="mt-6"
+        >
+          <Carousel key={active.id} label={active.label} items={active.items} />
+          <p className="sr-only" aria-live="polite">
+            Showing {active.label}, tab {activeIndex + 1} of {live.length}
+          </p>
+        </div>
       </div>
     </section>
   );
@@ -189,7 +189,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
         {items.map((item) => (
           <li
             key={item.id}
-            className="w-[82%] max-w-[20rem] shrink-0 snap-start sm:w-[20rem] lg:w-[17rem]"
+            className="w-[82%] max-w-[20rem] shrink-0 snap-start sm:w-[20rem] lg:w-[17.5rem]"
           >
             <CatalogueCard
               href={item.href}
@@ -211,7 +211,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
           type="button"
           onClick={() => page(arrow.direction)}
           disabled={arrow.hidden}
-          className={`absolute top-[30%] hidden h-12 w-12 place-items-center rounded-full border border-line bg-surface text-ink shadow-float transition-opacity hover:bg-paper disabled:pointer-events-none disabled:opacity-0 lg:grid ${
+          className={`absolute top-[30%] hidden h-12 w-12 place-items-center rounded-full border border-ivory-line bg-white text-noir shadow-float transition-[opacity,background-color,color] hover:bg-ivory disabled:pointer-events-none disabled:opacity-0 lg:grid ${
             arrow.direction === -1 ? "-left-6" : "-right-6"
           }`}
         >
