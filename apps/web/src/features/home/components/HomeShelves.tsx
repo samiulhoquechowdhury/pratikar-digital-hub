@@ -17,7 +17,8 @@ export interface ShelfItem {
   kind: CatalogueKind;
   title: string;
   meta: string[];
-  priceInPaise: number;
+  /** Null for something not on sale yet. */
+  priceInPaise: number | null;
 }
 
 export interface Shelf {
@@ -39,7 +40,20 @@ export interface Shelf {
  * Tabs with nothing in them are left out; with none at all, so is the
  * section.
  */
-export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
+export function CatalogueTabs({
+  shelves,
+  title = "New and popular",
+  description = "Ready-made documents, forms and guides — written by advocates.",
+  tabsLabel = "Kinds of product",
+  viewAllLabel,
+}: {
+  shelves: Shelf[];
+  title?: string;
+  description?: string;
+  tabsLabel?: string;
+  /** The "View all" link's text; by default, the active tab's name. */
+  viewAllLabel?: string;
+}) {
   const live = shelves.filter((shelf) => shelf.items.length > 0);
   // Open on the first tab with enough cards to fill a row, so the section
   // doesn't greet people with two cards and a blank space.
@@ -73,18 +87,16 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
               id={`${baseId}-title`}
               className="text-[1.75rem] font-bold leading-tight text-noir sm:text-[2.125rem]"
             >
-              New and popular
+              {title}
             </h2>
-            <p className="mt-2 text-lg text-noir/70">
-              Ready-made documents, forms and guides — written by advocates.
-            </p>
+            <p className="mt-2 text-lg text-noir/70">{description}</p>
           </div>
           <Link
             href={active.href}
             className="group inline-flex shrink-0 items-center gap-1.5 font-semibold text-noir-raised"
           >
             <span className="link-draw">
-              View all {active.label.toLowerCase()}
+              {viewAllLabel ?? `View all ${active.label.toLowerCase()}`}
             </span>
             <Icon
               icon={ArrowRight}
@@ -96,7 +108,7 @@ export function CatalogueTabs({ shelves }: { shelves: Shelf[] }) {
 
         <div
           role="tablist"
-          aria-label="Kinds of product"
+          aria-label={tabsLabel}
           className="relative mt-6 flex gap-2 overflow-x-auto pb-1"
         >
           {live.map((shelf, index) => {
@@ -184,7 +196,7 @@ function Carousel({ label, items }: { label: string; items: ShelfItem[] }) {
       <ul
         ref={track}
         aria-label={label}
-        className="relative -mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-6 pt-1 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:scroll-px-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
+        className="relative -mx-4 flex snap-x snap-mandatory gap-5 overflow-x-auto scroll-px-4 px-4 pb-12 pt-3 -mb-6 -mt-2 [scrollbar-width:none] sm:-mx-6 sm:scroll-px-6 sm:px-6 lg:mx-0 lg:scroll-px-0 lg:px-0 [&::-webkit-scrollbar]:hidden"
       >
         {items.map((item) => (
           <li

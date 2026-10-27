@@ -340,6 +340,12 @@ module.exports = {
           "0 4px 6px -1px rgb(11 31 58 / 0.08), 0 2px 4px -2px rgb(11 31 58 / 0.06)",
         overlay:
           "0 20px 25px -5px rgb(11 31 58 / 0.14), 0 8px 10px -6px rgb(11 31 58 / 0.10)",
+        /**
+         * A catalogue card at rest, and lifted on hover. Same layers in
+         * both, so the browser can ease between them instead of snapping.
+         */
+        rest: "0 1px 2px 0 rgb(11 31 58 / 0.04), 0 4px 12px -6px rgb(11 31 58 / 0.06)",
+        lift: "0 4px 8px -2px rgb(11 31 58 / 0.06), 0 18px 36px -12px rgb(11 31 58 / 0.18)",
         /** A product screenshot floating on the page — the hero's window. */
         float:
           "0 2px 4px rgb(11 31 58 / 0.04), 0 30px 60px -20px rgb(11 31 58 / 0.28), 0 50px 100px -40px rgb(11 31 58 / 0.25)",

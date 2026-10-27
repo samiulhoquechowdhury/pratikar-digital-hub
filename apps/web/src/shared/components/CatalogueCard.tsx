@@ -226,11 +226,14 @@ export function CatalogueCard({
   description?: string | null;
   /** Short facts — "12 lessons", "Property" — shown as a quiet line. */
   meta?: string[];
-  /** The list price, before GST. The card adds GST for display. */
-  priceInPaise: number;
+  /**
+   * The list price, before GST. The card adds GST for display. Null for
+   * something not on sale yet, which says so instead.
+   */
+  priceInPaise: number | null;
 }) {
   return (
-    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-ivory-line bg-white transition-[box-shadow,transform] duration-300 hover:-translate-y-0.5 hover:shadow-float motion-reduce:transform-none">
+    <article className="group relative flex h-full flex-col overflow-hidden rounded-xl border border-ivory-line bg-white shadow-rest transition-[box-shadow,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:shadow-lift motion-reduce:transform-none">
       <CatalogueCover kind={kind} title={title} />
 
       <div className="flex flex-1 flex-col p-4">
@@ -258,13 +261,21 @@ export function CatalogueCard({
           <p className="text-sm text-noir/60">
             {[CATALOGUE_KINDS[kind].label, ...meta].join(" · ")}
           </p>
-          {/* GST-inclusive on every card, matching what checkout charges. */}
-          <p className="mt-2 flex items-baseline gap-1.5">
-            <span className="text-lg font-bold tabular-nums text-noir">
-              {formatPrice(grossPaise(priceInPaise))}
-            </span>
-            <span className="text-xs text-noir/55">incl. GST</span>
-          </p>
+          {priceInPaise === null ? (
+            <p className="mt-2.5">
+              <span className="inline-flex rounded bg-banner-lilac px-2 py-0.5 text-sm font-semibold text-noir">
+                Enrolling soon
+              </span>
+            </p>
+          ) : (
+            // GST-inclusive on every card, matching what checkout charges.
+            <p className="mt-2 flex items-baseline gap-1.5">
+              <span className="text-lg font-bold tabular-nums text-noir">
+                {formatPrice(grossPaise(priceInPaise))}
+              </span>
+              <span className="text-xs text-noir/55">incl. GST</span>
+            </p>
+          )}
         </div>
       </div>
     </article>

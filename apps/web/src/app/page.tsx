@@ -27,6 +27,11 @@ import {
   type Shelf,
   type TrendingColumn,
 } from "@/features/home";
+import {
+  COURSE_AREAS,
+  PLANNED_COURSES,
+  type CourseArea,
+} from "@/shared/catalogue/certificateCourses";
 import { COURSES_LIVE } from "@/shared/lib/features";
 import { formatPrice } from "@/shared/lib/format";
 import {
@@ -45,6 +50,30 @@ export const metadata: Metadata = {
 const FAQ_PREVIEW = 5;
 /** How many cards each catalogue tab carries. */
 const SHELF_SIZE = 8;
+
+/**
+ * The certificate courses being prepared, one tab per area — each card
+ * points at the course's entry on /courses, since none can be bought yet.
+ */
+function buildCourseShelves(): Shelf[] {
+  return (Object.keys(COURSE_AREAS) as CourseArea[]).map((area) => {
+    const courses = PLANNED_COURSES.filter((course) => course.area === area);
+    return {
+      id: `courses-${area}`,
+      label: COURSE_AREAS[area],
+      href: `/courses#${area}`,
+      total: courses.length,
+      items: courses.map((course) => ({
+        id: course.slug,
+        href: `/courses#${course.slug}`,
+        kind: "course" as const,
+        title: course.title,
+        meta: [course.duration, `${course.modules} modules`],
+        priceInPaise: null,
+      })),
+    };
+  });
+}
 
 /** The catalogue tabs, shaped on the server so the client gets only cards. */
 function buildShelves({
@@ -261,6 +290,16 @@ export default async function HomePage() {
       <LandingHero summary={summary} />
       <QuickStart />
       <CatalogueTabs shelves={buildShelves(catalogue)} />
+      {/* Live courses join the tabs above; until then, what's coming. */}
+      {!COURSES_LIVE && (
+        <CatalogueTabs
+          shelves={buildCourseShelves()}
+          title="Certificate courses"
+          description="Practical courses on law, business and careers — each ends in a certificate anyone can verify."
+          tabsLabel="Course areas"
+          viewAllLabel="View all courses"
+        />
+      )}
       <DraftingPromo />
       <AreaStrip summary={summary} />
       <TrendingNow columns={buildTrending(catalogue)} />

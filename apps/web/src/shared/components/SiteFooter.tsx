@@ -50,7 +50,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
       heading: "Help",
       links: [
         { href: "/faq", label: "Questions" },
-        { href: "/assistant", label: "AI assistant" },
+        { href: "/assistant", label: "Pratikar AI" },
         { href: "/contact", label: "Contact us" },
         { href: "/dashboard", label: "My account" },
       ],
@@ -67,7 +67,7 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t border-ivory-line bg-ivory">
-      {/* Extra room at the bottom on phones, so the floating Ask AI button
+      {/* Extra room at the bottom on phones, so the floating Pratikar AI button
           never sits on the footer's last line. */}
       <div className="mx-auto max-w-shell px-4 pb-24 pt-14 sm:px-6 sm:pb-10 lg:px-8">
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
@@ -85,7 +85,7 @@ export function SiteFooter() {
                 Find a document
               </Link>
               <Link href="/assistant" className="btn-line !px-4 !py-2 !text-sm">
-                Ask AI
+                Pratikar AI
               </Link>
             </div>
           </div>

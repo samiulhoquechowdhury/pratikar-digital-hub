@@ -1,6 +1,5 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import {
   useCallback,
   useEffect,
@@ -8,8 +7,6 @@ import {
   useState,
   type ReactNode,
 } from "react";
-
-import { Icon } from "@/shared/components/Icon";
 
 /** How long each banner stays before the next, when rotating. */
 const INTERVAL_MS = 7000;
@@ -23,12 +20,13 @@ export interface Banner {
 
 /**
  * Coursera's hero: one large banner at a time, rotating on its own, with
- * arrows, dots and a pause button.
+ * dots to pick one.
  *
- * Rotation stops while the pointer is over it or focus is inside it, never
- * starts for people who've asked for reduced motion, and can be paused —
- * moving content a reader can't stop is an accessibility failure, not a
- * style choice. The banners themselves are server-rendered and handed in.
+ * Moving content a reader can't stop is an accessibility failure, so with
+ * no pause button, rotation stops while the pointer is over it or focus is
+ * inside it, never starts for people who've asked for reduced motion, and
+ * stops for good once someone picks a banner. The banners themselves are
+ * server-rendered and handed in.
  */
 export function BannerCarousel({ banners }: { banners: Banner[] }) {
   const [index, setIndex] = useState(0);
@@ -105,15 +103,7 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
       </div>
 
       {count > 1 && (
-        <div className="mt-5 flex items-center justify-center gap-4">
-          <button
-            type="button"
-            onClick={() => go(index - 1)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-ivory-line bg-white text-noir transition-colors hover:border-noir"
-          >
-            <Icon icon={ChevronLeft} label="Previous banner" />
-          </button>
-
+        <div className="mt-5 flex items-center justify-center">
           <div className="flex items-center gap-2">
             {banners.map((banner, i) => (
               <button
@@ -121,7 +111,11 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
                 type="button"
                 aria-label={`Show ${banner.label}`}
                 aria-current={i === index ? "true" : undefined}
-                onClick={() => go(i)}
+                onClick={() => {
+                  // Picking one is taking control: stop rotating.
+                  setPaused(true);
+                  go(i);
+                }}
                 className="group grid h-6 place-items-center"
               >
                 <span
@@ -145,28 +139,6 @@ export function BannerCarousel({ banners }: { banners: Banner[] }) {
               </button>
             ))}
           </div>
-
-          <button
-            type="button"
-            onClick={() => go(index + 1)}
-            className="grid h-10 w-10 place-items-center rounded-full border border-ivory-line bg-white text-noir transition-colors hover:border-noir"
-          >
-            <Icon icon={ChevronRight} label="Next banner" />
-          </button>
-
-          {!reduced && (
-            <button
-              type="button"
-              onClick={() => setPaused((value) => !value)}
-              className="grid h-10 w-10 place-items-center rounded-full text-noir/70 transition-colors hover:bg-ivory hover:text-noir"
-            >
-              <Icon
-                icon={paused ? Play : Pause}
-                size="sm"
-                label={paused ? "Play banners" : "Pause banners"}
-              />
-            </button>
-          )}
         </div>
       )}
     </div>
