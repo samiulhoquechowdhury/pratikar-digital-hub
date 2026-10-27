@@ -289,11 +289,11 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
     },
     {
       id: "assistant",
-      label: "AI assistant",
+      label: "Pratikar AI",
       content: (
         <BannerPanel
           tone="mint"
-          tag="Ask AI"
+          tag="Pratikar AI"
           title="Not sure which document you need? Just ask."
           body="Describe your situation in English or Hindi. The assistant points you to the right document, form or guide."
           cta={{ href: "/assistant", label: "Ask a question" }}

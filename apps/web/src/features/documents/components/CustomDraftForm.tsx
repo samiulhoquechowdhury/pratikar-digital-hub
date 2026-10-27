@@ -102,6 +102,28 @@ export function CustomDraftForm() {
       .catch(() => setPricing(null));
   }, []);
 
+  // ?from= is a draft that failed: start again from what the customer wrote,
+  // rather than making them type it all out a second time.
+  const from = params.get("from");
+  useEffect(() => {
+    if (!from || !user) return;
+    let cancelled = false;
+    documentsApi
+      .getMine(from)
+      .then((doc) => {
+        if (cancelled || !doc.brief) return;
+        setDocumentType(doc.brief.documentType);
+        setDetails(doc.brief.details);
+        setStateCode(doc.brief.stateCode ?? "");
+      })
+      .catch(() => {
+        // Not theirs, or gone — the empty form is still usable.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [from, user]);
+
   const tooShort = details.trim().length < DRAFT_LIMITS.minDetails;
   const canSubmit = documentType.trim().length >= 3 && !tooShort && !submitting;
 

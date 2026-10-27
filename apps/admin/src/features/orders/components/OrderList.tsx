@@ -137,6 +137,12 @@ export function OrderList() {
               {/* GST included — this is what actually left the customer. */}
               <TD align="right">
                 ₹{paiseToRupees(order.amount + order.gstAmount)}
+                {order.coupon && (
+                  <span className="block text-xs text-ink-muted">
+                    {order.coupon.code} · −₹
+                    {paiseToRupees(order.discountAmount)}
+                  </span>
+                )}
               </TD>
               <TD>
                 <Badge tone={STATUS_TONE[order.status]}>{order.status}</Badge>

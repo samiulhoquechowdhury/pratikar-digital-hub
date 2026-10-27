@@ -486,6 +486,13 @@ model Order {
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
+  /// The coupon applied at checkout, if any. `amount` is already net of
+  /// `discountAmount` (both paise, before GST) — the invoice's taxable value
+  /// is what the customer was actually charged on.
+  couponId       String?
+  coupon         Coupon? @relation(fields: [couponId], references: [id])
+  discountAmount Int     @default(0)
+
   user       User            @relation(fields: [userId], references: [id])
   invoice    Invoice?
   creditNote CreditNote?
@@ -504,6 +511,42 @@ model Order {
 
   @@index([userId, status])
   @@index([status, createdAt]) // for the payment-reconciliation job's pending-order sweep
+  @@index([couponId, status])
+}
+
+enum CouponKind {
+  PERCENT
+  FLAT
+}
+
+/// A discount code customers enter at checkout. Codes are stored upper-case
+/// and matched case-insensitively. A code is "used" by a PAID order, so an
+/// abandoned checkout never spends someone's one-time code.
+model Coupon {
+  id          String     @id @default(uuid())
+  code        String     @unique
+  /// Shown to the customer when the code applies — "Launch offer".
+  description String?
+  kind        CouponKind
+  /// A percentage (1–100) for PERCENT; paise for FLAT.
+  value       Int
+  /// Caps a PERCENT discount, in paise. Null for no cap.
+  maxDiscountInPaise Int?
+  /// The list price (paise, before GST) an order must reach.
+  minOrderInPaise    Int?
+  /// The kinds of purchase it applies to; empty means all of them.
+  appliesTo   OrderItemType[]
+  startsAt    DateTime?
+  endsAt      DateTime?
+  /// Total paid uses allowed across everyone. Null for unlimited.
+  maxRedemptions Int?
+  /// Paid uses allowed per customer.
+  perUserLimit   Int     @default(1)
+  active         Boolean @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  orders Order[]
 }
 
 model Invoice {

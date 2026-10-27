@@ -63,6 +63,13 @@ export const SECTIONS: readonly AdminSection[] = [
     roles: CONTENT,
   },
   {
+    href: "/coupons",
+    label: "Coupons",
+    hint: "Discount codes",
+    body: "Create discount codes for checkout, and see how often each is used.",
+    roles: [Role.ADMIN, Role.SUPER_ADMIN],
+  },
+  {
     href: "/orders",
     label: "Orders",
     hint: "Payments and refunds",

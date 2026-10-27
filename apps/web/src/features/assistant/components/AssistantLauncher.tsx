@@ -148,10 +148,10 @@ export function AssistantLauncher() {
           up", "Buy"), and a floating gold button would outshout both on every
           page.
 
-          A pill rather than a bare circle, because "Ask AI" is what the
-          header calls it and an unlabelled icon makes people guess. The star
-          is the same mark as the header's AI button — drawn, not an emoji, so
-          it takes the button's colour and looks identical on every device.
+          A pill rather than a bare circle, because "Pratikar AI" names it
+          and an unlabelled icon makes people guess. The star is drawn, not
+          an emoji, so it takes the button's colour and looks identical on
+          every device.
 
           Both glyphs are stacked in one fixed box and cross-faded, so the
           button never renders empty mid-swap and the label never jumps
@@ -180,7 +180,7 @@ export function AssistantLauncher() {
         {/* On a phone, an icon-only circle: a labelled pill covered too much
             of the page under it. The name stays for screen readers. */}
         <span className="sr-only sm:not-sr-only">
-          {present ? "Close" : "Ask AI"}
+          {present ? "Close" : "Pratikar AI"}
         </span>
       </button>
     </>

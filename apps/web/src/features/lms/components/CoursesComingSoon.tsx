@@ -10,13 +10,18 @@ import {
 import Link from "next/link";
 
 import { CertificateArt } from "@/features/home/components/illustrations";
+import {
+  COURSE_AREAS,
+  PLANNED_COURSES,
+  type CourseArea,
+} from "@/shared/catalogue/certificateCourses";
 import { Icon } from "@/shared/components/Icon";
 
 const WHAT_TO_EXPECT: { icon: LucideIcon; title: string; body: string }[] = [
   {
     icon: PlayCircle,
     title: "Short video lessons",
-    body: "The law you actually run into — GST, property, running a business — explained in plain language, at your own pace.",
+    body: "Law, business and career skills — GST, contracts, litigation, digital marketing and more — explained plainly, at your own pace.",
   },
   {
     icon: ClipboardCheck,
@@ -29,6 +34,54 @@ const WHAT_TO_EXPECT: { icon: LucideIcon; title: string; body: string }[] = [
     body: "Finish a course and get a certificate with a code an employer or client can check on this site.",
   },
 ];
+
+/**
+ * Every course being prepared, by area. The home page's course cards link
+ * to an entry here (#slug), and its tabs to an area (#legal).
+ */
+function PlannedCourseList() {
+  return (
+    <div className="mt-16 space-y-12">
+      <h2 className="text-[1.5rem] font-bold sm:text-[1.75rem]">
+        {PLANNED_COURSES.length} courses in preparation
+      </h2>
+      {(Object.keys(COURSE_AREAS) as CourseArea[]).map((area) => {
+        const courses = PLANNED_COURSES.filter((c) => c.area === area);
+        return (
+          <section
+            key={area}
+            id={area}
+            aria-labelledby={`${area}-title`}
+            className="scroll-mt-28"
+          >
+            <h3 id={`${area}-title`} className="text-lg font-semibold">
+              {COURSE_AREAS[area]}{" "}
+              <span className="font-normal text-ink-muted">
+                · {courses.length}
+              </span>
+            </h3>
+            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {courses.map((course) => (
+                <li
+                  key={course.slug}
+                  id={course.slug}
+                  className="scroll-mt-28 rounded-card border border-line bg-surface p-4 target:border-noir target:ring-2 target:ring-noir/15"
+                >
+                  <p className="font-semibold leading-snug text-ink">
+                    {course.title}
+                  </p>
+                  <p className="mt-1 text-sm text-ink-muted">
+                    {course.duration} · {course.modules} modules · Certificate
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
+    </div>
+  );
+}
 
 /**
  * What /courses and every course page show until courses go live (see
@@ -53,8 +106,8 @@ export function CoursesComingSoon() {
               Certificate courses are on their way.
             </h1>
             <p className="mt-4 max-w-lg text-lg leading-relaxed text-noir/75">
-              We&apos;re recording short video courses on the law people use
-              every day, each ending in a certificate you can share. Until then,
+              We&apos;re recording practical courses on law, business and
+              careers, each ending in a certificate you can share. Until then,
               everything else on Pratikar is ready to use.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
@@ -103,6 +156,8 @@ export function CoursesComingSoon() {
             </li>
           ))}
         </ul>
+
+        <PlannedCourseList />
 
         <div className="mt-12 grid gap-4 md:grid-cols-2">
           <Link

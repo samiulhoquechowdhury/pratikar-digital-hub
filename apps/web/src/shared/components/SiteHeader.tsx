@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Menu, Search, Sparkles, X } from "lucide-react";
+import { ChevronRight, GraduationCap, Menu, Search, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
@@ -68,12 +68,13 @@ export function SiteHeader() {
             />
           </button>
 
+          {/* The assistant has its own floating button on every page. */}
           <Link
-            href="/assistant"
-            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-[0.9375rem] font-semibold text-noir transition-colors hover:bg-ivory xl:inline-flex"
+            href="/courses"
+            className="hidden items-center gap-1.5 rounded-md px-3 py-2 text-[0.9375rem] font-semibold text-noir transition-colors hover:bg-ivory lg:inline-flex"
           >
-            <Icon icon={Sparkles} className="text-gold-ink" />
-            Ask AI
+            <Icon icon={GraduationCap} className="text-gold-ink" />
+            Courses
           </Link>
 
           {isRestoring ? (

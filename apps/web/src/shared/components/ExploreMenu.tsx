@@ -63,7 +63,7 @@ export const OFFERINGS: {
   },
   {
     href: "/assistant",
-    label: "AI assistant",
+    label: "Pratikar AI",
     hint: "Not sure what you need? Ask",
     icon: Sparkles,
   },

@@ -27,6 +27,8 @@ export const AuditAction = {
   FAQ_CREATED: "FAQ_CREATED",
   FAQ_UPDATED: "FAQ_UPDATED",
   FAQ_DELETED: "FAQ_DELETED",
+  COUPON_CREATED: "COUPON_CREATED",
+  COUPON_UPDATED: "COUPON_UPDATED",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -40,6 +42,7 @@ export const AuditTargetType = {
   COURSE: "COURSE",
   SETTING: "SETTING",
   FAQ: "FAQ",
+  COUPON: "COUPON",
 } as const;
 
 export type AuditTargetType =

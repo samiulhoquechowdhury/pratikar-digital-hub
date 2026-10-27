@@ -2,6 +2,7 @@ import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
 import { AuditModule } from "../audit/audit.module";
+import { CouponsModule } from "../coupons/coupons.module";
 import { DocumentsModule } from "../documents/documents.module";
 import { LmsModule } from "../lms/lms.module";
 import { NotificationsModule } from "../notifications/notifications.module";
@@ -22,6 +23,7 @@ import { PaymentReconciliationService } from "./reconciliation/payment-reconcili
 @Module({
   imports: [
     AuditModule,
+    CouponsModule,
     DocumentsModule,
     LmsModule,
     NotificationsModule,

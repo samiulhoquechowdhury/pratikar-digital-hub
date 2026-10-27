@@ -14,6 +14,7 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import { CouponsService } from "../coupons/coupons.service";
 import { documentTitle } from "../documents/custom-draft";
 import { DocumentsService } from "../documents/documents.service";
 import { LmsService } from "../lms/lms.service";
@@ -63,10 +64,61 @@ export class PaymentsService {
     private readonly creditNotes: CreditNoteService,
     private readonly notifications: NotificationSender,
     private readonly settings: SettingsService,
+    private readonly coupons: CouponsService,
   ) {}
 
+  /**
+   * What an order would cost with a discount code — for checkout to show
+   * before the customer pays. Throws one of the CouponProblem codes when it
+   * doesn't apply. createOrder checks the code again; this is only a quote.
+   */
+  async quote(
+    userId: string,
+    dto: { code: string; itemType: CreateOrderDto["itemType"]; itemId: string },
+  ) {
+    const listInPaise = await this.resolveAmount(
+      dto.itemType,
+      dto.itemId,
+      userId,
+    );
+    const { coupon, discountInPaise } = await this.coupons.apply(
+      dto.code,
+      userId,
+      dto.itemType,
+      listInPaise,
+    );
+    const amountInPaise = listInPaise - discountInPaise;
+    const gstInPaise = Math.round(amountInPaise * GST_RATE);
+    return {
+      code: coupon.code,
+      description: coupon.description,
+      listInPaise,
+      discountInPaise,
+      amountInPaise,
+      gstInPaise,
+      totalInPaise: amountInPaise + gstInPaise,
+    };
+  }
+
   async createOrder(userId: string, dto: CreateOrderDto) {
-    const amount = await this.resolveAmount(dto.itemType, dto.itemId, userId);
+    const listInPaise = await this.resolveAmount(
+      dto.itemType,
+      dto.itemId,
+      userId,
+    );
+    // GST is charged on what the customer actually pays, so the discount
+    // comes off before tax and `amount` — the invoice's taxable value — is
+    // the discounted price.
+    const applied = dto.couponCode?.trim()
+      ? await this.coupons.apply(
+          dto.couponCode,
+          userId,
+          dto.itemType,
+          listInPaise,
+        )
+      : null;
+    const discountAmount = applied?.discountInPaise ?? 0;
+    const amount = listInPaise - discountAmount;
     const gstAmount = Math.round(amount * GST_RATE);
 
     const order = await this.prisma.order.create({
@@ -75,6 +127,8 @@ export class PaymentsService {
         itemType: dto.itemType,
         amount,
         gstAmount,
+        discountAmount,
+        couponId: applied?.coupon.id ?? null,
         status: "PENDING",
         ...this.itemFkFor(dto.itemType, dto.itemId),
       },
@@ -330,6 +384,7 @@ export class PaymentsService {
       orderBy: { createdAt: "desc" },
       include: {
         user: { select: { id: true, email: true, phone: true, name: true } },
+        coupon: { select: { code: true } },
       },
     });
   }

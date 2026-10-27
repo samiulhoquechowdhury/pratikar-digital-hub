@@ -1,4 +1,5 @@
 import type {
+  CouponQuote,
   CustomerOrder,
   OrderInvoice,
   OrderItemType,
@@ -17,8 +18,16 @@ export interface CreatedOrder {
 }
 
 export const paymentsApi = {
-  createOrder: (itemType: OrderItemType, itemId: string) =>
-    apiClient.post<CreatedOrder>("/orders", { itemType, itemId }),
+  createOrder: (itemType: OrderItemType, itemId: string, couponCode?: string) =>
+    apiClient.post<CreatedOrder>("/orders", {
+      itemType,
+      itemId,
+      ...(couponCode ? { couponCode } : {}),
+    }),
+
+  /** What this item would cost with a discount code. */
+  quote: (code: string, itemType: OrderItemType, itemId: string) =>
+    apiClient.post<CouponQuote>("/orders/quote", { code, itemType, itemId }),
 
   listMine: () => apiClient.get<CustomerOrder[]>("/orders/mine"),
 

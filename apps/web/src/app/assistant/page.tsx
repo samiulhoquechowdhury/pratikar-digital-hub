@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 /**
- * The destination behind the header's "Ask AI" button: the same assistant as
+ * The destination behind the "Pratikar AI" links: the same assistant as
  * the floating panel, given the page to itself, with its limits spelled out
  * underneath — on a legal site, what it won't do matters as much as what it
  * does.
@@ -40,7 +40,7 @@ export default async function AssistantPage({
   return (
     <>
       <PageIntro
-        eyebrow="Ask AI"
+        eyebrow="Pratikar AI"
         title="Tell us what you're dealing with"
         description="Describe it in your own words, in any language. The assistant answers from what this site offers, and shows you exactly where to go next."
       />

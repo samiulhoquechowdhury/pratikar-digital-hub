@@ -10,9 +10,11 @@ import {
   AuditService,
   AuditTargetType,
 } from "../audit/audit.service";
+import type { CouponsService } from "../coupons/coupons.service";
 import type { DocumentsService } from "../documents/documents.service";
 import type { LmsService } from "../lms/lms.service";
 import type { NotificationSender } from "../notifications/notification-sender.service";
+import type { SettingsService } from "../settings/settings.service";
 
 import type { CreditNoteService } from "./invoice/credit-note.service";
 import type { InvoiceService } from "./invoice/invoice.service";
@@ -82,6 +84,7 @@ describe("PaymentsService.refund", () => {
       creditNotes as unknown as CreditNoteService,
       notifications as unknown as NotificationSender,
       { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
+      {} as unknown as CouponsService,
     );
     return { service, prisma, tx, razorpay, creditNotes, notifications };
   };
@@ -353,6 +356,7 @@ describe("PaymentsService.handleWebhook", () => {
       {} as CreditNoteService,
       notifications as unknown as NotificationSender,
       { customDraftReviewPrice: () => Promise.resolve(49_900) } as never,
+      {} as unknown as CouponsService,
     );
     return { service, prisma, lms, invoices, notifications };
   };
@@ -575,5 +579,106 @@ describe("PaymentsService.handleWebhook", () => {
     await service.handleWebhook(capturedEvent("payment.failed"), "sig");
 
     expect(invoices.issueForOrder).not.toHaveBeenCalled();
+  });
+});
+
+describe("PaymentsService.createOrder with a coupon", () => {
+  const build = (applyImpl: jest.Mock) => {
+    const prisma = {
+      contentLibraryItem: {
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ id: "item-1", priceInPaise: 12_627 }),
+      },
+      order: {
+        create: jest.fn((args: { data: Record<string, unknown> }) =>
+          Promise.resolve({ id: "ord-1", ...args.data }),
+        ),
+        update: jest.fn((args: { data: Record<string, unknown> }) =>
+          Promise.resolve({ id: "ord-1", ...args.data }),
+        ),
+      },
+    };
+    const razorpay = {
+      createOrder: jest.fn().mockResolvedValue({ id: "order_rzp" }),
+    };
+    const service = new PaymentsService(
+      prisma as unknown as PrismaService,
+      razorpay as unknown as RazorpayService,
+      {} as DocumentsService,
+      {} as LmsService,
+      {} as AuditService,
+      {} as InvoiceService,
+      {} as CreditNoteService,
+      {} as NotificationSender,
+      {} as SettingsService,
+      { apply: applyImpl } as unknown as CouponsService,
+    );
+    return { service, prisma, razorpay };
+  };
+
+  it("charges GST on the discounted price and records the coupon", async () => {
+    const apply = jest.fn().mockResolvedValue({
+      coupon: { id: "cpn-1", code: "LAUNCH20" },
+      discountInPaise: 2_525,
+    });
+    const { service, prisma, razorpay } = build(apply);
+
+    await service.createOrder("cust-1", {
+      itemType: "CONTENT_ITEM",
+      itemId: "item-1",
+      couponCode: "launch20",
+    });
+
+    expect(apply).toHaveBeenCalledWith(
+      "launch20",
+      "cust-1",
+      "CONTENT_ITEM",
+      12_627,
+    );
+    const data = firstCall<{ data: Record<string, unknown> }>(
+      prisma.order.create,
+    ).data;
+    expect(data).toMatchObject({
+      amount: 10_102,
+      gstAmount: 1_818,
+      discountAmount: 2_525,
+      couponId: "cpn-1",
+    });
+    expect(razorpay.createOrder).toHaveBeenCalledWith(11_920, "ord-1");
+  });
+
+  it("charges the full price without a code", async () => {
+    const apply = jest.fn();
+    const { service, prisma } = build(apply);
+
+    await service.createOrder("cust-1", {
+      itemType: "CONTENT_ITEM",
+      itemId: "item-1",
+    });
+
+    expect(apply).not.toHaveBeenCalled();
+    const data = firstCall<{ data: Record<string, unknown> }>(
+      prisma.order.create,
+    ).data;
+    expect(data).toMatchObject({
+      amount: 12_627,
+      discountAmount: 0,
+      couponId: null,
+    });
+  });
+
+  it("refuses the order when the code doesn't apply", async () => {
+    const apply = jest.fn().mockRejectedValue(new Error("COUPON_EXPIRED"));
+    const { service, prisma } = build(apply);
+
+    await expect(
+      service.createOrder("cust-1", {
+        itemType: "CONTENT_ITEM",
+        itemId: "item-1",
+        couponCode: "OLD",
+      }),
+    ).rejects.toThrow("COUPON_EXPIRED");
+    expect(prisma.order.create).not.toHaveBeenCalled();
   });
 });

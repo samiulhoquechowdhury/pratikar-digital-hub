@@ -1,10 +1,15 @@
-const RUPEES = new Intl.NumberFormat("en-IN", {
+// Whole rupees print without ".00" — shelf prices are round, and the
+// decimals were the noisiest thing on every card. Anything with paise shows
+// both digits: "₹119.20", never "₹119.2".
+const WHOLE_RUPEES = new Intl.NumberFormat("en-IN", {
   style: "currency",
   currency: "INR",
-  // Whole rupees print without ".00" — shelf prices are round, and the
-  // decimals were the noisiest thing on every card. Anything with paise
-  // keeps them.
-  minimumFractionDigits: 0,
+  maximumFractionDigits: 0,
+});
+const RUPEES_AND_PAISE = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  minimumFractionDigits: 2,
   maximumFractionDigits: 2,
 });
 
@@ -14,4 +19,6 @@ const RUPEES = new Intl.NumberFormat("en-IN", {
  * @pratikar/utils, which always shows paise.
  */
 export const formatPrice = (paise: number): string =>
-  RUPEES.format(paise / 100);
+  (Math.round(paise) % 100 === 0 ? WHOLE_RUPEES : RUPEES_AND_PAISE).format(
+    paise / 100,
+  );
