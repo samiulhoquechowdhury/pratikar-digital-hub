@@ -1,5 +1,6 @@
 "use client";
 
+import { GST_STATE_NAMES, type DraftCustomPayload } from "@pratikar/types";
 import {
   Alert,
   Badge,
@@ -146,14 +147,29 @@ export function DocumentDetail({ documentId }: { documentId: string }) {
           ) : doc.draftError ? (
             <Card className="p-6">
               <Alert tone="danger">{doc.draftError}</Alert>
-              <div className="mt-4">
-                <ButtonLink href="/documents/custom" size="sm">
+              {doc.brief && <RequestSummary brief={doc.brief} />}
+              <div className="mt-5 flex flex-wrap gap-2">
+                <ButtonLink
+                  href={`/documents/custom?from=${encodeURIComponent(doc.id)}`}
+                  size="sm"
+                >
+                  <Icon icon={FilePenLine} />
+                  Edit and try again
+                </ButtonLink>
+                <ButtonLink
+                  href="/documents/custom"
+                  size="sm"
+                  variant="secondary"
+                >
                   Start a new draft
                 </ButtonLink>
               </div>
             </Card>
           ) : (
-            <Drafting revising={doc.revisionCount > 0} />
+            <Drafting
+              revising={doc.revisionCount > 0}
+              brief={doc.revisionCount > 0 ? null : doc.brief}
+            />
           )}
         </div>
 
@@ -228,24 +244,57 @@ function Steps({ doc }: { doc: MyDocument }) {
   );
 }
 
-function Drafting({ revising }: { revising: boolean }) {
+function Drafting({
+  revising,
+  brief,
+}: {
+  revising: boolean;
+  brief: DraftCustomPayload | null;
+}) {
   return (
-    <Card className="grid min-h-[24rem] place-items-center p-8 text-center">
-      <div role="status">
-        <Icon
-          icon={Loader2}
-          size="lg"
-          className="mx-auto animate-spin text-primary motion-reduce:animate-none"
-        />
-        <p className="mt-4 text-base font-semibold text-ink">
-          {revising ? "Making your changes…" : "Drafting your document…"}
-        </p>
-        <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
-          This usually takes a minute or two. You can leave this page — it will
-          be in My documents when it&apos;s ready.
-        </p>
+    <Card className="p-8">
+      <div
+        role="status"
+        className="grid min-h-[16rem] place-items-center text-center"
+      >
+        <div>
+          <Icon
+            icon={Loader2}
+            size="lg"
+            className="mx-auto animate-spin text-primary motion-reduce:animate-none"
+          />
+          <p className="mt-4 text-base font-semibold text-ink">
+            {revising ? "Making your changes…" : "Drafting your document…"}
+          </p>
+          <p className="mx-auto mt-1 max-w-sm text-sm text-ink-muted">
+            This usually takes a minute or two. You can leave this page — it
+            will be in My documents when it&apos;s ready.
+          </p>
+        </div>
       </div>
+      {brief && <RequestSummary brief={brief} />}
     </Card>
+  );
+}
+
+/** What the customer asked for, as they wrote it. */
+function RequestSummary({ brief }: { brief: DraftCustomPayload }) {
+  const state = brief.stateCode ? GST_STATE_NAMES[brief.stateCode] : null;
+  return (
+    <div className="mt-5 rounded-control bg-surface-sunken p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-ink-subtle">
+        Your request
+      </p>
+      <p className="mt-1 text-sm font-semibold text-ink">
+        {brief.documentType}
+        {state && (
+          <span className="font-normal text-ink-muted"> · {state}</span>
+        )}
+      </p>
+      <p className="mt-1 line-clamp-6 whitespace-pre-wrap break-words text-sm leading-relaxed text-ink-muted">
+        {brief.details}
+      </p>
+    </div>
   );
 }
 
