@@ -3,6 +3,7 @@ import { Cinzel, Plus_Jakarta_Sans, Source_Sans_3 } from "next/font/google";
 
 import { AssistantLauncher } from "@/features/assistant";
 import { AnnouncementBar } from "@/shared/components/AnnouncementBar";
+import { SiteChrome } from "@/shared/components/SiteChrome";
 import { SiteFooter } from "@/shared/components/SiteFooter";
 import { SiteHeader } from "@/shared/components/SiteHeader";
 import { SITE_NAME, siteOrigin } from "@/shared/lib/site";
@@ -91,22 +92,25 @@ export default function RootLayout({
             Skip to content
           </a>
 
-          <AnnouncementBar />
-          <SiteHeader />
-
-          <main id="main" className="flex-1">
-            {children}
-          </main>
-
-          <SiteFooter />
-
           {/*
-            Last in the tree so it sits above the page without a z-index
-            contest, and after the footer in the tab order — the assistant is
-            an aside, and a keyboard user shouldn't meet it before the content
+            Sign-in and sign-up pages leave all of this out (SiteChrome).
+            The assistant comes last so it sits above the page without a
+            z-index contest, and after the footer in the tab order — it's an
+            aside, and a keyboard user shouldn't meet it before the content
             they came for.
           */}
-          <AssistantLauncher />
+          <SiteChrome
+            header={
+              <>
+                <AnnouncementBar />
+                <SiteHeader />
+              </>
+            }
+            footer={<SiteFooter />}
+            floating={<AssistantLauncher />}
+          >
+            {children}
+          </SiteChrome>
         </AuthProvider>
       </body>
     </html>

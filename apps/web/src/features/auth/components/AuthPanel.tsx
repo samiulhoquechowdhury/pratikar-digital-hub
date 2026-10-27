@@ -1,11 +1,12 @@
 "use client";
 
-import { Bell, Check } from "lucide-react";
+import { ArrowLeft, Bell, Check } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
 
 import { Icon } from "@/shared/components/Icon";
+import { SiteLogo } from "@/shared/components/SiteLogo";
 
 import { isGoogleSignInEnabled } from "../lib/googleIdentity";
 import { safeRedirectPath } from "../lib/redirect";
@@ -62,7 +63,7 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
       : path;
 
   return (
-    <div className="grid min-h-[calc(100vh-4rem)] lg:grid-cols-2">
+    <div className="grid min-h-screen lg:grid-cols-2">
       {/* Brand half. Hidden below lg: on a phone it would push the form
           itself below the fold, which is the only thing anyone came for. */}
       <section
@@ -123,7 +124,18 @@ export function AuthPanel({ mode }: { mode: AuthMode }) {
         </div>
       </section>
 
-      <section className="flex items-center justify-center bg-paper px-4 py-12 sm:px-6">
+      <section className="flex flex-col items-center justify-center gap-8 bg-paper px-4 py-10 sm:px-6">
+        {/* No site header on this page: the logo is the way home. */}
+        <div className="flex w-full max-w-md items-center justify-between gap-4">
+          <SiteLogo />
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-muted hover:text-ink"
+          >
+            <Icon icon={ArrowLeft} size="xs" />
+            Back to home
+          </Link>
+        </div>
         <div className="w-full max-w-md rounded-2xl border border-ivory-line bg-white p-7 shadow-float sm:p-10">
           <h1 className="text-3xl font-bold text-noir">{copy.heading}</h1>
           <p className="mt-2 text-sm leading-relaxed text-ink-muted">
