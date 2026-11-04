@@ -1,13 +1,13 @@
 import { BrandMark } from "@pratikar/ui";
 import {
   ArrowRight,
-  BadgeCheck,
   Check,
   FilePenLine,
   MessagesSquare,
   Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -20,10 +20,8 @@ import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 import { BannerCarousel, type Banner } from "./BannerCarousel";
 import {
   CertificateArt,
-  DraftingArt,
   FormArt,
   PhoneChatArt,
-  Seal,
   StampArt,
 } from "./illustrations";
 
@@ -80,6 +78,7 @@ function BannerPanel({
   cta,
   secondary,
   art,
+  photo,
 }: {
   tone: Tone;
   tag: string;
@@ -87,7 +86,10 @@ function BannerPanel({
   body: string;
   cta: { href: string; label: string };
   secondary?: { href: string; label: string };
-  art: ReactNode;
+  art?: ReactNode;
+  /** A full picture in place of the drawn art — it fills the right half and
+   *  fades into the panel on its left edge. */
+  photo?: string;
 }) {
   const t = TONES[tone];
   return (
@@ -138,20 +140,36 @@ function BannerPanel({
         </div>
       </div>
 
-      {/* The picture: a soft disc behind a drawn scene, bleeding off the
-          right edge like a photograph would. */}
-      <div
-        aria-hidden
-        className="relative hidden min-h-[20rem] select-none items-center justify-center lg:flex"
-      >
-        <span
-          className={`absolute -right-24 top-1/2 h-[30rem] w-[30rem] -translate-y-1/2 rounded-full ${t.blob}`}
-        />
-        <span
-          className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
-        />
-        <div className="relative">{art}</div>
-      </div>
+      {photo ? (
+        <div
+          aria-hidden
+          className="relative hidden min-h-[20rem] select-none [mask-image:linear-gradient(to_right,transparent,black_30%)] lg:block"
+        >
+          <Image
+            src={photo}
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover object-center"
+          />
+        </div>
+      ) : (
+        /* The picture: a soft disc behind a drawn scene, bleeding off the
+           right edge like a photograph would. */
+        <div
+          aria-hidden
+          className="relative hidden min-h-[20rem] select-none items-center justify-center lg:flex"
+        >
+          <span
+            className={`absolute -right-24 top-1/2 h-[30rem] w-[30rem] -translate-y-1/2 rounded-full ${t.blob}`}
+          />
+          <span
+            className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
+          />
+          <div className="relative">{art}</div>
+        </div>
+      )}
     </div>
   );
 }
@@ -208,18 +226,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           body="Describe what you need in your own words. A practising advocate reviews the draft before you download it."
           cta={{ href: "/documents/custom", label: "Draft my document" }}
           secondary={{ href: "#how-it-works", label: "How it works" }}
-          art={
-            <div className="relative">
-              <DraftingArt className="w-80 drop-shadow-2xl" />
-              <Seal className="absolute -bottom-6 -right-4 h-24 w-24 rotate-12 drop-shadow-xl" />
-              <Chip
-                icon={BadgeCheck}
-                label="Reviewed by an advocate"
-                sub="Ready to download"
-                className="-left-24 top-6"
-              />
-            </div>
-          }
+          photo="/brand/hero-drafting.webp"
         />
       ),
     },
