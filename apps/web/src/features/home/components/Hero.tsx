@@ -4,7 +4,6 @@ import {
   Check,
   FilePenLine,
   MessagesSquare,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
 import Image from "next/image";
@@ -18,12 +17,7 @@ import { shelfHref } from "@/shared/lib/navigation";
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
 import { BannerCarousel, type Banner } from "./BannerCarousel";
-import {
-  CertificateArt,
-  FormArt,
-  PhoneChatArt,
-  StampArt,
-} from "./illustrations";
+import { CertificateArt, FormArt, StampArt } from "./illustrations";
 
 const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
@@ -79,6 +73,7 @@ function BannerPanel({
   secondary,
   art,
   photo,
+  cutout,
 }: {
   tone: Tone;
   tag: string;
@@ -90,6 +85,8 @@ function BannerPanel({
   /** A full picture in place of the drawn art — it fills the right half and
    *  fades into the panel on its left edge. */
   photo?: string;
+  /** A cut-out picture standing on the panel's bottom edge. */
+  cutout?: string;
 }) {
   const t = TONES[tone];
   return (
@@ -167,7 +164,17 @@ function BannerPanel({
           <span
             className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
           />
-          <div className="relative">{art}</div>
+          {cutout ? (
+            <Image
+              src={cutout}
+              alt=""
+              fill
+              sizes="(min-width: 1024px) 50vw, 0px"
+              className="object-contain object-bottom"
+            />
+          ) : (
+            <div className="relative">{art}</div>
+          )}
         </div>
       )}
     </div>
@@ -304,16 +311,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           title="Not sure which document you need? Just ask."
           body="Describe your situation in English or Hindi. The assistant points you to the right document, form or guide."
           cta={{ href: "/assistant", label: "Ask a question" }}
-          art={
-            <div className="relative">
-              <PhoneChatArt className="w-56 translate-y-6 drop-shadow-2xl" />
-              <Chip
-                icon={Sparkles}
-                label="“My tenant hasn’t paid rent”"
-                className="-left-40 top-10"
-              />
-            </div>
-          }
+          cutout="/brand/hero-assistant.webp"
         />
       ),
     },
