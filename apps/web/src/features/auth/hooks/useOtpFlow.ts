@@ -1,7 +1,7 @@
 "use client";
 
-import type { OtpChannel } from "@pratikar/types";
-import { useState } from "react";
+import { normalizeIndianMobile } from "@pratikar/types";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "@/shared/providers/AuthProvider";
 
@@ -9,48 +9,73 @@ import { authApi } from "../api/authApi";
 
 export type OtpStep = "enter-identifier" | "enter-otp" | "verified";
 
-const detectChannel = (identifier: string): OtpChannel =>
-  identifier.includes("@") ? "email" : "sms";
+/** Seconds before another code can be asked for — the API's own cooldown. */
+export const RESEND_AFTER_SECONDS = 30;
+
+/** What a failed send means to the person waiting for it. */
+function sendError(error: unknown): string {
+  const message = error instanceof Error ? error.message : "";
+  if (message.includes("429"))
+    return "Too many codes asked for. Please wait a little and try again.";
+  if (message.includes("INVALID_PHONE"))
+    return "Enter a 10-digit Indian mobile number.";
+  if (message.includes("503"))
+    return "We couldn't send the text just now. Please try again in a minute.";
+  return "Couldn't send a code to that number. Please try again.";
+}
 
 /**
- * State machine: "enter-identifier" -> "enter-otp" -> "verified", against the
- * live /auth/otp/* endpoints (docs/srs.md Section 3.1). A successful verify
- * IS signup — there's no separate registration step.
+ * Sign-in by mobile number: "enter-identifier" -> "enter-otp" -> "verified",
+ * against /auth/otp/* (docs/srs.md Section 3.1), with the code sent by SMS
+ * through MSG91. A successful verify IS sign-up — there's no separate
+ * registration step.
  */
 export function useOtpFlow() {
   const { login } = useAuth();
   const [step, setStep] = useState<OtpStep>("enter-identifier");
   const [identifier, setIdentifier] = useState("");
-  const [channel, setChannel] = useState<OtpChannel>("email");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
 
-  const requestOtp = async (rawIdentifier: string) => {
-    const trimmed = rawIdentifier.trim();
-    if (!trimmed) {
-      setError("Enter an email address or phone number.");
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [resendIn]);
+
+  const send = async (phone: string) => {
+    await authApi.requestOtp({ identifier: phone, channel: "sms" });
+    setResendIn(RESEND_AFTER_SECONDS);
+  };
+
+  const requestOtp = async (raw: string) => {
+    const phone = normalizeIndianMobile(raw);
+    if (!phone) {
+      setError("Enter a 10-digit Indian mobile number.");
       return;
     }
-
-    const detectedChannel = detectChannel(trimmed);
     setIsSubmitting(true);
     setError(null);
-
     try {
-      await authApi.requestOtp({
-        identifier: trimmed,
-        channel: detectedChannel,
-      });
-      setIdentifier(trimmed);
-      setChannel(detectedChannel);
+      await send(phone);
+      setIdentifier(phone);
       setStep("enter-otp");
-    } catch {
-      // Never reveal whether the identifier exists — mirrors the backend's
-      // INVALID_OTP messaging, which deliberately doesn't distinguish cases.
-      setError("Couldn't send a code to that address. Please try again.");
+    } catch (cause) {
+      setError(sendError(cause));
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const resend = async () => {
+    if (resendIn > 0 || !identifier) return;
+    setError(null);
+    try {
+      await send(identifier);
+    } catch (cause) {
+      setError(sendError(cause));
     }
   };
 
@@ -59,17 +84,24 @@ export function useOtpFlow() {
       setError("Enter the 6-digit code.");
       return;
     }
-
     setIsSubmitting(true);
     setError(null);
-
     try {
-      const result = await authApi.verifyOtp({ identifier, channel, otp });
+      const result = await authApi.verifyOtp({
+        identifier,
+        channel: "sms",
+        otp,
+      });
       login(result);
       setIsNewUser(result.isNewUser);
       setStep("verified");
-    } catch {
-      setError("That code didn't work. Check it and try again.");
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : "";
+      setError(
+        message.includes("410") || message.includes("TOO_MANY")
+          ? "That code has expired. Ask for a new one."
+          : "That code didn't work. Check it and try again.",
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -84,11 +116,12 @@ export function useOtpFlow() {
   return {
     step,
     identifier,
-    channel,
     isSubmitting,
     error,
     isNewUser,
+    resendIn,
     requestOtp,
+    resend,
     verifyOtp,
     reset,
   };

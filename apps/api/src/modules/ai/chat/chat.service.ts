@@ -15,7 +15,12 @@ import {
 import { VoyageRateLimitedError } from "../knowledge-base/voyage-embedder.service";
 import { servedText } from "../served-text";
 
-import { ANTHROPIC_CLIENT } from "./anthropic.provider";
+import {
+  ANTHROPIC_CLIENT,
+  liveClient,
+  liveModel,
+  type AnthropicInjection,
+} from "./anthropic.provider";
 import { AssistantLog } from "./assistant-log.service";
 import { SYSTEM_PROMPT, catalogueBlock, citedHits } from "./chat.prompt";
 import type { ChatTurnDto } from "./dto/chat.dto";
@@ -91,10 +96,18 @@ const FOLLOW_UP_CHARS = 60;
 @Injectable()
 export class ChatService {
   private readonly logger = new Logger(ChatService.name);
-  readonly model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  /** The model in use — set in Integrations, or the default. */
+  get model(): string {
+    return liveModel(this.anthropic, DEFAULT_MODEL);
+  }
+
+  /** The client for the current key; null while there's none. */
+  private get client(): Anthropic | null {
+    return liveClient(this.anthropic);
+  }
 
   constructor(
-    @Inject(ANTHROPIC_CLIENT) private readonly client: Anthropic | null,
+    @Inject(ANTHROPIC_CLIENT) private readonly anthropic: AnthropicInjection,
     private readonly search: KnowledgeBaseSearch,
     private readonly log: AssistantLog,
   ) {}

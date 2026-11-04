@@ -1,6 +1,7 @@
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
 
+import { AppPushService } from "./app-push.service";
 import {
   NOTIFICATION_QUEUE,
   NotificationDispatchProcessor,
@@ -33,8 +34,9 @@ import { WebPushService } from "./web-push.service";
     NotificationDispatchProcessor,
     UserNotifier,
     WebPushService,
+    AppPushService,
     SmsService,
   ],
-  exports: [NotificationsService, NotificationSender, UserNotifier],
+  exports: [NotificationsService, NotificationSender, UserNotifier, SmsService],
 })
 export class NotificationsModule {}

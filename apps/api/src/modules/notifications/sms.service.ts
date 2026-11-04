@@ -1,11 +1,20 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
+
+import {
+  IntegrationsService,
+  liveSetting,
+} from "../integrations/integrations.service";
 
 /** The SMS messages this system sends, each a DLT-registered template. */
-export type SmsTemplate = "document-ready";
+export type SmsTemplate = "document-ready" | "login-otp";
 
 /** Env var holding each template's MSG91 template ID. */
-const TEMPLATE_ENV: Record<SmsTemplate, string> = {
+const TEMPLATE_ENV: Record<
+  SmsTemplate,
+  "MSG91_TEMPLATE_DOCUMENT_READY" | "MSG91_TEMPLATE_LOGIN_OTP"
+> = {
   "document-ready": "MSG91_TEMPLATE_DOCUMENT_READY",
+  "login-otp": "MSG91_TEMPLATE_LOGIN_OTP",
 };
 
 const FLOW_URL = "https://control.msg91.com/api/v5/flow";
@@ -23,12 +32,22 @@ const FLOW_URL = "https://control.msg91.com/api/v5/flow";
 export class SmsService {
   private readonly logger = new Logger(SmsService.name);
 
+  // Keys are read on every send, so one saved in Integrations works at once.
+  constructor(
+    @Optional() private readonly integrations?: IntegrationsService,
+  ) {}
+
   templateId(template: SmsTemplate): string {
-    return process.env[TEMPLATE_ENV[template]] ?? "";
+    return liveSetting(this.integrations, TEMPLATE_ENV[template]);
   }
 
   get isConfigured(): boolean {
-    return Boolean(process.env.MSG91_API_KEY);
+    return Boolean(liveSetting(this.integrations, "MSG91_API_KEY"));
+  }
+
+  /** Whether this template can actually go out: a key and its template ID. */
+  canSend(template: SmsTemplate): boolean {
+    return this.isConfigured && Boolean(this.templateId(template));
   }
 
   /**
@@ -42,10 +61,11 @@ export class SmsService {
     variables: Record<string, string>,
   ): Promise<void> {
     const templateId = this.templateId(template);
-    const authKey = process.env.MSG91_API_KEY;
+    const authKey = liveSetting(this.integrations, "MSG91_API_KEY");
     if (!authKey || !templateId) {
+      // The variables stay out of the log: for "login-otp" they are the code.
       this.logger.log(
-        `SMS "${template}" not sent — MSG91 not configured (${phone.slice(0, 4)}…, ${JSON.stringify(variables)})`,
+        `SMS "${template}" not sent — MSG91 not configured (${phone.slice(0, 4)}…)`,
       );
       return;
     }

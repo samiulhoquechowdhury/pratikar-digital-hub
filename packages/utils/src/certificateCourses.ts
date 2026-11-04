@@ -1,6 +1,6 @@
 /**
  * The certificate courses being prepared, from the client's syllabi in R2
- * (courses/*.docx): what the home page and /courses show while courses are
+ * (courses/*.docx): what the website and the app show while courses are
  * coming soon (COURSES_LIVE). No lessons or prices yet, so nothing here can
  * be bought — once a course is live in the LMS it replaces its entry.
  */

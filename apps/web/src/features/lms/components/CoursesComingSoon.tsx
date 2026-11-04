@@ -1,4 +1,9 @@
 import {
+  COURSE_AREAS,
+  PLANNED_COURSES,
+  type CourseArea,
+} from "@pratikar/utils";
+import {
   ArrowRight,
   BadgeCheck,
   BookOpen,
@@ -10,11 +15,6 @@ import {
 import Link from "next/link";
 
 import { CertificateArt } from "@/features/home/components/illustrations";
-import {
-  COURSE_AREAS,
-  PLANNED_COURSES,
-  type CourseArea,
-} from "@/shared/catalogue/certificateCourses";
 import { Icon } from "@/shared/components/Icon";
 
 const WHAT_TO_EXPECT: { icon: LucideIcon; title: string; body: string }[] = [

@@ -34,12 +34,6 @@ declare global {
   }
 }
 
-export const googleClientId =
-  process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID?.trim() ?? "";
-
-/** Whether to offer Google sign-in at all. Unset id means the button is hidden. */
-export const isGoogleSignInEnabled = googleClientId.length > 0;
-
 // Module-level so a user moving between /login and a modal doesn't re-fetch it.
 let loader: Promise<GoogleIdentityApi> | null = null;
 

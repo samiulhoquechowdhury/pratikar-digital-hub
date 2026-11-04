@@ -2,14 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { usePublicConfig } from "@/shared/lib/publicConfig";
 import { useAuth } from "@/shared/providers/AuthProvider";
 
 import { authApi } from "../api/authApi";
-import {
-  googleClientId,
-  isGoogleSignInEnabled,
-  loadGoogleIdentity,
-} from "../lib/googleIdentity";
+import { loadGoogleIdentity } from "../lib/googleIdentity";
 
 // Google's widest supported button. The container is capped to match so the
 // rendered iframe and the OTP form below it line up.
@@ -32,6 +29,8 @@ export function GoogleSignInButton({
   onSignedIn?: (isNewUser: boolean) => void;
 }) {
   const { login } = useAuth();
+  // From the API, so a client ID set in Integrations needs no rebuild.
+  const { googleClientId } = usePublicConfig();
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -56,7 +55,7 @@ export function GoogleSignInButton({
   };
 
   useEffect(() => {
-    if (!isGoogleSignInEnabled) return;
+    if (!googleClientId) return;
 
     let cancelled = false;
 
@@ -94,9 +93,9 @@ export function GoogleSignInButton({
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [googleClientId]);
 
-  if (!isGoogleSignInEnabled) return null;
+  if (!googleClientId) return null;
 
   return (
     <div>

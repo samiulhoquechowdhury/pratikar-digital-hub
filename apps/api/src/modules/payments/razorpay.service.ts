@@ -4,7 +4,13 @@ import {
   Injectable,
   InternalServerErrorException,
   Logger,
+  Optional,
 } from "@nestjs/common";
+
+import {
+  IntegrationsService,
+  liveSetting,
+} from "../integrations/integrations.service";
 
 // Thin wrapper around Razorpay's HTTP API. Kept as a separate service (rather
 // than inline in PaymentsService) so it's the one place that changes if we
@@ -36,9 +42,20 @@ export interface RazorpayPayment {
 export class RazorpayService {
   private readonly logger = new Logger(RazorpayService.name);
 
-  private readonly keyId = process.env.RAZORPAY_KEY_ID ?? "";
-  private readonly keySecret = process.env.RAZORPAY_KEY_SECRET ?? "";
-  private readonly webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET ?? "";
+  // Read on every call, so keys saved in Integrations work at once.
+  constructor(
+    @Optional() private readonly integrations?: IntegrationsService,
+  ) {}
+
+  private get keyId() {
+    return liveSetting(this.integrations, "RAZORPAY_KEY_ID");
+  }
+  private get keySecret() {
+    return liveSetting(this.integrations, "RAZORPAY_KEY_SECRET");
+  }
+  private get webhookSecret() {
+    return liveSetting(this.integrations, "RAZORPAY_WEBHOOK_SECRET");
+  }
 
   /**
    * Creates the Razorpay order the checkout widget is opened against.

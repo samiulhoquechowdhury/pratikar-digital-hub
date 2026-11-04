@@ -80,6 +80,8 @@ Mirrors the web customer feature set (Milestones 1–4) in React Native. Sequenc
 
 Push notifications (FCM) for the document-review-ready flow become real here, not before — the web app doesn't need them.
 
+— **started 2026-10-28** (`apps/mobile`, Expo SDK 58): every customer flow from the website — sign-in by code, catalogue and typo-tolerant search, template filling (form or chat), AI drafting with revisions and review, Razorpay checkout with coupons, one-time downloads to the phone, the legal library, courses (behind `EXPO_PUBLIC_COURSES_LIVE`), quizzes and certificates, Pratikar AI with streamed answers, orders and invoices, notifications, profile, data export and account deletion. The API gained the app's session path (`X-Pratikar-Client: android`, refresh token in the body) and phone push through Expo (`AppPushToken`). Still to do: Google sign-in (needs an Android OAuth client), FCM credentials in EAS for production push, and the Play Store listing. See `apps/mobile/README.md`.
+
 ---
 
 ## Milestone 6 — Newly in-scope: Affiliate & Franchise

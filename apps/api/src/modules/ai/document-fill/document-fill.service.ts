@@ -16,7 +16,12 @@ import {
   type CleanAnswers,
 } from "../../documents/filled-data";
 import { toServiceError } from "../anthropic-errors";
-import { ANTHROPIC_CLIENT } from "../chat/anthropic.provider";
+import {
+  ANTHROPIC_CLIENT,
+  liveClient,
+  liveModel,
+  type AnthropicInjection,
+} from "../chat/anthropic.provider";
 import type { ChatTurnDto } from "../chat/dto/chat.dto";
 
 import {
@@ -47,10 +52,18 @@ export interface FillReply {
 @Injectable()
 export class DocumentFillService {
   private readonly logger = new Logger(DocumentFillService.name);
-  readonly model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  /** The model in use — set in Integrations, or the default. */
+  get model(): string {
+    return liveModel(this.anthropic, DEFAULT_MODEL);
+  }
+
+  /** The client for the current key; null while there's none. */
+  private get client(): Anthropic | null {
+    return liveClient(this.anthropic);
+  }
 
   constructor(
-    @Inject(ANTHROPIC_CLIENT) private readonly client: Anthropic | null,
+    @Inject(ANTHROPIC_CLIENT) private readonly anthropic: AnthropicInjection,
     private readonly prisma: PrismaService,
   ) {}
 

@@ -1,7 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { Inject, Injectable, Logger } from "@nestjs/common";
 
-import { ANTHROPIC_CLIENT } from "../chat/anthropic.provider";
+import {
+  ANTHROPIC_CLIENT,
+  liveClient,
+  liveModel,
+  type AnthropicInjection,
+} from "../chat/anthropic.provider";
 import { servedText } from "../served-text";
 
 import {
@@ -51,10 +56,18 @@ export class DraftingError extends Error {
 @Injectable()
 export class DraftingService {
   private readonly logger = new Logger(DraftingService.name);
-  readonly model = process.env.ANTHROPIC_MODEL || DEFAULT_MODEL;
+  /** The model in use — set in Integrations, or the default. */
+  get model(): string {
+    return liveModel(this.anthropic, DEFAULT_MODEL);
+  }
+
+  /** The client for the current key; null while there's none. */
+  private get client(): Anthropic | null {
+    return liveClient(this.anthropic);
+  }
 
   constructor(
-    @Inject(ANTHROPIC_CLIENT) private readonly client: Anthropic | null,
+    @Inject(ANTHROPIC_CLIENT) private readonly anthropic: AnthropicInjection,
   ) {}
 
   get isConfigured(): boolean {

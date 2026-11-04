@@ -8,16 +8,21 @@ const MAX_ATTEMPTS = 5;
 
 @Injectable()
 export class OtpService {
-  private readonly secret = process.env.OTP_HMAC_SECRET ?? "dev-only-secret-change-me";
+  private readonly secret =
+    process.env.OTP_HMAC_SECRET ?? "dev-only-secret-change-me";
 
   generateCode(): string {
-    return randomInt(0, 10 ** OTP_LENGTH).toString().padStart(OTP_LENGTH, "0");
+    return randomInt(0, 10 ** OTP_LENGTH)
+      .toString()
+      .padStart(OTP_LENGTH, "0");
   }
 
   hash(code: string, identifier: string): string {
     // Bind the hash to the identifier too, so a leaked hash for one
     // identifier can't be replayed against a different one.
-    return createHmac("sha256", this.secret).update(`${identifier}:${code}`).digest("hex");
+    return createHmac("sha256", this.secret)
+      .update(`${identifier}:${code}`)
+      .digest("hex");
   }
 
   /** Constant-time compare — never use === on secret-derived values. */

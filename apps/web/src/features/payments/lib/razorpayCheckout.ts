@@ -6,6 +6,8 @@
  * DOM. Everything here is types and side effects around that.
  */
 
+import { getPublicConfig } from "@/shared/lib/publicConfig";
+
 const CHECKOUT_SCRIPT = "https://checkout.razorpay.com/v1/checkout.js";
 
 /** What Razorpay hands the success callback. Not to be trusted — see below. */
@@ -79,7 +81,8 @@ export async function openCheckout(params: {
   onSuccess: () => void;
   onDismiss: () => void;
 }): Promise<void> {
-  const key = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  // From the API, so a key ID set in Integrations needs no rebuild.
+  const key = (await getPublicConfig()).razorpayKeyId;
   // Only the Key ID belongs in the browser bundle. If it's missing, say so
   // plainly rather than opening a modal that can't complete.
   if (!key) throw new Error("RAZORPAY_KEY_ID_NOT_CONFIGURED");

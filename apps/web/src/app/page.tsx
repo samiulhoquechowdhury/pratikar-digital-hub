@@ -4,7 +4,12 @@ import type {
   Course,
   Template,
 } from "@pratikar/types";
-import { grossPaise } from "@pratikar/utils";
+import {
+  COURSE_AREAS,
+  grossPaise,
+  PLANNED_COURSES,
+  type CourseArea,
+} from "@pratikar/utils";
 import type { Metadata } from "next";
 
 import {
@@ -27,11 +32,6 @@ import {
   type Shelf,
   type TrendingColumn,
 } from "@/features/home";
-import {
-  COURSE_AREAS,
-  PLANNED_COURSES,
-  type CourseArea,
-} from "@/shared/catalogue/certificateCourses";
 import { COURSES_LIVE } from "@/shared/lib/features";
 import { formatPrice } from "@/shared/lib/format";
 import {

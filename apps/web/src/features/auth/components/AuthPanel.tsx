@@ -7,8 +7,8 @@ import { useCallback } from "react";
 
 import { Icon } from "@/shared/components/Icon";
 import { SiteLogo } from "@/shared/components/SiteLogo";
+import { usePublicConfig } from "@/shared/lib/publicConfig";
 
-import { isGoogleSignInEnabled } from "../lib/googleIdentity";
 import { safeRedirectPath } from "../lib/redirect";
 
 import { GoogleSignInButton } from "./GoogleSignInButton";
@@ -41,6 +41,7 @@ const PROMISES = [
 ];
 
 export function AuthPanel({ mode }: { mode: AuthMode }) {
+  const isGoogleSignInEnabled = Boolean(usePublicConfig().googleClientId);
   const router = useRouter();
   const searchParams = useSearchParams();
 
