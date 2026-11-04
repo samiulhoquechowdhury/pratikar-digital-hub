@@ -194,13 +194,15 @@ function BannerPanel({
             className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
           />
           {cutout ? (
-            <Image
-              src={cutout}
-              alt=""
-              fill
-              sizes="(min-width: 1024px) 50vw, 0px"
-              className="object-contain object-bottom"
-            />
+            <div className="absolute inset-x-0 bottom-0 top-8">
+              <Image
+                src={cutout}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 50vw, 0px"
+                className="object-contain object-bottom"
+              />
+            </div>
           ) : (
             <div className="relative">{art}</div>
           )}
@@ -322,24 +324,19 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           body="Affidavits, notices, agreements and court formats — buy once, download whenever you need it."
           cta={{ href: shelfHref("FORM"), label: "Browse legal forms" }}
           secondary={{ href: "/content-library", label: "The whole library" }}
+          cutout={formsArt}
           art={
-            formsArt ? (
-              <SceneImage src={formsArt} />
-            ) : (
-              <div className="relative">
-                <StampArt className="h-64 w-auto drop-shadow-xl" />
-                <Chip
-                  icon={FilePenLine}
-                  label={
-                    guides > 0
-                      ? `${countLabel(guides)} guides too`
-                      : "Guides too"
-                  }
-                  sub="Checklists & e-books"
-                  className="-left-24 bottom-6"
-                />
-              </div>
-            )
+            <div className="relative">
+              <StampArt className="h-64 w-auto drop-shadow-xl" />
+              <Chip
+                icon={FilePenLine}
+                label={
+                  guides > 0 ? `${countLabel(guides)} guides too` : "Guides too"
+                }
+                sub="Checklists & e-books"
+                className="-left-24 bottom-6"
+              />
+            </div>
           }
         />
       ),
