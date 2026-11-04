@@ -1,4 +1,5 @@
 import { CONTENT_CATEGORIES } from "@pratikar/types";
+import Image from "next/image";
 import Link from "next/link";
 
 import { COURSES_LIVE } from "../lib/features";
@@ -61,30 +62,56 @@ const COLUMNS: { heading: string; links: { href: string; label: string }[] }[] =
  * Server component — no interactivity, and the legal note here is exactly
  * the sort of thing that should be in the initial HTML.
  *
- * Coursera's footer: light grey, the whole site map in plain columns, the
- * brand and the legal line underneath.
+ * The whole site map in plain columns, the brand and the legal line
+ * underneath — on the courthouse artwork, shaded navy on the left so the
+ * columns read clearly and opening up on the right where Justice stands.
  */
 export function SiteFooter() {
   return (
-    <footer className="mt-16 border-t border-ivory-line bg-ivory">
+    <footer
+      data-surface="inverse"
+      className="relative isolate mt-16 overflow-hidden bg-noir"
+    >
+      <Image
+        src="/brand/footer-art.webp"
+        alt=""
+        aria-hidden
+        fill
+        sizes="100vw"
+        className="-z-20 object-cover object-right"
+      />
+      {/* Navy over the art: solid where the text is, thinning to the right,
+          and darker at the foot for the legal line. Text on it stays at the
+          navy contrast (13:1 and up). */}
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10 bg-gradient-to-r from-noir via-noir/90 to-noir/45"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-x-0 bottom-0 -z-10 h-1/2 bg-gradient-to-t from-noir/90 to-transparent"
+      />
       {/* Extra room at the bottom on phones, so the floating Pratikar AI button
           never sits on the footer's last line. */}
       <div className="mx-auto max-w-shell px-4 pb-24 pt-14 sm:px-6 sm:pb-10 lg:px-8">
         <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-[1.4fr_repeat(4,1fr)]">
           <div className="col-span-2 max-w-xs lg:col-span-1">
-            <SiteLogo />
-            <p className="mt-5 text-[0.9375rem] leading-relaxed text-noir/70">
+            <SiteLogo tone="dark" />
+            <p className="mt-5 text-[0.9375rem] leading-relaxed text-ink-inverse-muted">
               Legal documents, forms and guides for individuals and small
               businesses in India — written for people who aren&apos;t lawyers.
             </p>
-            <p className="mt-4 font-semibold text-gold-ink">
+            <p className="mt-4 font-semibold text-brand">
               Har Ghar Mein Kanooni Gyaan
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/documents" className="btn-noir !px-4 !py-2 !text-sm">
+              <Link href="/documents" className="btn-gold !px-4 !py-2 !text-sm">
                 Find a document
               </Link>
-              <Link href="/assistant" className="btn-line !px-4 !py-2 !text-sm">
+              <Link
+                href="/assistant"
+                className="btn-line-inverse !px-4 !py-2 !text-sm"
+              >
                 Pratikar AI
               </Link>
             </div>
@@ -92,7 +119,7 @@ export function SiteFooter() {
 
           {COLUMNS.map((column) => (
             <nav key={column.heading} aria-label={column.heading}>
-              <h2 className="font-display text-base font-bold tracking-normal text-noir">
+              <h2 className="font-display text-base font-bold tracking-normal text-ivory">
                 {column.heading}
               </h2>
               <ul className="mt-4 space-y-2.5 text-[0.9375rem]">
@@ -100,7 +127,7 @@ export function SiteFooter() {
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-noir/70 transition-colors hover:text-noir hover:underline"
+                      className="text-ink-inverse-muted transition-colors hover:text-white hover:underline"
                     >
                       {link.label}
                     </Link>
@@ -117,7 +144,7 @@ export function SiteFooter() {
           rather than buried on one. Final wording is the client's lawyer's
           call, not ours.
         */}
-        <div className="mt-12 flex flex-col gap-4 border-t border-ivory-line pt-6 text-sm leading-relaxed text-noir/60 sm:flex-row sm:justify-between sm:gap-10">
+        <div className="mt-12 flex flex-col gap-4 border-t border-noir-line pt-6 text-sm leading-relaxed text-ink-inverse-muted sm:flex-row sm:justify-between sm:gap-10">
           <p className="max-w-prose">
             Pratikar Digital Hub provides document templates and educational
             material. It is not a law firm and does not provide legal advice.
@@ -130,7 +157,7 @@ export function SiteFooter() {
                   <li key={page.href}>
                     <Link
                       href={page.href}
-                      className="transition-colors hover:text-noir hover:underline"
+                      className="transition-colors hover:text-white hover:underline"
                     >
                       {page.label}
                     </Link>
