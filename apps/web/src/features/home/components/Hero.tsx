@@ -1,13 +1,15 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { BrandMark } from "@pratikar/ui";
 import {
   ArrowRight,
-  BadgeCheck,
   Check,
   FilePenLine,
   MessagesSquare,
-  Sparkles,
   type LucideIcon,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -18,14 +20,33 @@ import { shelfHref } from "@/shared/lib/navigation";
 import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
 import { BannerCarousel, type Banner } from "./BannerCarousel";
-import {
-  CertificateArt,
-  DraftingArt,
-  FormArt,
-  PhoneChatArt,
-  Seal,
-  StampArt,
-} from "./illustrations";
+import { CertificateArt, FormArt, StampArt } from "./illustrations";
+
+/**
+ * A banner picture dropped into public/brand under this name, in whichever
+ * format it was saved — or nothing, and the banner keeps its drawing.
+ */
+function brandImage(name: string): string | undefined {
+  const dir = path.join(process.cwd(), "public", "brand");
+  const ext = ["webp", "png", "jpg", "jpeg"].find((e) =>
+    existsSync(path.join(dir, `${name}.${e}`)),
+  );
+  return ext && `/brand/${name}.${ext}`;
+}
+
+/** A transparent cut-out scene standing in for a banner's drawing. */
+function SceneImage({ src }: { src: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={1536}
+      height={1024}
+      sizes="560px"
+      className="h-auto w-[35rem] max-w-none drop-shadow-2xl"
+    />
+  );
+}
 
 const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
@@ -80,6 +101,8 @@ function BannerPanel({
   cta,
   secondary,
   art,
+  photo,
+  cutout,
 }: {
   tone: Tone;
   tag: string;
@@ -87,7 +110,12 @@ function BannerPanel({
   body: string;
   cta: { href: string; label: string };
   secondary?: { href: string; label: string };
-  art: ReactNode;
+  art?: ReactNode;
+  /** A full picture in place of the drawn art — it fills the right half and
+   *  fades into the panel on its left edge. */
+  photo?: string;
+  /** A cut-out picture standing on the panel's bottom edge. */
+  cutout?: string;
 }) {
   const t = TONES[tone];
   return (
@@ -138,20 +166,48 @@ function BannerPanel({
         </div>
       </div>
 
-      {/* The picture: a soft disc behind a drawn scene, bleeding off the
-          right edge like a photograph would. */}
-      <div
-        aria-hidden
-        className="relative hidden min-h-[20rem] select-none items-center justify-center lg:flex"
-      >
-        <span
-          className={`absolute -right-24 top-1/2 h-[30rem] w-[30rem] -translate-y-1/2 rounded-full ${t.blob}`}
-        />
-        <span
-          className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
-        />
-        <div className="relative">{art}</div>
-      </div>
+      {photo ? (
+        <div
+          aria-hidden
+          className="relative hidden min-h-[20rem] select-none [mask-image:linear-gradient(to_right,transparent,black_30%)] lg:block"
+        >
+          <Image
+            src={photo}
+            alt=""
+            fill
+            priority
+            sizes="(min-width: 1024px) 50vw, 0px"
+            className="object-cover object-center"
+          />
+        </div>
+      ) : (
+        /* The picture: a soft disc behind a drawn scene, bleeding off the
+           right edge like a photograph would. */
+        <div
+          aria-hidden
+          className="relative hidden min-h-[20rem] select-none items-center justify-center lg:flex"
+        >
+          <span
+            className={`absolute -right-24 top-1/2 h-[30rem] w-[30rem] -translate-y-1/2 rounded-full ${t.blob}`}
+          />
+          <span
+            className={`absolute right-40 top-10 h-24 w-24 rounded-full ${t.dark ? "bg-brand/20" : "bg-brand/25"}`}
+          />
+          {cutout ? (
+            <div className="absolute inset-x-0 bottom-0 top-8">
+              <Image
+                src={cutout}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 50vw, 0px"
+                className="object-contain object-bottom"
+              />
+            </div>
+          ) : (
+            <div className="relative">{art}</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -191,6 +247,10 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
   const forms = summary.library.FORM.count;
   const guides = summary.library.CHECKLIST.count + summary.library.EBOOK.count;
 
+  const templatesArt = brandImage("hero-templates");
+  const formsArt = brandImage("hero-forms");
+  const coursesArt = brandImage("hero-courses");
+
   const banners: Banner[] = [
     {
       id: "drafting",
@@ -208,18 +268,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           body="Describe what you need in your own words. A practising advocate reviews the draft before you download it."
           cta={{ href: "/documents/custom", label: "Draft my document" }}
           secondary={{ href: "#how-it-works", label: "How it works" }}
-          art={
-            <div className="relative">
-              <DraftingArt className="w-80 drop-shadow-2xl" />
-              <Seal className="absolute -bottom-6 -right-4 h-24 w-24 rotate-12 drop-shadow-xl" />
-              <Chip
-                icon={BadgeCheck}
-                label="Reviewed by an advocate"
-                sub="Ready to download"
-                className="-left-24 top-6"
-              />
-            </div>
-          }
+          photo="/brand/hero-drafting.webp"
         />
       ),
     },
@@ -238,20 +287,24 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
             label: "See the rent agreement",
           }}
           art={
-            <div className="relative">
-              <FormArt className="h-64 w-auto drop-shadow-xl" />
-              <Chip
-                icon={MessagesSquare}
-                label="Fill it in by chat"
-                className="-left-28 top-4"
-              />
-              <Chip
-                icon={Check}
-                label="Word + PDF"
-                sub="Preview free"
-                className="-right-10 bottom-2 [animation-delay:1.5s]"
-              />
-            </div>
+            templatesArt ? (
+              <SceneImage src={templatesArt} />
+            ) : (
+              <div className="relative">
+                <FormArt className="h-64 w-auto drop-shadow-xl" />
+                <Chip
+                  icon={MessagesSquare}
+                  label="Fill it in by chat"
+                  className="-left-28 top-4"
+                />
+                <Chip
+                  icon={Check}
+                  label="Word + PDF"
+                  sub="Preview free"
+                  className="-right-10 bottom-2 [animation-delay:1.5s]"
+                />
+              </div>
+            )
           }
         />
       ),
@@ -271,6 +324,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           body="Affidavits, notices, agreements and court formats — buy once, download whenever you need it."
           cta={{ href: shelfHref("FORM"), label: "Browse legal forms" }}
           secondary={{ href: "/content-library", label: "The whole library" }}
+          cutout={formsArt}
           art={
             <div className="relative">
               <StampArt className="h-64 w-auto drop-shadow-xl" />
@@ -297,16 +351,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           title="Not sure which document you need? Just ask."
           body="Describe your situation in English or Hindi. The assistant points you to the right document, form or guide."
           cta={{ href: "/assistant", label: "Ask a question" }}
-          art={
-            <div className="relative">
-              <PhoneChatArt className="w-56 translate-y-6 drop-shadow-2xl" />
-              <Chip
-                icon={Sparkles}
-                label="“My tenant hasn’t paid rent”"
-                className="-left-40 top-10"
-              />
-            </div>
-          }
+          cutout="/brand/hero-assistant.webp"
         />
       ),
     },
@@ -324,6 +369,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
             label: COURSES_LIVE ? "Explore courses" : "See what's coming",
           }}
           secondary={{ href: "/verify", label: "Verify a certificate" }}
+          cutout={coursesArt}
           art={
             <CertificateArt className="w-96 rotate-[-4deg] drop-shadow-2xl" />
           }
