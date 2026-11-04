@@ -1,4 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable, Logger, Optional } from "@nestjs/common";
+
+import {
+  IntegrationsService,
+  liveSetting,
+} from "../../integrations/integrations.service";
 
 import { KNOWLEDGE_BASE_DIMENSIONS } from "./sources";
 
@@ -34,8 +39,20 @@ export class VoyageRateLimitedError extends Error {
 export class VoyageEmbedder {
   private readonly logger = new Logger(VoyageEmbedder.name);
 
-  private readonly apiKey = process.env.VOYAGE_API_KEY ?? "";
-  readonly model = process.env.VOYAGE_EMBEDDING_MODEL || DEFAULT_MODEL;
+  // Read on every call, so a key saved in Integrations works at once.
+  constructor(
+    @Optional() private readonly integrations?: IntegrationsService,
+  ) {}
+
+  private get apiKey(): string {
+    return liveSetting(this.integrations, "VOYAGE_API_KEY");
+  }
+
+  get model(): string {
+    return (
+      liveSetting(this.integrations, "VOYAGE_EMBEDDING_MODEL") || DEFAULT_MODEL
+    );
+  }
 
   /**
    * False in local dev without a key. The worker checks this and skips rather

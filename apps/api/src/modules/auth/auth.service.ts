@@ -5,12 +5,14 @@ import {
   HttpStatus,
   Injectable,
   Logger,
+  ServiceUnavailableException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import type { Role } from "@pratikar/types";
+import { normalizeIndianMobile, type Role } from "@pratikar/types";
 
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
+import { SmsService } from "../notifications/sms.service";
 import { UsersService } from "../users/users.service";
 
 import { OtpRequestDto } from "./dto/otp-request.dto";
@@ -32,20 +34,34 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly notificationsService: NotificationsService,
     private readonly googleAuthService: GoogleAuthService,
+    private readonly smsService: SmsService,
   ) {}
 
+  /**
+   * The identifier as accounts are stored: an email lower-cased and trimmed,
+   * a phone as "+91" and ten digits. Request and verify both go through
+   * this, so a code sent to "98765 43210" verifies for "+919876543210".
+   */
+  private canonicalIdentifier(channel: "email" | "sms", raw: string): string {
+    if (channel === "email") return raw.trim().toLowerCase();
+    const phone = normalizeIndianMobile(raw);
+    if (!phone) throw new BadRequestException("INVALID_PHONE");
+    return phone;
+  }
+
   async requestOtp(dto: OtpRequestDto, ip?: string): Promise<void> {
+    const identifier = this.canonicalIdentifier(dto.channel, dto.identifier);
     // Before anything is written or sent. Every send costs money and lands in
     // someone's inbox, so the limit has to come first — a row created and
     // then rejected would still have consumed a slot in the window.
-    await this.enforceOtpRateLimit(dto.identifier, ip);
+    await this.enforceOtpRateLimit(identifier, ip);
 
     const code = this.otpService.generateCode();
-    const codeHash = this.otpService.hash(code, dto.identifier);
+    const codeHash = this.otpService.hash(code, identifier);
 
     await this.prisma.otpRequest.create({
       data: {
-        identifier: dto.identifier,
+        identifier,
         channel: dto.channel,
         codeHash,
         expiresAt: new Date(Date.now() + this.otpService.ttlMs),
@@ -53,17 +69,18 @@ export class AuthService {
       },
     });
 
-    await this.sendOtp(dto.channel, dto.identifier, code);
+    await this.sendOtp(dto.channel, identifier, code);
   }
 
   async verifyOtp(
     dto: OtpVerifyDto,
     context: { userAgent?: string; ip?: string },
   ) {
+    const identifier = this.canonicalIdentifier(dto.channel, dto.identifier);
     // 1. Look up the active OtpRequest row (not expired, not consumed).
     const record = await this.prisma.otpRequest.findFirst({
       where: {
-        identifier: dto.identifier,
+        identifier,
         channel: dto.channel,
         consumedAt: null,
         expiresAt: { gt: new Date() },
@@ -91,7 +108,7 @@ export class AuthService {
     // 3. Constant-time hash comparison.
     const isValid = this.otpService.verifyHash(
       dto.otp,
-      dto.identifier,
+      identifier,
       record.codeHash,
     );
 
@@ -115,10 +132,7 @@ export class AuthService {
 
     // 5. Resolve or create the user — first successful OTP verify IS signup.
     const { user, isNewUser } =
-      await this.usersService.findOrCreateByIdentifier(
-        dto.identifier,
-        dto.channel,
-      );
+      await this.usersService.findOrCreateByIdentifier(identifier, dto.channel);
 
     // 6. Issue tokens.
     return { ...(await this.issueSession(user, context)), isNewUser };
@@ -233,25 +247,55 @@ export class AuthService {
     );
   }
 
+  /**
+   * Delivers the code. A phone gets it by SMS through MSG91, from the
+   * DLT-registered "login-otp" template; an email (the admin panel's staff
+   * login) through Resend.
+   *
+   * Sent directly, not through the notification queue: the person is
+   * waiting on this screen, and a send that fails has to say so now rather
+   * than retry in the background. Outside production, with MSG91 not set
+   * up, the code goes to the log so sign-in can still be tested; in
+   * production that would be a code nobody receives, so it refuses.
+   */
   private async sendOtp(
     channel: "email" | "sms",
     identifier: string,
     code: string,
   ) {
+    const minutes = Math.round(this.otpService.ttlMs / 60_000);
     if (channel === "sms") {
-      // TODO: wire MSG91 once the client's DLT registration clears
-      // (docs/implementation-plan.md, Open blockers #1). Logging instead of
-      // silently dropping so a dev testing the SMS path can see the code.
-      this.logger.warn(
-        `SMS OTP not wired yet (MSG91 pending DLT) — ${identifier}: ${code}`,
-      );
+      if (!this.smsService.canSend("login-otp")) {
+        if (process.env.NODE_ENV === "production") {
+          this.logger.error(
+            "Phone sign-in attempted but MSG91_API_KEY / MSG91_TEMPLATE_LOGIN_OTP are not set.",
+          );
+          throw new ServiceUnavailableException("SMS_NOT_CONFIGURED");
+        }
+        this.logger.warn(
+          `MSG91 not configured — sign-in code for ${identifier}: ${code}`,
+        );
+        return;
+      }
+      try {
+        await this.smsService.send(identifier, "login-otp", {
+          otp: code,
+          minutes: String(minutes),
+        });
+      } catch (error) {
+        this.logger.error(
+          `Sign-in SMS to ${identifier.slice(0, 6)}… failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+        throw new ServiceUnavailableException("OTP_SEND_FAILED");
+      }
       return;
     }
-
     await this.notificationsService.sendEmail(
       identifier,
       "Your Pratikar Digital Hub verification code",
-      `<p>Your verification code is <strong>${code}</strong>. It expires in ${Math.round(this.otpService.ttlMs / 60_000)} minutes.</p>`,
+      `<p>Your verification code is <strong>${code}</strong>. It expires in ${minutes} minutes.</p>`,
     );
   }
 }

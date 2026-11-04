@@ -19,6 +19,7 @@ import { ContentLibraryModule } from "./modules/content-library/content-library.
 import { CouponsModule } from "./modules/coupons/coupons.module";
 import { DocumentsModule } from "./modules/documents/documents.module";
 import { FaqModule } from "./modules/faq/faq.module";
+import { IntegrationsModule } from "./modules/integrations/integrations.module";
 import { LmsModule } from "./modules/lms/lms.module";
 import { NotificationsModule } from "./modules/notifications/notifications.module";
 import { PaymentsModule } from "./modules/payments/payments.module";
@@ -53,6 +54,7 @@ import { PrismaModule } from "./prisma/prisma.module";
     LmsModule,
     PaymentsModule,
     SettingsModule,
+    IntegrationsModule,
     FaqModule,
     CouponsModule,
     NotificationsModule,

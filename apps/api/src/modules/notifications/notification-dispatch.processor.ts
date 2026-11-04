@@ -4,6 +4,7 @@ import type { Job } from "bullmq";
 
 import { reportFinalJobFailure } from "../../common/monitoring/job-failures";
 
+import { AppPushService } from "./app-push.service";
 import { NotificationsService } from "./notifications.service";
 import { SmsService, type SmsTemplate } from "./sms.service";
 import {
@@ -43,7 +44,7 @@ export type EmailJob =
       payload: StaffReviewRequestedPayload;
     };
 
-/** A browser push to every device the user subscribed. */
+/** A push to every browser the user subscribed and every phone with the app. */
 export interface PushJob {
   type: "push";
   userId: string;
@@ -108,6 +109,7 @@ export class NotificationDispatchProcessor extends WorkerHost {
   constructor(
     private readonly notifications: NotificationsService,
     private readonly push: WebPushService,
+    private readonly appPush: AppPushService,
     private readonly sms: SmsService,
   ) {
     super();
@@ -117,9 +119,26 @@ export class NotificationDispatchProcessor extends WorkerHost {
     const data = job.data;
     switch (data.type) {
       case "push": {
-        const reached = await this.push.sendToUser(data.userId, data.payload);
+        // Both at once, and a retry only when neither got through: retrying
+        // after one channel succeeded would notify those devices twice.
+        const [browsers, phones] = await Promise.allSettled([
+          this.push.sendToUser(data.userId, data.payload),
+          this.appPush.sendToUser(data.userId, data.payload),
+        ]);
+        const reached = (r: PromiseSettledResult<number>) =>
+          r.status === "fulfilled" ? r.value : 0;
+        if (
+          reached(browsers) + reached(phones) === 0 &&
+          (browsers.status === "rejected" || phones.status === "rejected")
+        ) {
+          throw (
+            browsers.status === "rejected"
+              ? browsers
+              : (phones as PromiseRejectedResult)
+          ).reason;
+        }
         this.logger.log(
-          `Pushed "${data.payload.title}" to ${reached} browsers`,
+          `Pushed "${data.payload.title}" to ${reached(browsers)} browsers and ${reached(phones)} phones`,
         );
         return;
       }

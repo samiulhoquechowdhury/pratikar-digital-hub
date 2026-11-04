@@ -1,5 +1,15 @@
-import { Injectable, Logger, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  Logger,
+  Optional,
+  UnauthorizedException,
+} from "@nestjs/common";
 import { OAuth2Client } from "google-auth-library";
+
+import {
+  IntegrationsService,
+  liveSetting,
+} from "../integrations/integrations.service";
 
 /** What we're willing to believe about a caller after Google has vouched. */
 export interface GoogleProfile {
@@ -21,14 +31,17 @@ export class GoogleAuthService {
   private readonly logger = new Logger(GoogleAuthService.name);
 
   /**
-   * Comma-separated so the Android client (Milestone 5) can be added without
-   * touching this code — Google issues a separate client id per platform and
-   * mints the `aud` claim accordingly.
+   * Comma-separated so the Android client can sit beside the website's —
+   * Google issues a separate client id per platform and mints the `aud`
+   * claim accordingly. Read on every sign-in, so ids saved in Integrations
+   * work at once.
    */
-  private readonly audience = (process.env.GOOGLE_CLIENT_ID ?? "")
-    .split(",")
-    .map((id) => id.trim())
-    .filter(Boolean);
+  private get audience(): string[] {
+    return liveSetting(this.integrations, "GOOGLE_CLIENT_ID")
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+  }
 
   private readonly client = new OAuth2Client();
 
@@ -36,11 +49,11 @@ export class GoogleAuthService {
     return this.audience.length > 0;
   }
 
-  constructor() {
+  constructor(@Optional() private readonly integrations?: IntegrationsService) {
     if (!this.isConfigured) {
       this.logger.warn(
-        "GOOGLE_CLIENT_ID not set — POST /auth/google will reject every request. " +
-          "OTP sign-in is unaffected.",
+        "No Google client ID yet — POST /auth/google will reject every request " +
+          "until one is set in Integrations. Phone sign-in is unaffected.",
       );
     }
   }
@@ -51,7 +64,7 @@ export class GoogleAuthService {
       // google-auth-library treats an empty list as "any audience", which
       // would accept a token minted for somebody else's application.
       this.logger.error(
-        "Google sign-in attempted but GOOGLE_CLIENT_ID is not set — rejecting.",
+        "Google sign-in attempted but no Google client ID is set — rejecting.",
       );
       throw new UnauthorizedException("GOOGLE_SIGN_IN_UNAVAILABLE");
     }

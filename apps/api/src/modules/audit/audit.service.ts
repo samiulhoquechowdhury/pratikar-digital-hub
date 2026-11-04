@@ -29,6 +29,9 @@ export const AuditAction = {
   FAQ_DELETED: "FAQ_DELETED",
   COUPON_CREATED: "COUPON_CREATED",
   COUPON_UPDATED: "COUPON_UPDATED",
+  /** A service key saved or removed in Integrations. Never the value. */
+  INTEGRATION_UPDATED: "INTEGRATION_UPDATED",
+  INTEGRATION_CLEARED: "INTEGRATION_CLEARED",
 } as const;
 
 export type AuditAction = (typeof AuditAction)[keyof typeof AuditAction];
@@ -43,6 +46,7 @@ export const AuditTargetType = {
   SETTING: "SETTING",
   FAQ: "FAQ",
   COUPON: "COUPON",
+  INTEGRATION: "INTEGRATION",
 } as const;
 
 export type AuditTargetType =

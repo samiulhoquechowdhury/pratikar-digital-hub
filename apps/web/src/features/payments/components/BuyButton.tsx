@@ -83,8 +83,8 @@ export function BuyButton({
           Sign in to buy
         </ButtonLink>
         <p className="text-sm text-ink-muted">
-          New here? Signing in creates your account — it takes one code sent to
-          your email.
+          New here? Signing in creates your account — it takes one code texted
+          to your phone.
         </p>
       </div>
     );

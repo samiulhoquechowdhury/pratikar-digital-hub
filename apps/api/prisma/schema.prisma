@@ -57,6 +57,7 @@ model User {
   auditLogEntries    AuditLog[]
   notifications      Notification[]
   pushSubscriptions  PushSubscription[]
+  appPushTokens      AppPushToken[]
   assistantTurns     AssistantTurn[]
 
   @@index([role])
@@ -747,6 +748,22 @@ model PushSubscription {
   @@index([userId])
 }
 
+/// A phone running the Android app, as Expo's push service knows it. The
+/// app registers after sign-in and forgets the token on sign-out.
+model AppPushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  /// "ExponentPushToken[…]". Unique: the same phone registering again — or
+  /// someone else signing in on it — replaces the row.
+  token     String   @unique
+  platform  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
 // ---------------------------------------------------------------------------
 // Site content and settings
 // ---------------------------------------------------------------------------
@@ -777,6 +794,15 @@ model SiteSetting {
   value     Json
   updatedBy String?
   updatedAt DateTime @updatedAt
+}
+
+/// A service's API key or setting, entered by a Super Admin (Integrations).
+/// Encrypted with INTEGRATIONS_ENCRYPTION_KEY: "iv.tag.ciphertext", base64.
+model IntegrationSecret {
+  key        String   @id
+  ciphertext String
+  updatedBy  String?
+  updatedAt  DateTime @updatedAt
 }
 
 // ---------------------------------------------------------------------------

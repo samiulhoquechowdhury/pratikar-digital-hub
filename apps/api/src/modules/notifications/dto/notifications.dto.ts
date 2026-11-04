@@ -1,10 +1,12 @@
 import { Type } from "class-transformer";
 import {
   ArrayMaxSize,
+  IsIn,
   IsArray,
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   MaxLength,
   ValidateNested,
 } from "class-validator";
@@ -45,4 +47,20 @@ export class PushUnsubscribeDto {
   @IsString()
   @MaxLength(1000)
   endpoint!: string;
+}
+
+/** A phone running the app, as Expo's push service identifies it. */
+export class AppPushTokenDto {
+  @Matches(/^Expo(nent)?PushToken\[[\w-]+\]$/)
+  @MaxLength(200)
+  token!: string;
+
+  @IsIn(["android", "ios"])
+  platform!: "android" | "ios";
+}
+
+export class AppPushForgetDto {
+  @IsString()
+  @MaxLength(200)
+  token!: string;
 }

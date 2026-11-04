@@ -8,6 +8,8 @@ import { Injectable } from "@nestjs/common";
 import type { Queue } from "bullmq";
 
 import { PrismaService } from "../../../prisma/prisma.service";
+import { INTEGRATION_KEYS } from "../../integrations/integrations.definitions";
+import { IntegrationsService } from "../../integrations/integrations.service";
 import { StorageService } from "../../storage/storage.service";
 
 import {
@@ -52,6 +54,7 @@ export class ReadinessService {
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
     @InjectQueue(HEALTH_QUEUE) private readonly queue: Queue,
+    private readonly integrations: IntegrationsService,
   ) {}
 
   /** Database and Redis — what the API can't serve a request without. */
@@ -90,7 +93,13 @@ export class ReadinessService {
       this.templates(),
       this.searchIndex(),
     ]);
-    const checks = [...probes.flat(), ...configChecks(process.env)];
+    // Keys saved in Integrations count, as they're what the services use.
+    const settings: NodeJS.ProcessEnv = { ...process.env };
+    for (const key of INTEGRATION_KEYS) {
+      const value = this.integrations.get(key);
+      if (value) settings[key] = value;
+    }
+    const checks = [...probes.flat(), ...configChecks(settings)];
     const summary = { ok: 0, warn: 0, fail: 0 };
     for (const check of checks) summary[check.status] += 1;
     return { ready: summary.fail === 0, summary, checks };

@@ -15,7 +15,10 @@ import {
 import { Public } from "../../common/decorators/public.decorator";
 import { JwtAuthGuard } from "../../common/guards/jwt-auth.guard";
 
+import { AppPushService } from "./app-push.service";
 import {
+  AppPushForgetDto,
+  AppPushTokenDto,
   MarkReadDto,
   PushSubscribeDto,
   PushUnsubscribeDto,
@@ -29,6 +32,7 @@ export class NotificationsController {
   constructor(
     private readonly notifier: UserNotifier,
     private readonly push: WebPushService,
+    private readonly appPush: AppPushService,
   ) {}
 
   /** The signed-in customer's inbox — the header bell. */
@@ -73,6 +77,28 @@ export class NotificationsController {
     @Body() dto: PushUnsubscribeDto,
   ) {
     await this.push.unsubscribe(user.id, dto.endpoint);
+    return { ok: true };
+  }
+
+  /** The Android app, after sign-in and permission, registers its phone. */
+  @Post("app-push/register")
+  @HttpCode(200)
+  async registerApp(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: AppPushTokenDto,
+  ) {
+    await this.appPush.register(user.id, dto.token, dto.platform);
+    return { ok: true };
+  }
+
+  /** And forgets it on sign-out, so the next account on the phone isn't told. */
+  @Post("app-push/unregister")
+  @HttpCode(200)
+  async unregisterApp(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: AppPushForgetDto,
+  ) {
+    await this.appPush.unregister(user.id, dto.token);
     return { ok: true };
   }
 }

@@ -91,6 +91,13 @@ export const SECTIONS: readonly AdminSection[] = [
     roles: CONTENT,
   },
   {
+    href: "/integrations",
+    label: "Integrations",
+    hint: "API keys for services",
+    body: "Keys for MSG91, Resend, Razorpay, Anthropic and the other services — saved encrypted, working at once.",
+    roles: [Role.SUPER_ADMIN],
+  },
+  {
     href: "/launch",
     label: "Launch checklist",
     hint: "Is the site ready?",

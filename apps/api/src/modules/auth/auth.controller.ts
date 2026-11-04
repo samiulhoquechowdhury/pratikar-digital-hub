@@ -6,6 +6,7 @@ import { AuthService } from "./auth.service";
 import { GoogleSignInDto } from "./dto/google-sign-in.dto";
 import { OtpRequestDto } from "./dto/otp-request.dto";
 import { OtpVerifyDto } from "./dto/otp-verify.dto";
+import { SessionTokenDto } from "./dto/session-token.dto";
 
 // express types `Request.cookies` as `any`; read it through this instead so the
 // refresh-token path stays type-checked. Populated by cookieParser() in main.ts.
@@ -17,7 +18,7 @@ const readRefreshTokenCookie = (req: Request): string | undefined => {
 const REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 
 // Web: refresh token as an httpOnly cookie. Android: also present in the JSON
-// body (see AuthService) for encrypted local storage there. Shared by every
+// body (see sessionResponse) for encrypted local storage there. Shared by every
 // sign-in path so the two can't drift apart in security-relevant flags.
 const setRefreshCookie = (res: Response, refreshToken: string): void => {
   res.cookie("refreshToken", refreshToken, {
@@ -27,6 +28,31 @@ const setRefreshCookie = (res: Response, refreshToken: string): void => {
     maxAge: REFRESH_COOKIE_MAX_AGE_MS,
   });
 };
+
+/**
+ * The Android app identifies itself with this header. It has no cookie jar,
+ * so it is handed the refresh token in the body to keep in the Keystore.
+ * The website never sends it, so a script injected into a page there can't
+ * read the token that the httpOnly cookie keeps from it.
+ */
+const APP_CLIENT_HEADER = "x-pratikar-client";
+const isAppClient = (req: Request): boolean =>
+  req.headers[APP_CLIENT_HEADER] === "android";
+
+const sessionResponse = (
+  req: Request,
+  result: {
+    accessToken: string;
+    refreshToken: string;
+    user: unknown;
+    isNewUser: boolean;
+  },
+) => ({
+  accessToken: result.accessToken,
+  user: result.user,
+  isNewUser: result.isNewUser,
+  ...(isAppClient(req) ? { refreshToken: result.refreshToken } : {}),
+});
 
 @Controller("auth")
 export class AuthController {
@@ -64,11 +90,7 @@ export class AuthController {
 
     setRefreshCookie(res, result.refreshToken);
 
-    return {
-      accessToken: result.accessToken,
-      user: result.user,
-      isNewUser: result.isNewUser,
-    };
+    return sessionResponse(req, result);
   }
 
   /**
@@ -95,22 +117,24 @@ export class AuthController {
 
     setRefreshCookie(res, result.refreshToken);
 
-    return {
-      accessToken: result.accessToken,
-      user: result.user,
-      isNewUser: result.isNewUser,
-    };
+    return sessionResponse(req, result);
   }
 
+  // The cookie wins when both are present; the body is the app's way in.
   @Post("refresh")
   @HttpCode(200)
-  async refresh(@Req() req: Request) {
-    return this.authService.refreshSession(readRefreshTokenCookie(req));
+  async refresh(@Body() dto: SessionTokenDto, @Req() req: Request) {
+    return this.authService.refreshSession(
+      readRefreshTokenCookie(req) ?? dto.refreshToken,
+    );
   }
 
   @Post("logout")
   @HttpCode(200)
-  async logout(@Body("allDevices") allDevices: boolean, @Req() req: Request) {
-    return this.authService.logout(readRefreshTokenCookie(req), allDevices);
+  async logout(@Body() dto: SessionTokenDto, @Req() req: Request) {
+    return this.authService.logout(
+      readRefreshTokenCookie(req) ?? dto.refreshToken,
+      dto.allDevices ?? false,
+    );
   }
 }

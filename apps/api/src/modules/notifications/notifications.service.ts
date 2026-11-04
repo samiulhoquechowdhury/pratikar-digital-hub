@@ -1,9 +1,15 @@
 import {
   Injectable,
   Logger,
+  Optional,
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { Resend } from "resend";
+
+import {
+  IntegrationsService,
+  liveSetting,
+} from "../integrations/integrations.service";
 
 /**
  * Single internal send() surface for email/SMS/push (docs/trd.md Section 4.5)
@@ -17,9 +23,8 @@ import { Resend } from "resend";
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
-  private readonly resend: Resend | null;
-  private readonly fromAddress =
-    process.env.RESEND_FROM_EMAIL ?? "onboarding@resend.dev";
+  /** One client per key, rebuilt when a new key is saved in Integrations. */
+  private client: { key: string; resend: Resend } | null = null;
 
   /**
    * Outside production, a failed send falls back to logging the message so
@@ -28,23 +33,27 @@ export class NotificationsService {
    */
   private readonly isProduction = process.env.NODE_ENV === "production";
 
-  constructor() {
-    const apiKey = process.env.RESEND_API_KEY;
-    this.resend = apiKey ? new Resend(apiKey) : null;
-
-    if (!this.resend) {
+  constructor(@Optional() private readonly integrations?: IntegrationsService) {
+    if (!liveSetting(this.integrations, "RESEND_API_KEY")) {
       this.logger.warn(
-        "RESEND_API_KEY not set — emails will be logged instead of sent.",
-      );
-    } else if (this.fromAddress.endsWith("@resend.dev")) {
-      // Resend's shared test domain only delivers to the account owner's own
-      // address. Everyone else gets rejected, which looks like a broken login
-      // rather than a configuration gap unless it's said out loud at boot.
-      this.logger.warn(
-        `Sending from ${this.fromAddress} — Resend's test domain only delivers ` +
-          "to your own account address. Verify a real domain before anyone else needs email.",
+        "No Resend API key yet — emails will be logged instead of sent until one is set in Integrations.",
       );
     }
+  }
+
+  private get fromAddress(): string {
+    return (
+      liveSetting(this.integrations, "RESEND_FROM_EMAIL") ||
+      "onboarding@resend.dev"
+    );
+  }
+
+  private get resend(): Resend | null {
+    const key = liveSetting(this.integrations, "RESEND_API_KEY");
+    if (!key) return null;
+    if (this.client?.key !== key)
+      this.client = { key, resend: new Resend(key) };
+    return this.client.resend;
   }
 
   /**
@@ -58,12 +67,20 @@ export class NotificationsService {
    * this only one person could ever sign in.
    */
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    if (!this.resend) {
+    const resend = this.resend;
+    if (!resend) {
       this.logDeliverable(to, subject, html, "no API key configured");
       return;
     }
+    if (this.fromAddress.endsWith("@resend.dev")) {
+      // Resend's shared test domain only delivers to the account owner's own
+      // address; everyone else is rejected.
+      this.logger.warn(
+        `Sending from ${this.fromAddress} — Resend's test domain only delivers to your own account address.`,
+      );
+    }
 
-    const { error } = await this.resend.emails.send({
+    const { error } = await resend.emails.send({
       from: this.fromAddress,
       to,
       subject,

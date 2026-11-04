@@ -1,69 +1,62 @@
 "use client";
 
+import { formatIndianMobile } from "@pratikar/types";
 import { Button, Field, Input } from "@pratikar/ui";
 import { useEffect, useState } from "react";
 
 import { useOtpFlow } from "../hooks/useOtpFlow";
 
 /**
- * Two-step sign-in: identifier (email/phone) then the 6-digit code. A
- * successful verify IS signup — there is no separate registration step, which
- * is why the copy avoids promising an account that doesn't exist yet.
- *
- * Only the email channel actually delivers right now; SMS is gated on the
- * client's DLT registration (docs/implementation-plan.md, Open blockers #1).
- * A phone number still reaches the backend, it just won't receive anything.
+ * Two-step sign-in: a mobile number, then the 6-digit code texted to it.
+ * A successful verify IS sign-up — there is no separate registration step,
+ * which is why the copy avoids promising an account that doesn't exist yet.
  */
 export function OtpForm({
   onVerified,
 }: {
   onVerified?: (isNewUser: boolean) => void;
 }) {
-  const {
-    step,
-    identifier,
-    isSubmitting,
-    error,
-    isNewUser,
-    requestOtp,
-    verifyOtp,
-    reset,
-  } = useOtpFlow();
-  const [identifierInput, setIdentifierInput] = useState("");
+  const flow = useOtpFlow();
+  const [phoneInput, setPhoneInput] = useState("");
   const [otpInput, setOtpInput] = useState("");
 
   // Handing over in an effect rather than from inside verifyOtp keeps the hook
   // free of navigation concerns — the same flow gets reused outside this page.
   useEffect(() => {
-    if (step === "verified") onVerified?.(isNewUser);
-  }, [step, isNewUser, onVerified]);
+    if (flow.step === "verified") onVerified?.(flow.isNewUser);
+  }, [flow.step, flow.isNewUser, onVerified]);
 
-  if (step === "verified") {
+  if (flow.step === "verified") {
     return (
       <p role="status" className="text-sm text-ink-muted">
-        {isNewUser ? "Account created — signing you in…" : "Signing you in…"}
+        {flow.isNewUser
+          ? "Account created — signing you in…"
+          : "Signing you in…"}
       </p>
     );
   }
 
-  if (step === "enter-otp") {
+  if (flow.step === "enter-otp") {
     return (
       <form
         className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          void verifyOtp(otpInput);
+          void flow.verifyOtp(otpInput);
         }}
       >
         <p className="text-sm text-ink-muted">
-          We sent a 6-digit code to{" "}
-          <span className="font-medium text-ink">{identifier}</span>.
+          We texted a 6-digit code to{" "}
+          <span className="font-medium text-ink">
+            {formatIndianMobile(flow.identifier)}
+          </span>
+          .
         </p>
 
         <Field
           label="Verification code"
           htmlFor="otp-code"
-          error={error ?? undefined}
+          error={flow.error ?? undefined}
         >
           <Input
             id="otp-code"
@@ -82,18 +75,33 @@ export function OtpForm({
           />
         </Field>
 
-        <Button type="submit" disabled={isSubmitting} className="w-full">
-          {isSubmitting ? "Verifying…" : "Verify and continue"}
+        <Button type="submit" disabled={flow.isSubmitting} className="w-full">
+          {flow.isSubmitting ? "Verifying…" : "Verify and continue"}
         </Button>
 
-        <button
-          type="button"
-          onClick={reset}
-          disabled={isSubmitting}
-          className="w-full text-sm font-medium text-primary hover:text-primary-hover disabled:opacity-60"
-        >
-          Use a different email or phone
-        </button>
+        <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
+          <button
+            type="button"
+            onClick={() => {
+              setOtpInput("");
+              flow.reset();
+            }}
+            disabled={flow.isSubmitting}
+            className="font-medium text-primary hover:text-primary-hover disabled:opacity-60"
+          >
+            Change number
+          </button>
+          <button
+            type="button"
+            onClick={() => void flow.resend()}
+            disabled={flow.resendIn > 0 || flow.isSubmitting}
+            className="font-medium text-primary hover:text-primary-hover disabled:text-ink-subtle"
+          >
+            {flow.resendIn > 0
+              ? `Resend code in ${flow.resendIn}s`
+              : "Resend code"}
+          </button>
+        </div>
       </form>
     );
   }
@@ -103,27 +111,35 @@ export function OtpForm({
       className="space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
-        void requestOtp(identifierInput);
+        void flow.requestOtp(phoneInput);
       }}
     >
       <Field
-        label="Email or phone"
-        htmlFor="otp-identifier"
-        hint="We'll send a one-time code — there's no password to remember."
-        error={error ?? undefined}
+        label="Mobile number"
+        htmlFor="otp-phone"
+        hint="We'll text you a 6-digit code — there's no password to remember."
+        error={flow.error ?? undefined}
       >
-        <Input
-          id="otp-identifier"
-          type="text"
-          autoComplete="email"
-          value={identifierInput}
-          onChange={(e) => setIdentifierInput(e.target.value)}
-          placeholder="you@example.com"
-        />
+        <div className="flex gap-2">
+          <span className="inline-flex shrink-0 items-center rounded-control border border-line-strong bg-surface-sunken px-3 text-ink">
+            +91
+          </span>
+          <Input
+            id="otp-phone"
+            type="tel"
+            inputMode="numeric"
+            autoComplete="tel-national"
+            maxLength={14}
+            value={phoneInput}
+            onChange={(e) => setPhoneInput(e.target.value)}
+            placeholder="98765 43210"
+            className="min-w-0 flex-1"
+          />
+        </div>
       </Field>
 
-      <Button type="submit" disabled={isSubmitting} className="w-full">
-        {isSubmitting ? "Sending…" : "Send me a code"}
+      <Button type="submit" disabled={flow.isSubmitting} className="w-full">
+        {flow.isSubmitting ? "Sending…" : "Send me a code"}
       </Button>
     </form>
   );
