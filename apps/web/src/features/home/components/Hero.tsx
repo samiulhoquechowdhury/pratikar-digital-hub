@@ -1,3 +1,6 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { BrandMark } from "@pratikar/ui";
 import {
   ArrowRight,
@@ -18,6 +21,32 @@ import { countLabel, type CatalogueSummary } from "../lib/catalogueSummary";
 
 import { BannerCarousel, type Banner } from "./BannerCarousel";
 import { CertificateArt, FormArt, StampArt } from "./illustrations";
+
+/**
+ * A banner picture dropped into public/brand under this name, in whichever
+ * format it was saved — or nothing, and the banner keeps its drawing.
+ */
+function brandImage(name: string): string | undefined {
+  const dir = path.join(process.cwd(), "public", "brand");
+  const ext = ["webp", "png", "jpg", "jpeg"].find((e) =>
+    existsSync(path.join(dir, `${name}.${e}`)),
+  );
+  return ext && `/brand/${name}.${ext}`;
+}
+
+/** A transparent cut-out scene standing in for a banner's drawing. */
+function SceneImage({ src }: { src: string }) {
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={1536}
+      height={1024}
+      sizes="560px"
+      className="h-auto w-[35rem] max-w-none drop-shadow-2xl"
+    />
+  );
+}
 
 const FRAME = "mx-auto max-w-shell px-4 sm:px-6 lg:px-8";
 
@@ -216,6 +245,10 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
   const forms = summary.library.FORM.count;
   const guides = summary.library.CHECKLIST.count + summary.library.EBOOK.count;
 
+  const templatesArt = brandImage("hero-templates");
+  const formsArt = brandImage("hero-forms");
+  const coursesArt = brandImage("hero-courses");
+
   const banners: Banner[] = [
     {
       id: "drafting",
@@ -252,20 +285,24 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
             label: "See the rent agreement",
           }}
           art={
-            <div className="relative">
-              <FormArt className="h-64 w-auto drop-shadow-xl" />
-              <Chip
-                icon={MessagesSquare}
-                label="Fill it in by chat"
-                className="-left-28 top-4"
-              />
-              <Chip
-                icon={Check}
-                label="Word + PDF"
-                sub="Preview free"
-                className="-right-10 bottom-2 [animation-delay:1.5s]"
-              />
-            </div>
+            templatesArt ? (
+              <SceneImage src={templatesArt} />
+            ) : (
+              <div className="relative">
+                <FormArt className="h-64 w-auto drop-shadow-xl" />
+                <Chip
+                  icon={MessagesSquare}
+                  label="Fill it in by chat"
+                  className="-left-28 top-4"
+                />
+                <Chip
+                  icon={Check}
+                  label="Word + PDF"
+                  sub="Preview free"
+                  className="-right-10 bottom-2 [animation-delay:1.5s]"
+                />
+              </div>
+            )
           }
         />
       ),
@@ -286,17 +323,23 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
           cta={{ href: shelfHref("FORM"), label: "Browse legal forms" }}
           secondary={{ href: "/content-library", label: "The whole library" }}
           art={
-            <div className="relative">
-              <StampArt className="h-64 w-auto drop-shadow-xl" />
-              <Chip
-                icon={FilePenLine}
-                label={
-                  guides > 0 ? `${countLabel(guides)} guides too` : "Guides too"
-                }
-                sub="Checklists & e-books"
-                className="-left-24 bottom-6"
-              />
-            </div>
+            formsArt ? (
+              <SceneImage src={formsArt} />
+            ) : (
+              <div className="relative">
+                <StampArt className="h-64 w-auto drop-shadow-xl" />
+                <Chip
+                  icon={FilePenLine}
+                  label={
+                    guides > 0
+                      ? `${countLabel(guides)} guides too`
+                      : "Guides too"
+                  }
+                  sub="Checklists & e-books"
+                  className="-left-24 bottom-6"
+                />
+              </div>
+            )
           }
         />
       ),
@@ -329,6 +372,7 @@ export function LandingHero({ summary }: { summary: CatalogueSummary }) {
             label: COURSES_LIVE ? "Explore courses" : "See what's coming",
           }}
           secondary={{ href: "/verify", label: "Verify a certificate" }}
+          cutout={coursesArt}
           art={
             <CertificateArt className="w-96 rotate-[-4deg] drop-shadow-2xl" />
           }
