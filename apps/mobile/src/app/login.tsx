@@ -1,10 +1,9 @@
 import { formatIndianMobile } from "@pratikar/types";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
-import { StatusBar } from "expo-status-bar";
 import * as WebBrowser from "expo-web-browser";
 import { ArrowLeft } from "lucide-react-native";
-import { useRef, useState, type ComponentRef } from "react";
+import { useEffect, useRef, useState, type ComponentRef } from "react";
 import {
   Image,
   KeyboardAvoidingView,
@@ -16,7 +15,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { Text, TextInput } from "@/components/Typography";
-import { Button } from "@/components/ui";
+import { Button, Notice } from "@/components/ui";
 import { useOtpFlow } from "@/features/auth/useOtpFlow";
 import { siteUrl } from "@/lib/config";
 import { colors, fonts, gradients, radius, space, text } from "@/lib/theme";
@@ -45,6 +44,11 @@ export default function LoginScreen() {
     else router.replace("/welcome");
   };
 
+  // Demo mode: the code is known, so it's filled in — still verified by a tap.
+  useEffect(() => {
+    if (flow.step === "enter-otp" && flow.demoCode) setOtp(flow.demoCode);
+  }, [flow.step, flow.demoCode]);
+
   const submitCode = (code: string) => {
     setOtp(code);
     if (code.length === CODE_LENGTH) void flow.verifyOtp(code);
@@ -52,7 +56,6 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
-      <StatusBar style="light" />
       <LinearGradient colors={gradients.hero} style={{ flex: 1 }}>
         <ScrollView
           contentContainerStyle={{ flexGrow: 1 }}
@@ -69,7 +72,7 @@ export default function LoginScreen() {
               onPress={back}
               style={styles.back}
             >
-              <ArrowLeft color={colors.inkInverse} size={20} />
+              <ArrowLeft color={colors.ink} size={20} />
             </Pressable>
             <Image
               source={LOGO}
@@ -86,12 +89,21 @@ export default function LoginScreen() {
                     Enter the code
                   </Text>
                   <Text style={text.muted}>
-                    We texted a 6-digit code to{" "}
+                    {flow.demoCode
+                      ? "Signing in as "
+                      : "We texted a 6-digit code to "}
                     <Text style={{ fontWeight: "700", color: colors.ink }}>
                       {formatIndianMobile(flow.identifier)}
                     </Text>
                   </Text>
                 </View>
+
+                {flow.demoCode ? (
+                  <Notice tone="warning">
+                    Demo mode: text messages aren't set up yet, so every number
+                    uses the code {flow.demoCode}. It's filled in for you.
+                  </Notice>
+                ) : null}
 
                 <CodeBoxes
                   value={otp}
@@ -293,7 +305,9 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.14)",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
   },
   mark: { width: 84, height: 84, borderRadius: 26, marginTop: space.sm },
   sheet: {
@@ -303,7 +317,10 @@ const styles = StyleSheet.create({
     paddingTop: space.xxl,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderBottomWidth: 0,
+    borderColor: colors.line,
   },
   form: { gap: space.lg },
   phone: {
@@ -311,8 +328,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     minHeight: 56,
     borderWidth: 1.5,
-    borderColor: colors.noir,
+    borderColor: colors.gold,
     borderRadius: radius.control,
+    backgroundColor: colors.raised,
     overflow: "hidden",
   },
   phoneError: { borderColor: colors.danger },
@@ -320,9 +338,9 @@ const styles = StyleSheet.create({
     alignSelf: "stretch",
     justifyContent: "center",
     paddingHorizontal: space.lg,
-    backgroundColor: colors.ivory,
+    backgroundColor: colors.raisedHigh,
     borderRightWidth: 1,
-    borderRightColor: colors.line,
+    borderRightColor: colors.lineStrong,
   },
   prefixText: { fontFamily: fonts.bold, fontSize: 16, color: colors.ink },
   phoneInput: {
@@ -351,10 +369,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.canvas,
   },
   boxFilled: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.raised,
     borderColor: colors.lineStrong,
   },
-  boxCurrent: { borderColor: colors.noir, backgroundColor: colors.surface },
+  boxCurrent: { borderColor: colors.gold, backgroundColor: colors.raised },
   boxError: { borderColor: colors.danger },
   digit: {
     alignSelf: "stretch",
@@ -366,10 +384,10 @@ const styles = StyleSheet.create({
   // Still focusable and fillable by the keyboard's SMS suggestion.
   hidden: { position: "absolute", width: 1, height: 1, opacity: 0 },
   row: { flexDirection: "row", justifyContent: "space-between" },
-  link: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.noirRaised },
+  link: { fontFamily: fonts.bold, fontSize: 14.5, color: colors.link },
   legal: { marginTop: "auto", paddingTop: space.md },
   legalLink: {
-    color: colors.noir,
+    color: colors.primary,
     fontWeight: "700",
     textDecorationLine: "underline",
   },

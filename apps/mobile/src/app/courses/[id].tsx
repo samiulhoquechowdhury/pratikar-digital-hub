@@ -172,7 +172,7 @@ const styles = StyleSheet.create({
   kind: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.goldInk,
+    color: colors.goldText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -180,16 +180,16 @@ const styles = StyleSheet.create({
     gap: space.lg,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   track: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: colors.ivoryDeep,
+    backgroundColor: colors.raisedHigh,
     overflow: "hidden",
   },
-  fill: { height: 8, backgroundColor: colors.noir },
+  fill: { height: 8, backgroundColor: colors.primary },
   module: {
     flexDirection: "row",
     alignItems: "center",

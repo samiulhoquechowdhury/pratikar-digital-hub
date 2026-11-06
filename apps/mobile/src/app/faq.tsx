@@ -144,7 +144,7 @@ export default function FaqScreen() {
 const styles = StyleSheet.create({
   body: { padding: space.lg, gap: space.xl, paddingBottom: space.xxl * 2 },
   item: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
     borderRadius: radius.card,
     overflow: "hidden",
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
 });

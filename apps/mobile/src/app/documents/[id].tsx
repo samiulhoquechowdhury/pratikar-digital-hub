@@ -98,7 +98,7 @@ export default function TemplateScreen() {
             <Button
               label="Edit answers"
               variant="secondary"
-              icon={<PencilLine color={colors.noir} size={18} />}
+              icon={<PencilLine color={colors.primary} size={18} />}
               onPress={gen.edit}
             />
           </View>
@@ -221,7 +221,7 @@ function FillOptions({
               style={[styles.tab, mode === value && styles.tabOn]}
             >
               {value === "chat" ? (
-                <Sparkles color={colors.noir} size={16} />
+                <Sparkles color={colors.primary} size={16} />
               ) : null}
               <Text
                 style={[
@@ -339,7 +339,7 @@ const styles = StyleSheet.create({
   kind: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.goldInk,
+    color: colors.goldText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   price: { fontSize: 28, fontWeight: "800", color: colors.ink },
@@ -360,12 +360,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  stepNoText: { fontSize: 12, fontWeight: "700", color: colors.noir },
+  stepNoText: { fontSize: 12, fontWeight: "700", color: colors.primary },
   editRow: {
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   question: {
@@ -391,6 +391,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 2,
     borderBottomColor: "transparent",
   },
-  tabOn: { borderBottomColor: colors.noir },
+  tabOn: { borderBottomColor: colors.primary },
   tabText: { fontSize: 15, fontWeight: "600", color: colors.inkMuted },
 });

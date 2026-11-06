@@ -23,15 +23,7 @@ import { Text } from "@/components/Typography";
 import { Button, ListRow } from "@/components/ui";
 import { siteUrl } from "@/lib/config";
 import { confirmAction } from "@/lib/platform";
-import {
-  colors,
-  fonts,
-  gradients,
-  radius,
-  shadow,
-  space,
-  text,
-} from "@/lib/theme";
+import { colors, fonts, radius, shadow, space, text } from "@/lib/theme";
 import { useAuth } from "@/providers/AuthProvider";
 
 interface Row {
@@ -74,7 +66,7 @@ const MINE: Row[] = [
   {
     label: "Profile and privacy",
     icon: Settings,
-    tint: colors.ivory,
+    tint: colors.raised,
     href: "/account/settings",
   },
 ];
@@ -87,17 +79,17 @@ const HELP: Row[] = [
     tint: mint,
     href: "/verify",
   },
-  { label: "Terms of use", icon: Scale, tint: colors.ivory, web: "/terms" },
+  { label: "Terms of use", icon: Scale, tint: colors.raised, web: "/terms" },
   {
     label: "Privacy policy",
     icon: ShieldCheck,
-    tint: colors.ivory,
+    tint: colors.raised,
     web: "/privacy",
   },
   {
     label: "Refunds and cancellations",
     icon: RotateCcw,
-    tint: colors.ivory,
+    tint: colors.raised,
     web: "/refunds",
   },
 ];
@@ -122,7 +114,7 @@ export default function AccountScreen() {
         showsVerticalScrollIndicator={false}
       >
         <LinearGradient
-          colors={gradients.hero}
+          colors={["#2b2412", "#15130d", colors.card]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.profile}
@@ -136,7 +128,7 @@ export default function AccountScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.name}>{user.name ?? "Your account"}</Text>
-                <Text style={styles.status}>Signed in</Text>
+                <Text style={styles.status}>Pratikar member · Signed in</Text>
               </View>
             </View>
           ) : (
@@ -162,7 +154,7 @@ export default function AccountScreen() {
           <Button
             label="Log out"
             variant="secondary"
-            icon={<LogOut color={colors.noir} size={18} />}
+            icon={<LogOut color={colors.primary} size={18} />}
             onPress={confirmLogout}
           />
         ) : null}
@@ -203,23 +195,37 @@ const styles = StyleSheet.create({
     gap: space.xl,
     paddingBottom: space.xxl,
   },
-  profile: { padding: space.xl, borderRadius: radius.card + 4 },
+  profile: {
+    padding: space.xl,
+    borderRadius: radius.card + 4,
+    borderWidth: 1,
+    borderColor: "rgba(227,191,85,0.22)",
+  },
   identity: { flexDirection: "row", alignItems: "center", gap: space.md },
   avatar: {
     width: 54,
     height: 54,
-    borderRadius: 19,
+    borderRadius: 27,
     backgroundColor: colors.gold,
     alignItems: "center",
     justifyContent: "center",
   },
-  avatarText: { fontFamily: fonts.display, fontSize: 23, color: colors.noir },
-  name: { fontFamily: fonts.bold, fontSize: 18, color: colors.inkInverse },
+  avatarText: {
+    fontFamily: fonts.display,
+    fontSize: 23,
+    color: colors.onPrimary,
+  },
+  name: {
+    fontFamily: fonts.extrabold,
+    fontSize: 19,
+    letterSpacing: -0.3,
+    color: colors.ink,
+  },
   status: {
     fontFamily: fonts.regular,
     fontSize: 13.5,
     lineHeight: 20,
-    color: colors.inkInverseMuted,
+    color: colors.goldSoft,
   },
   sectionTitle: {
     ...text.eyebrow,
@@ -228,7 +234,7 @@ const styles = StyleSheet.create({
   },
   list: {
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     overflow: "hidden",
     ...shadow,
   },

@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     minHeight: 52,
     paddingHorizontal: space.lg,
     borderRadius: radius.control + 2,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   searchText: {
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     gap: 2,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   tileTop: {

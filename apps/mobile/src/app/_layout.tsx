@@ -1,4 +1,3 @@
-import { Fraunces_600SemiBold } from "@expo-google-fonts/fraunces";
 import {
   PlusJakartaSans_400Regular,
   PlusJakartaSans_500Medium,
@@ -59,7 +58,6 @@ function NotificationRouter() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
-    Fraunces_600SemiBold,
     PlusJakartaSans_400Regular,
     PlusJakartaSans_500Medium,
     PlusJakartaSans_600SemiBold,
@@ -92,12 +90,16 @@ export default function RootLayout() {
         <AuthProvider>
           <AuthGate />
           <NotificationRouter />
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <View style={{ flex: 1, backgroundColor: colors.canvas }}>
             <Stack
               screenOptions={{
-                headerTintColor: colors.noir,
-                headerTitleStyle: { fontFamily: fonts.bold, fontSize: 17 },
+                headerTintColor: colors.ink,
+                headerTitleStyle: {
+                  fontFamily: fonts.bold,
+                  fontSize: 17,
+                  color: colors.ink,
+                },
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: colors.canvas },
                 contentStyle: { backgroundColor: colors.canvas },

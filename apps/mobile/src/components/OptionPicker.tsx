@@ -85,7 +85,7 @@ export function OptionPicker({
               >
                 <Text style={[styles.value, { flex: 1 }]}>{option.label}</Text>
                 {option.value === value ? (
-                  <Check color={colors.noir} size={18} />
+                  <Check color={colors.primary} size={18} />
                 ) : null}
               </Pressable>
             ))}
@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: radius.control,
     paddingHorizontal: space.lg,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: "rgba(11,31,58,0.5)" },
   sheet: {
     maxHeight: "70%",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
     padding: space.xl,

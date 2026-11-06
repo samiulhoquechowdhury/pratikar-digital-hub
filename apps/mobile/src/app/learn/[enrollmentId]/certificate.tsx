@@ -103,7 +103,7 @@ export default function CertificateScreen() {
 
       <Button
         label="Share the verification link"
-        icon={<Share2 color={colors.inkInverse} size={18} />}
+        icon={<Share2 color={colors.onPrimary} size={18} />}
         onPress={() =>
           void Share.share({
             message: `My certificate for ${outline.data.courseTitle} from ${d.issuerName}: ${link}`,
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     borderWidth: 2,
     borderColor: colors.gold,
-    backgroundColor: colors.noir,
+    backgroundColor: colors.card,
   },
   issuer: {
     color: colors.gold,
@@ -141,15 +141,15 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   title: {
-    color: colors.inkInverse,
+    color: colors.ink,
     fontSize: 22,
     fontWeight: "800",
     alignSelf: "stretch",
     textAlign: "center",
   },
-  lead: { color: colors.inkInverseMuted, fontSize: 13, marginTop: space.sm },
+  lead: { color: colors.inkMuted, fontSize: 13, marginTop: space.sm },
   name: {
-    color: colors.inkInverse,
+    color: colors.ink,
     fontSize: 24,
     fontWeight: "700",
     alignSelf: "stretch",
@@ -163,20 +163,20 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   meta: {
-    color: colors.inkInverseMuted,
+    color: colors.inkMuted,
     fontSize: 13,
     alignSelf: "stretch",
     textAlign: "center",
   },
   code: {
-    color: colors.inkInverse,
+    color: colors.ink,
     fontSize: 13,
     fontWeight: "700",
     marginTop: space.md,
     letterSpacing: 0.5,
   },
   footer: {
-    color: colors.inkInverseMuted,
+    color: colors.inkMuted,
     fontSize: 11,
     alignSelf: "stretch",
     textAlign: "center",

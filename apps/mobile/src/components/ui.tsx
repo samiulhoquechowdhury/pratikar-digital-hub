@@ -86,15 +86,15 @@ const BUTTON_COLORS: Record<
   ButtonVariant,
   { bg: string; fg: string; border: string }
 > = {
-  primary: { bg: colors.noir, fg: colors.inkInverse, border: colors.noir },
+  primary: { bg: colors.primary, fg: colors.onPrimary, border: colors.primary },
   secondary: {
-    bg: colors.surface,
-    fg: colors.noir,
+    bg: colors.raised,
+    fg: colors.ink,
     border: colors.lineStrong,
   },
-  ghost: { bg: "transparent", fg: colors.noir, border: "transparent" },
-  // Gold always carries navy text — never white (8.44:1).
-  gold: { bg: colors.gold, fg: colors.noir, border: colors.gold },
+  ghost: { bg: "transparent", fg: colors.primary, border: "transparent" },
+  // Gold always carries dark text — never white.
+  gold: { bg: colors.gold, fg: colors.onPrimary, border: colors.gold },
 };
 
 export function Field({
@@ -141,7 +141,7 @@ export function Field({
 export function IconTile({
   icon: Icon,
   tint = colors.banner.sky,
-  color = colors.noir,
+  color = colors.primary,
   size = 44,
 }: {
   icon: LucideIcon;
@@ -182,7 +182,9 @@ export function StateView({
 }) {
   return (
     <View style={styles.state}>
-      {loading ? <ActivityIndicator size="large" color={colors.noir} /> : null}
+      {loading ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : null}
       {icon ? <IconTile icon={icon} size={64} /> : null}
       {title ? (
         <Text style={[text.heading, styles.stateText]}>{title}</Text>
@@ -257,12 +259,12 @@ export function Pill({
 }
 
 const PILL_COLORS = {
-  neutral: { bg: colors.ivoryDeep, fg: colors.ink },
-  gold: { bg: colors.banner.sand, fg: colors.goldInk },
+  neutral: { bg: colors.raisedHigh, fg: colors.ink },
+  gold: { bg: colors.banner.sand, fg: colors.goldText },
   success: { bg: colors.successSubtle, fg: colors.success },
   warning: { bg: colors.warningSubtle, fg: colors.warning },
   danger: { bg: colors.dangerSubtle, fg: colors.danger },
-  lilac: { bg: colors.banner.lilac, fg: colors.noir },
+  lilac: { bg: colors.banner.lilac, fg: colors.primary },
 } as const;
 
 /** A filter: on, or off. */
@@ -287,9 +289,7 @@ export function Chip({
         pressed && styles.pressed,
       ]}
     >
-      <Text
-        style={[styles.chipLabel, selected && { color: colors.inkInverse }]}
-      >
+      <Text style={[styles.chipLabel, selected && { color: colors.onPrimary }]}>
         {label}
       </Text>
     </Pressable>
@@ -333,7 +333,7 @@ export function Notice({
 }
 
 const NOTICE_COLORS = {
-  info: { bg: colors.banner.sky, fg: colors.noir, icon: Info },
+  info: { bg: colors.banner.sky, fg: colors.primary, icon: Info },
   success: {
     bg: colors.successSubtle,
     fg: colors.success,
@@ -389,7 +389,7 @@ export function ListRow({
       style={({ pressed }) => [
         styles.row,
         divider && styles.rowDivider,
-        pressed && { backgroundColor: colors.canvas },
+        pressed && { backgroundColor: colors.raised },
       ]}
     >
       {icon ? <IconTile icon={icon} tint={tint} size={40} /> : null}
@@ -405,30 +405,30 @@ export function ListRow({
 
 const styles = StyleSheet.create({
   button: {
-    minHeight: 52,
+    minHeight: 54,
     paddingHorizontal: space.xl,
-    borderRadius: radius.control + 2,
-    borderWidth: 1.5,
+    borderRadius: radius.pill,
+    borderWidth: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: space.sm,
   },
-  buttonLabel: { fontFamily: fonts.bold, fontSize: 15.5 },
+  buttonLabel: { fontFamily: fonts.bold, fontSize: 15.5, letterSpacing: 0.1 },
   // Pressing never moves the layout; only the thing itself eases in.
   pressed: { opacity: 0.86, transform: [{ scale: 0.985 }] },
-  label: { fontFamily: fonts.semibold, fontSize: 13.5, color: colors.ink },
+  label: { fontFamily: fonts.semibold, fontSize: 13.5, color: colors.inkMuted },
   input: {
     minHeight: 52,
-    borderWidth: 1.5,
-    borderColor: colors.line,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
     borderRadius: radius.control,
     paddingHorizontal: space.lg,
     fontSize: 16,
     color: colors.ink,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.raised,
   },
-  inputFocused: { borderColor: colors.noir },
+  inputFocused: { borderColor: colors.gold },
   inputError: { borderColor: colors.danger },
   error: { fontSize: 13, color: colors.danger },
   tile: { alignItems: "center", justifyContent: "center" },
@@ -442,7 +442,7 @@ const styles = StyleSheet.create({
   // In a centred stack, text takes its width from the stack: Android rounds a
   // shrink-wrapped measurement down, which clips the last letters.
   stateText: { alignSelf: "stretch", textAlign: "center" },
-  skeleton: { backgroundColor: colors.ivoryDeep, borderRadius: 6 },
+  skeleton: { backgroundColor: colors.raisedHigh, borderRadius: 8 },
   skeletonGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -453,7 +453,9 @@ const styles = StyleSheet.create({
     flexBasis: "47%",
     flexGrow: 1,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
     overflow: "hidden",
   },
   pill: {
@@ -466,16 +468,20 @@ const styles = StyleSheet.create({
   chip: {
     minHeight: 38,
     justifyContent: "center",
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.raised,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: colors.lineStrong,
   },
-  chipOn: { backgroundColor: colors.noir, borderColor: colors.noir },
-  chipLabel: { fontFamily: fonts.semibold, fontSize: 13.5, color: colors.ink },
+  chipOn: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipLabel: {
+    fontFamily: fonts.semibold,
+    fontSize: 13.5,
+    color: colors.inkMuted,
+  },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderRadius: radius.card,
     padding: space.lg,
     ...shadow,

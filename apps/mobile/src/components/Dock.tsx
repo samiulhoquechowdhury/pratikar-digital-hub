@@ -68,66 +68,81 @@ export function Dock() {
   };
 
   return (
-    <View style={[styles.bar, { paddingBottom: Math.max(bottom, space.sm) }]}>
-      {TABS.map((tab, index) => {
-        const focused = index === active;
-        return (
-          <Pressable
-            key={tab.label}
-            accessibilityRole="tab"
-            accessibilityLabel={tab.label}
-            accessibilityState={{ selected: focused }}
-            onPress={() => open(tab.href)}
-            style={styles.tab}
-          >
-            {/* Keyed so the pill is drawn afresh: Android loses the corners
-                when a background is added to a view that's already on screen. */}
-            <View
-              key={focused ? "on" : "off"}
-              style={[styles.icon, focused && styles.iconOn]}
+    <View style={[styles.wrap, { paddingBottom: Math.max(bottom, space.md) }]}>
+      <View style={styles.bar}>
+        {TABS.map((tab, index) => {
+          const focused = index === active;
+          return (
+            <Pressable
+              key={tab.label}
+              accessibilityRole="tab"
+              accessibilityLabel={tab.label}
+              accessibilityState={{ selected: focused }}
+              onPress={() => open(tab.href)}
+              style={({ pressed }) => [
+                styles.tab,
+                pressed && !focused && { opacity: 0.7 },
+              ]}
             >
-              <tab.icon
-                color={focused ? colors.inkInverse : colors.inkSubtle}
-                size={21}
-              />
-            </View>
-            <Text style={[styles.label, focused && styles.labelOn]}>
-              {tab.label}
-            </Text>
-          </Pressable>
-        );
-      })}
+              {/* Keyed so the pill is drawn afresh: Android loses the corners
+                  when a background is added to a view that's already on screen. */}
+              <View
+                key={focused ? "on" : "off"}
+                style={[styles.cell, focused && styles.cellOn]}
+              >
+                <tab.icon
+                  color={focused ? colors.gold : colors.inkSubtle}
+                  size={21}
+                  strokeWidth={focused ? 2.2 : 1.8}
+                />
+                <Text
+                  numberOfLines={1}
+                  style={[styles.label, focused && styles.labelOn]}
+                >
+                  {tab.label}
+                </Text>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  // The page shows around the bar, so it floats.
+  wrap: {
+    paddingTop: space.sm,
+    paddingHorizontal: space.lg,
+    backgroundColor: colors.canvas,
+  },
   bar: {
     flexDirection: "row",
-    paddingTop: space.sm,
-    paddingHorizontal: space.sm,
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    padding: 6,
+    borderRadius: 30,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
     ...shadowLifted,
   },
-  tab: { flex: 1, alignItems: "center", gap: 3, minHeight: 52 },
-  icon: {
-    width: 56,
-    height: 32,
-    borderRadius: 16,
+  tab: { flex: 1 },
+  cell: {
+    minHeight: 54,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    gap: 3,
   },
-  iconOn: { backgroundColor: colors.noir },
+  cellOn: { backgroundColor: colors.raisedHigh },
   // In a centred stack, text takes its width from the stack: Android rounds a
   // shrink-wrapped measurement down, which clips the last letters.
   label: {
     alignSelf: "stretch",
     textAlign: "center",
-    fontFamily: fonts.medium,
-    fontSize: 11.5,
+    fontFamily: fonts.semibold,
+    fontSize: 11,
     color: colors.inkSubtle,
   },
-  labelOn: { fontFamily: fonts.bold, color: colors.noir },
+  labelOn: { fontFamily: fonts.bold, color: colors.ink },
 });

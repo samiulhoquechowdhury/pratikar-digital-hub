@@ -19,7 +19,7 @@ export function DocumentPreview({ documentId }: { documentId: string }) {
   if (state.status === "loading") {
     return (
       <View style={styles.waiting}>
-        <ActivityIndicator color={colors.noir} />
+        <ActivityIndicator color={colors.primary} />
         <Text style={text.muted}>Preparing your preview…</Text>
       </View>
     );
@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.xxl,
     borderRadius: radius.card,
-    backgroundColor: colors.ivory,
+    backgroundColor: colors.raised,
   },
   page: {
     width: "100%",
@@ -65,6 +65,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 4,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
   },
 });
