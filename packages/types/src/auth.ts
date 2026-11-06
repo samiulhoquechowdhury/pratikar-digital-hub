@@ -7,6 +7,15 @@ export interface OtpRequestPayload {
   channel: OtpChannel;
 }
 
+/**
+ * What asking for a code returns. Empty when the code was sent; `demoCode`
+ * only in demo mode (OTP_DEMO_CODE, no SMS provider yet), where every number
+ * shares that one code and nothing is texted.
+ */
+export interface OtpRequestResult {
+  demoCode?: string;
+}
+
 export interface OtpVerifyPayload {
   identifier: string;
   channel: OtpChannel;

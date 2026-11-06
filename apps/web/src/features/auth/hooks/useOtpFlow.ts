@@ -38,6 +38,7 @@ export function useOtpFlow() {
   const [error, setError] = useState<string | null>(null);
   const [isNewUser, setIsNewUser] = useState(false);
   const [resendIn, setResendIn] = useState(0);
+  const [demoCode, setDemoCode] = useState<string | null>(null);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -46,7 +47,12 @@ export function useOtpFlow() {
   }, [resendIn]);
 
   const send = async (phone: string) => {
-    await authApi.requestOtp({ identifier: phone, channel: "sms" });
+    const result = await authApi.requestOtp({
+      identifier: phone,
+      channel: "sms",
+    });
+    // Demo mode (no SMS provider yet): nothing is texted; this is the code.
+    setDemoCode(result?.demoCode ?? null);
     setResendIn(RESEND_AFTER_SECONDS);
   };
 
@@ -120,6 +126,7 @@ export function useOtpFlow() {
     error,
     isNewUser,
     resendIn,
+    demoCode,
     requestOtp,
     resend,
     verifyOtp,

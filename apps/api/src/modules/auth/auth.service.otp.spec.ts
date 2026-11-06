@@ -39,6 +39,15 @@ const build = (sms: { canSend: boolean; send?: jest.Mock }) => {
   return { service, prisma, smsService };
 };
 
+// A local .env may switch demo sign-in on; every test starts with it off.
+const demoSetting = process.env.OTP_DEMO_CODE;
+beforeEach(() => {
+  delete process.env.OTP_DEMO_CODE;
+});
+afterAll(() => {
+  if (demoSetting !== undefined) process.env.OTP_DEMO_CODE = demoSetting;
+});
+
 describe("normalizeIndianMobile", () => {
   it.each([
     ["9876543210", "+919876543210"],
@@ -112,7 +121,55 @@ describe("AuthService — phone sign-in codes", () => {
     const { service, smsService } = build({ canSend: false });
     await expect(
       service.requestOtp({ identifier: "9876543210", channel: "sms" }),
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual({});
     expect(smsService.send).not.toHaveBeenCalled();
+  });
+});
+
+describe("AuthService — demo sign-in code", () => {
+  const ask = (service: AuthService, channel: "sms" | "email" = "sms") =>
+    service.requestOtp(
+      {
+        identifier: channel === "sms" ? "9876543210" : "a@b.co",
+        channel,
+      },
+      "127.0.0.1",
+    );
+
+  it("gives every number the demo code while MSG91 isn't set up", async () => {
+    process.env.OTP_DEMO_CODE = "123456";
+    const otp = new OtpService();
+    const { service, prisma, smsService } = build({ canSend: false });
+
+    await expect(ask(service)).resolves.toEqual({ demoCode: "123456" });
+    expect(smsService.send).not.toHaveBeenCalled();
+    // The stored code is the demo code, so verifying it works as normal.
+    const stored = (
+      prisma.otpRequest.create.mock.calls[0] as [{ data: { codeHash: string } }]
+    )[0].data.codeHash;
+    expect(stored).toBe(otp.hash("123456", "+919876543210"));
+  });
+
+  it("ends by itself once MSG91 is configured", async () => {
+    process.env.OTP_DEMO_CODE = "123456";
+    const { service, smsService } = build({ canSend: true });
+
+    await expect(ask(service)).resolves.toEqual({});
+    expect(smsService.send).toHaveBeenCalled();
+  });
+
+  it("is off without the setting, or with a setting that isn't six digits", async () => {
+    for (const value of [undefined, "", "1234", "abcdef"]) {
+      if (value === undefined) delete process.env.OTP_DEMO_CODE;
+      else process.env.OTP_DEMO_CODE = value;
+      const { service } = build({ canSend: false });
+      expect(await ask(service)).toEqual({});
+    }
+  });
+
+  it("never replaces a staff email code", async () => {
+    process.env.OTP_DEMO_CODE = "123456";
+    const { service } = build({ canSend: false });
+    expect(await ask(service, "email")).toEqual({});
   });
 });

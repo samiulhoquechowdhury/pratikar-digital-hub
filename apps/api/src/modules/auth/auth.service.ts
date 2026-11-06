@@ -8,7 +8,11 @@ import {
   ServiceUnavailableException,
 } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
-import { normalizeIndianMobile, type Role } from "@pratikar/types";
+import {
+  normalizeIndianMobile,
+  type OtpRequestResult,
+  type Role,
+} from "@pratikar/types";
 
 import { PrismaService } from "../../prisma/prisma.service";
 import { NotificationsService } from "../notifications/notifications.service";
@@ -49,14 +53,15 @@ export class AuthService {
     return phone;
   }
 
-  async requestOtp(dto: OtpRequestDto, ip?: string): Promise<void> {
+  async requestOtp(dto: OtpRequestDto, ip?: string): Promise<OtpRequestResult> {
     const identifier = this.canonicalIdentifier(dto.channel, dto.identifier);
     // Before anything is written or sent. Every send costs money and lands in
     // someone's inbox, so the limit has to come first — a row created and
     // then rejected would still have consumed a slot in the window.
     await this.enforceOtpRateLimit(identifier, ip);
 
-    const code = this.otpService.generateCode();
+    const demoCode = this.demoCode(dto.channel);
+    const code = demoCode ?? this.otpService.generateCode();
     const codeHash = this.otpService.hash(code, identifier);
 
     await this.prisma.otpRequest.create({
@@ -69,7 +74,31 @@ export class AuthService {
       },
     });
 
+    if (demoCode) {
+      this.logger.warn(
+        `Demo sign-in for ${identifier.slice(0, 6)}… — OTP_DEMO_CODE is set and MSG91 isn't, so no SMS was sent.`,
+      );
+      return { demoCode };
+    }
+
     await this.sendOtp(dto.channel, identifier, code);
+    return {};
+  }
+
+  /**
+   * The demo code: one fixed code for every phone number, so the app can be
+   * used before an SMS provider is set up. Only with OTP_DEMO_CODE set to six
+   * digits, only for phone sign-in (staff email codes are always real), and
+   * only while MSG91 isn't configured — saving MSG91 keys in Integrations
+   * ends it without a redeploy. While it's on, anyone can sign in as any
+   * number: fine for a demo, never for real customers.
+   */
+  private demoCode(channel: "email" | "sms"): string | null {
+    if (channel !== "sms") return null;
+    const code = process.env.OTP_DEMO_CODE?.trim();
+    if (!code || !/^\d{6}$/.test(code)) return null;
+    if (this.smsService.canSend("login-otp")) return null;
+    return code;
   }
 
   async verifyOtp(

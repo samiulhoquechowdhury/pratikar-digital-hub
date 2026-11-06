@@ -2,6 +2,7 @@ import type {
   AuthSession,
   GoogleSignInPayload,
   OtpRequestPayload,
+  OtpRequestResult,
   OtpVerifyPayload,
 } from "@pratikar/types";
 
@@ -11,7 +12,7 @@ import { apiClient } from "@/shared/lib/apiClient";
 // verify-flow discussion: POST /auth/otp/request, POST /auth/otp/verify.
 export const authApi = {
   requestOtp: (payload: OtpRequestPayload) =>
-    apiClient.post<void>("/auth/otp/request", payload),
+    apiClient.post<OtpRequestResult>("/auth/otp/request", payload),
 
   verifyOtp: (payload: OtpVerifyPayload) =>
     apiClient.post<AuthSession>("/auth/otp/verify", payload),

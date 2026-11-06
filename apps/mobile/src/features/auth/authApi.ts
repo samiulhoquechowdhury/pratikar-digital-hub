@@ -1,6 +1,7 @@
 import type {
   GoogleSignInPayload,
   OtpRequestPayload,
+  OtpRequestResult,
   OtpVerifyPayload,
 } from "@pratikar/types";
 
@@ -11,7 +12,7 @@ import type { AppSession } from "@/providers/AuthProvider";
 // carries the app header, so sign-ins come back with the refresh token.
 export const authApi = {
   requestOtp: (payload: OtpRequestPayload) =>
-    api.post<void>("/auth/otp/request", payload),
+    api.post<OtpRequestResult>("/auth/otp/request", payload),
 
   verifyOtp: (payload: OtpVerifyPayload) =>
     api.post<AppSession>("/auth/otp/verify", payload),
