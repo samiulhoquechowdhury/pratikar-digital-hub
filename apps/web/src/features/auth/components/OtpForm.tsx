@@ -26,6 +26,11 @@ export function OtpForm({
     if (flow.step === "verified") onVerified?.(flow.isNewUser);
   }, [flow.step, flow.isNewUser, onVerified]);
 
+  // Demo mode: the code is known, so it's filled in — still submitted by hand.
+  useEffect(() => {
+    if (flow.step === "enter-otp" && flow.demoCode) setOtpInput(flow.demoCode);
+  }, [flow.step, flow.demoCode]);
+
   if (flow.step === "verified") {
     return (
       <p role="status" className="text-sm text-ink-muted">
@@ -46,12 +51,22 @@ export function OtpForm({
         }}
       >
         <p className="text-sm text-ink-muted">
-          We texted a 6-digit code to{" "}
+          {flow.demoCode ? "Signing in as " : "We texted a 6-digit code to "}
           <span className="font-medium text-ink">
             {formatIndianMobile(flow.identifier)}
           </span>
           .
         </p>
+
+        {flow.demoCode ? (
+          <p
+            role="status"
+            className="rounded-lg border border-warning-border bg-warning-subtle px-3 py-2 text-sm text-warning-text"
+          >
+            Demo mode: text messages aren&apos;t set up yet, so every number
+            uses the code {flow.demoCode}. It&apos;s filled in for you.
+          </p>
+        ) : null}
 
         <Field
           label="Verification code"

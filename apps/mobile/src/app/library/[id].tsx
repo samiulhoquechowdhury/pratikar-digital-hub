@@ -144,7 +144,7 @@ export default function LibraryItemScreen() {
             </Text>
             <Button
               label={downloading ? "Preparing your download…" : "Download"}
-              icon={<Download color={colors.inkInverse} size={18} />}
+              icon={<Download color={colors.onPrimary} size={18} />}
               loading={downloading}
               onPress={() => void download()}
             />
@@ -195,7 +195,7 @@ export default function LibraryItemScreen() {
         ) : preview.isError ? (
           <Text style={text.muted}>The sample pages couldn't be loaded.</Text>
         ) : (
-          <ActivityIndicator color={colors.noir} />
+          <ActivityIndicator color={colors.primary} />
         )}
       </View>
     </ScrollView>
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   kind: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.goldInk,
+    color: colors.goldText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -215,13 +215,13 @@ const styles = StyleSheet.create({
     gap: space.xl,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   page: {
     width: "100%",
     aspectRatio: PAGE_RATIO,
     borderRadius: 6,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
   },
 });

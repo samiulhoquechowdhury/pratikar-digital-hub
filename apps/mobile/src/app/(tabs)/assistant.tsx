@@ -38,15 +38,7 @@ import {
 } from "@/features/assistant/assistantApi";
 import { formatPrice } from "@/lib/format";
 import { openSitePath } from "@/lib/links";
-import {
-  colors,
-  fonts,
-  gradients,
-  radius,
-  shadow,
-  space,
-  text,
-} from "@/lib/theme";
+import { colors, fonts, radius, shadow, space, text } from "@/lib/theme";
 
 interface Message {
   id: number;
@@ -217,14 +209,14 @@ export default function AssistantScreen() {
               style={styles.startOver}
               hitSlop={8}
             >
-              <RotateCcw color={colors.noir} size={14} />
+              <RotateCcw color={colors.primary} size={14} />
               <Text style={styles.startOverText}>New chat</Text>
             </Pressable>
           ) : undefined
         }
       />
       <View style={styles.banner}>
-        <Info color={colors.goldInk} size={14} />
+        <Info color={colors.goldText} size={14} />
         <Text style={styles.bannerText}>
           {live
             ? "Answers from our catalogue, and can be wrong. Not legal advice."
@@ -242,7 +234,10 @@ export default function AssistantScreen() {
         accessibilityLabel="Conversation"
         ListEmptyComponent={
           status.isPending ? (
-            <ActivityIndicator color={colors.noir} style={{ marginTop: 48 }} />
+            <ActivityIndicator
+              color={colors.primary}
+              style={{ marginTop: 48 }}
+            />
           ) : live ? (
             <Welcome />
           ) : (
@@ -283,7 +278,7 @@ export default function AssistantScreen() {
             onPress={stop}
             style={[styles.send, styles.stop]}
           >
-            <Square color={colors.noir} size={18} />
+            <Square color={colors.primary} size={18} />
           </Pressable>
         ) : (
           <Pressable
@@ -294,7 +289,7 @@ export default function AssistantScreen() {
             onPress={() => send(draft)}
             style={[styles.send, (!draft.trim() || !live) && { opacity: 0.4 }]}
           >
-            <ArrowUp color={colors.inkInverse} size={20} />
+            <ArrowUp color={colors.onPrimary} size={20} />
           </Pressable>
         )}
       </View>
@@ -306,12 +301,12 @@ function Welcome() {
   return (
     <View style={styles.welcome}>
       <LinearGradient
-        colors={gradients.gold}
+        colors={["#5a48c4", "#2a2160"]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.welcomeBadge}
       >
-        <Sparkles color={colors.noir} size={28} />
+        <Sparkles color={colors.ink} size={28} />
       </LinearGradient>
       <Text style={text.title}>How can I help?</Text>
       {CAPABILITIES.map((item) => (
@@ -381,7 +376,7 @@ function Reply({ message }: { message: Message }) {
             style={styles.draftOffer}
           >
             <View style={styles.draftIcon}>
-              <FilePenLine color={colors.noir} size={18} />
+              <FilePenLine color={colors.onPrimary} size={18} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={text.subheading}>Draft it with AI</Text>
@@ -405,7 +400,7 @@ function SourceCard({ source }: { source: ChatSource }) {
       onPress={() => openSitePath(source.href, router.push)}
       style={({ pressed }) => [
         styles.source,
-        pressed && { borderColor: colors.noir },
+        pressed && { borderColor: colors.primary },
       ]}
     >
       <Text style={styles.sourceKind}>{source.kind}</Text>
@@ -438,7 +433,7 @@ const styles = StyleSheet.create({
     fontFamily: fonts.medium,
     fontSize: 12,
     lineHeight: 17,
-    color: colors.goldInk,
+    color: colors.goldText,
   },
   startOver: {
     flexDirection: "row",
@@ -448,19 +443,19 @@ const styles = StyleSheet.create({
     minHeight: 36,
     marginTop: 2,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
   },
   startOverText: {
     fontFamily: fonts.semibold,
     fontSize: 13,
-    color: colors.noir,
+    color: colors.primary,
   },
   log: { padding: space.lg, gap: space.lg, flexGrow: 1 },
   youRow: { alignItems: "flex-end" },
   you: {
     maxWidth: "85%",
-    backgroundColor: colors.noir,
-    color: colors.inkInverse,
+    backgroundColor: colors.primary,
+    color: colors.onPrimary,
     fontSize: 15,
     lineHeight: 22,
     paddingHorizontal: space.lg,
@@ -474,7 +469,7 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 11,
-    backgroundColor: colors.noir,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -488,7 +483,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.control + 2,
     padding: space.md,
     gap: 4,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   sourceKind: { ...text.eyebrow, fontSize: 10.5, color: colors.inkSubtle },
@@ -522,10 +517,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: space.md,
     borderRadius: radius.control + 2,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
-  link: { fontFamily: fonts.bold, color: colors.noir, fontSize: 15 },
+  link: { fontFamily: fonts.bold, color: colors.primary, fontSize: 15 },
   composer: {
     flexDirection: "row",
     alignItems: "flex-end",
@@ -544,20 +539,20 @@ const styles = StyleSheet.create({
     paddingBottom: 13,
     fontSize: 15.5,
     color: colors.ink,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   send: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: colors.noir,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
   stop: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderWidth: 1.5,
-    borderColor: colors.noir,
+    borderColor: colors.primary,
   },
 });

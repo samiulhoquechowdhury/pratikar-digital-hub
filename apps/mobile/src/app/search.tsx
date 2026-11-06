@@ -73,7 +73,7 @@ export default function SearchScreen() {
   }, [deferred, templates.data, library.data, courses.data]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+    <View style={{ flex: 1, backgroundColor: colors.card }}>
       <Stack.Screen options={{ title: "Search" }} />
       <View style={styles.box}>
         <Search color={colors.inkSubtle} size={20} />
@@ -130,7 +130,7 @@ export default function SearchScreen() {
                 }
                 style={styles.ask}
               >
-                <Sparkles color={colors.noir} size={18} />
+                <Sparkles color={colors.primary} size={18} />
                 <Text style={text.subheading}>Ask Pratikar AI</Text>
               </Pressable>
             </View>

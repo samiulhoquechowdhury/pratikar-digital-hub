@@ -122,7 +122,7 @@ export default function ClassroomScreen() {
             {m.videoCompleted ? (
               <Check color={colors.success} size={18} />
             ) : m.unlocked ? (
-              <Play color={colors.noir} size={18} />
+              <Play color={colors.primary} size={18} />
             ) : (
               <Lock color={colors.inkSubtle} size={18} />
             )}
@@ -165,7 +165,7 @@ function Lesson({
       {/* Cloudflare Stream isn't connected, so there's no player yet — as on
           the website, the lesson says so rather than showing a dead video. */}
       <View style={styles.stage}>
-        <Play color={colors.inkInverse} size={28} />
+        <Play color={colors.gold} size={28} />
         <Text style={styles.stageTitle}>
           {canWatch
             ? "Video hosting isn't connected yet"
@@ -276,20 +276,22 @@ const styles = StyleSheet.create({
   stage: {
     aspectRatio: 16 / 9,
     borderRadius: radius.card,
-    backgroundColor: colors.noir,
+    backgroundColor: colors.raised,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
     alignItems: "center",
     justifyContent: "center",
     padding: space.xl,
     gap: space.sm,
   },
   stageTitle: {
-    color: colors.inkInverse,
+    color: colors.ink,
     fontSize: 16,
     fontWeight: "700",
     textAlign: "center",
   },
   stageBody: {
-    color: colors.inkInverseMuted,
+    color: colors.inkMuted,
     fontSize: 13,
     textAlign: "center",
     lineHeight: 19,
@@ -298,7 +300,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   row: {

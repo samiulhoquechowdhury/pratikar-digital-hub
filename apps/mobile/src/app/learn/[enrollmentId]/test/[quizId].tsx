@@ -148,7 +148,7 @@ export default function QuizScreen() {
             lowTime && { backgroundColor: colors.dangerSubtle },
           ]}
         >
-          <Clock color={lowTime ? colors.danger : colors.noir} size={14} />
+          <Clock color={lowTime ? colors.danger : colors.primary} size={14} />
           <Text
             accessibilityLabel={`${quiz.secondsLeft ?? 0} seconds left`}
             style={[styles.timerText, lowTime && { color: colors.danger }]}
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   timerText: {
     fontWeight: "800",
-    color: colors.noir,
+    color: colors.primary,
     fontVariant: ["tabular-nums"],
   },
   question: { gap: space.sm },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     borderRadius: radius.control,
   },
-  optionOn: { borderColor: colors.noir, backgroundColor: colors.banner.sky },
+  optionOn: { borderColor: colors.primary, backgroundColor: colors.banner.sky },
   radio: {
     width: 20,
     height: 20,
@@ -241,7 +241,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.lineStrong,
   },
-  radioOn: { borderColor: colors.noir, borderWidth: 6 },
+  radioOn: { borderColor: colors.primary, borderWidth: 6 },
   score: {
     alignItems: "center",
     gap: space.sm,

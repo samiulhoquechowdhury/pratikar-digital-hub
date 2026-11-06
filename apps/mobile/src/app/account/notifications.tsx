@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     gap: 4,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   unread: { borderColor: colors.gold, backgroundColor: colors.banner.sand },

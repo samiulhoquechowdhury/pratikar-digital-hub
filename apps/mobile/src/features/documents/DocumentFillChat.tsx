@@ -114,7 +114,7 @@ export function DocumentFillChat({
   return (
     <View style={{ gap: space.lg }}>
       <View style={styles.caution}>
-        <Sparkles color={colors.goldInk} size={14} />
+        <Sparkles color={colors.goldText} size={14} />
         <Text style={[text.small, { flex: 1 }]}>
           AI can mishear. Every answer is listed below, and you'll check them
           all in the form before anything is generated.
@@ -160,7 +160,7 @@ export function DocumentFillChat({
           onPress={send}
           style={[styles.send, (!draft.trim() || thinking) && { opacity: 0.4 }]}
         >
-          <ArrowUp color={colors.inkInverse} size={20} />
+          <ArrowUp color={colors.onPrimary} size={20} />
         </Pressable>
       </View>
 
@@ -222,8 +222,8 @@ const styles = StyleSheet.create({
   user: {
     alignSelf: "flex-end",
     maxWidth: "85%",
-    backgroundColor: colors.noir,
-    color: colors.inkInverse,
+    backgroundColor: colors.primary,
+    color: colors.onPrimary,
     fontSize: 15,
     lineHeight: 22,
     paddingHorizontal: space.lg,
@@ -249,7 +249,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: colors.noir,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   answerRow: { flexDirection: "row", gap: space.sm, alignItems: "flex-start" },

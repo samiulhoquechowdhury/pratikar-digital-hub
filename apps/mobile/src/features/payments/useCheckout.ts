@@ -164,7 +164,7 @@ export function useCheckout(onPaid?: () => void) {
           currency: "INR",
           name: "Pratikar Digital Hub",
           description,
-          theme: { color: colors.noir },
+          theme: { color: colors.primary },
         });
         awaitConfirmation(order.id);
       } catch (cause) {

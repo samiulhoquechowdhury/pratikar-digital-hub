@@ -126,7 +126,7 @@ function OrderRow({ order }: { order: CustomerOrder }) {
         <Button
           label="Invoice"
           variant="secondary"
-          icon={<FileDown color={colors.noir} size={18} />}
+          icon={<FileDown color={colors.primary} size={18} />}
           loading={busy}
           onPress={() => void invoice()}
           style={{ alignSelf: "flex-start", minHeight: 40 }}
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     gap: space.sm,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   amount: { fontSize: 16, fontWeight: "800", color: colors.ink },

@@ -165,7 +165,7 @@ function ComingSoon() {
             {WHAT_TO_EXPECT.map((item) => (
               <View key={item.title} style={styles.expect}>
                 <View style={styles.icon}>
-                  <item.icon color={colors.noir} size={20} />
+                  <item.icon color={colors.primary} size={20} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={text.subheading}>{item.title}</Text>
@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
   course: {
     padding: space.md,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
     gap: 2,
   },

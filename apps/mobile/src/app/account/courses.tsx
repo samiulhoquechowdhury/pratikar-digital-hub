@@ -63,7 +63,7 @@ export default function MyCoursesScreen() {
                 }
                 style={({ pressed }) => [
                   styles.row,
-                  pressed && { backgroundColor: colors.ivory },
+                  pressed && { backgroundColor: colors.raised },
                 ]}
               >
                 <View style={{ flex: 1, gap: space.xs }}>
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
 });

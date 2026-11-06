@@ -156,7 +156,7 @@ export default function CustomDraftScreen() {
           {STEPS.map((step) => (
             <View key={step.title} style={styles.step}>
               <View style={styles.stepIcon}>
-                <step.icon color={colors.noir} size={18} />
+                <step.icon color={colors.primary} size={18} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={text.subheading}>{step.title}</Text>
@@ -235,7 +235,7 @@ export default function CustomDraftScreen() {
         ) : (
           <Button
             label={submitting ? "Starting your draft…" : "Draft my document"}
-            icon={<FilePenLine color={colors.inkInverse} size={18} />}
+            icon={<FilePenLine color={colors.onPrimary} size={18} />}
             disabled={!canSubmit || unavailable}
             loading={submitting}
             onPress={() => void submit()}
@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   kind: {
     fontSize: 12,
     fontWeight: "700",
-    color: colors.goldInk,
+    color: colors.goldText,
     textTransform: "uppercase",
     letterSpacing: 0.6,
   },
@@ -259,7 +259,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   step: { flexDirection: "row", gap: space.md },

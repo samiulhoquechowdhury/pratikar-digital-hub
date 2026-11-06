@@ -58,10 +58,10 @@ export default function MyLibraryScreen() {
               }
               style={({ pressed }) => [
                 styles.row,
-                pressed && { backgroundColor: colors.ivory },
+                pressed && { backgroundColor: colors.raised },
               ]}
             >
-              <Download color={colors.noir} size={20} />
+              <Download color={colors.primary} size={20} />
               <Text style={[text.subheading, { flex: 1 }]}>{item.title}</Text>
               <ChevronRight color={colors.inkSubtle} size={18} />
             </Pressable>
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
 });

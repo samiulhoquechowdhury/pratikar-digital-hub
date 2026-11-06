@@ -102,11 +102,11 @@ export default function MyDocumentsScreen() {
                 }
                 style={({ pressed }) => [
                   styles.row,
-                  pressed && { backgroundColor: colors.ivory },
+                  pressed && { backgroundColor: colors.raised },
                 ]}
               >
                 <View style={styles.icon}>
-                  <Icon color={colors.noir} size={20} />
+                  <Icon color={colors.primary} size={20} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={text.subheading} numberOfLines={2}>
@@ -135,7 +135,7 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   icon: {

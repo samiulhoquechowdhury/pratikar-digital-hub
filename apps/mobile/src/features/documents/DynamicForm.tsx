@@ -185,12 +185,14 @@ function SelectField({
 }
 
 /** The native picker, loaded only on a phone — it has no browser version. */
+// Loaded only off the web, where the native picker exists.
+/* eslint-disable @typescript-eslint/no-require-imports */
 const NativeDatePicker = IS_WEB
   ? () => null
-  : // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded only off the web
-    (
+  : (
       require("@react-native-community/datetimepicker") as typeof import("@react-native-community/datetimepicker")
     ).default;
+/* eslint-enable @typescript-eslint/no-require-imports */
 
 function DateField({
   label,

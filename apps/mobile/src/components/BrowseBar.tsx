@@ -112,7 +112,7 @@ export function BrowseBar({
             ]}
           >
             <SlidersHorizontal
-              color={badge > 0 ? colors.inkInverse : colors.noir}
+              color={badge > 0 ? colors.onPrimary : colors.primary}
               size={20}
             />
             {badge > 0 ? (
@@ -181,7 +181,7 @@ export function BrowseBar({
               style={styles.applied}
             >
               <Text style={styles.appliedText}>{option.label}</Text>
-              <X color={colors.goldInk} size={14} />
+              <X color={colors.goldText} size={14} />
             </Pressable>
           ))}
         </ScrollView>
@@ -262,7 +262,7 @@ export function BrowseBar({
                   >
                     <Text style={[text.body, { flex: 1 }]}>{option.label}</Text>
                     {sort === option.value ? (
-                      <Check color={colors.noir} size={20} />
+                      <Check color={colors.primary} size={20} />
                     ) : null}
                   </Pressable>
                 ))}
@@ -306,7 +306,7 @@ const styles = StyleSheet.create({
     minHeight: 48,
     paddingHorizontal: space.md + 2,
     borderRadius: radius.control + 2,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   input: { flex: 1, minHeight: 48, fontSize: 15, color: colors.ink },
@@ -316,10 +316,10 @@ const styles = StyleSheet.create({
     borderRadius: radius.control + 2,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
-  filterButtonOn: { backgroundColor: colors.noir },
+  filterButtonOn: { backgroundColor: colors.primary },
   badge: {
     position: "absolute",
     top: -4,
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     backgroundColor: colors.gold,
   },
-  badgeText: { fontFamily: fonts.bold, fontSize: 11, color: colors.noir },
+  badgeText: { fontFamily: fonts.bold, fontSize: 11, color: colors.onPrimary },
   chips: { gap: space.sm, paddingHorizontal: space.lg },
   applied: {
     flexDirection: "row",
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
   appliedText: {
     fontFamily: fonts.semibold,
     fontSize: 13,
-    color: colors.goldInk,
+    color: colors.goldText,
   },
   count: {
     paddingHorizontal: space.lg,
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     maxHeight: "78%",
     paddingHorizontal: space.xl,
     paddingTop: space.md,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
   },
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginBottom: space.lg,
   },
-  clear: { fontFamily: fonts.bold, fontSize: 14, color: colors.noirRaised },
+  clear: { fontFamily: fonts.bold, fontSize: 14, color: colors.link },
   groupTitle: { ...text.subheading, marginBottom: space.xs },
   wrap: { flexDirection: "row", flexWrap: "wrap", gap: space.sm },
   sortRow: {

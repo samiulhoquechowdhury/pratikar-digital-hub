@@ -106,7 +106,7 @@ export default function DocumentScreen() {
           {d.brief ? <RequestSummary brief={d.brief} /> : null}
           <Button
             label="Edit and try again"
-            icon={<FilePenLine color={colors.inkInverse} size={18} />}
+            icon={<FilePenLine color={colors.onPrimary} size={18} />}
             onPress={() =>
               router.push({
                 pathname: "/documents/custom",
@@ -175,7 +175,7 @@ function Steps({ doc }: { doc: MyDocument }) {
                 done
                   ? colors.success
                   : isCurrent
-                    ? colors.goldInk
+                    ? colors.goldText
                     : colors.inkSubtle
               }
               size={16}
@@ -205,7 +205,7 @@ function Drafting({
   return (
     <View style={{ gap: space.md }}>
       <View style={styles.drafting} accessibilityLiveRegion="polite">
-        <ActivityIndicator color={colors.noir} />
+        <ActivityIndicator color={colors.primary} />
         <Text style={text.subheading}>
           {revising ? "Making your changes…" : "Drafting your document…"}
         </Text>
@@ -387,7 +387,7 @@ function ReviewPanel({
         ) : null}
         <Button
           label={downloading ? "Preparing…" : "Download reviewed document"}
-          icon={<Download color={colors.inkInverse} size={18} />}
+          icon={<Download color={colors.onPrimary} size={18} />}
           loading={downloading}
           onPress={() => void download()}
         />
@@ -471,7 +471,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: space.sm,
     borderRadius: radius.control,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   stepOn: { borderColor: colors.gold, backgroundColor: colors.banner.sand },
@@ -481,14 +481,14 @@ const styles = StyleSheet.create({
     gap: space.md,
     padding: space.xl,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   panel: {
     gap: space.md,
     padding: space.lg,
     borderRadius: radius.card,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.card,
     ...shadow,
   },
   eyebrow: {

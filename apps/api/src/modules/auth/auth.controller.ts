@@ -1,5 +1,6 @@
 import { Body, Controller, HttpCode, Post, Req, Res } from "@nestjs/common";
 import { Throttle } from "@nestjs/throttler";
+import type { OtpRequestResult } from "@pratikar/types";
 import type { Request, Response } from "express";
 
 import { AuthService } from "./auth.service";
@@ -71,8 +72,8 @@ export class AuthController {
   async requestOtp(
     @Body() dto: OtpRequestDto,
     @Req() req: Request,
-  ): Promise<void> {
-    await this.authService.requestOtp(dto, req.ip);
+  ): Promise<OtpRequestResult> {
+    return this.authService.requestOtp(dto, req.ip);
   }
 
   @Throttle({ default: { limit: 10, ttl: 60_000 } })
